@@ -160,7 +160,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       if(capturedFps&&capturedFps<50)console.warn(`A fonte de captura iniciou em ${capturedFps} FPS apesar da solicitação de 60 FPS.`);
       try{video.contentHint="motion";}catch{}
       streamRef.current=stream;screenAudioMutedRef.current=false;setMuted(false);showVideo(video);
-      video.addEventListener("ended",()=>void stopScreen(),{once:true});
+      video.addEventListener("ended",()=>{if(streamRef.current?.getVideoTracks()[0]===video)void stopScreen();},{once:true});
       try{await publishAgora(auth,stream);}
       catch(cause){
         console.error("Agora screen publish error",cause);
@@ -173,21 +173,102 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   },[fallback,publishAgora,showVideo,stopScreen,updateState]);
   const updateScreenFrameRate=useCallback(async(nextFps:FrameRate)=>{
     screenConfigRef.current={...screenConfigRef.current,fps:nextFps};
-    const source=streamRef.current?.getVideoTracks().find(valid);
+    let source=streamRef.current?.getVideoTracks().find(valid);
     if(!source)return;
-    try{source.contentHint="motion";}catch{}
+
+    // Keep the capture source at 60 whenever possible. Agora can then switch
+    // 30 <-> 60 only at the encoder without restarting the room or publisher.
+    if(nextFps===60){
+      try{
+        await source.applyConstraints({frameRate:{ideal:60,max:60}});
+        try{source.contentHint="motion";}catch{}
+      }catch(cause){console.warn("Display FPS upgrade constraint failed",cause);}
+
+      let captured=source.getSettings().frameRate;
+      if(!captured||captured<50){
+        const previousStream=streamRef.current;
+        const previousAudio=previousStream?.getAudioTracks().filter(valid)||[];
+        let freshStream:MediaStream;
+        try{
+          // This runs directly from the user's 60 FPS click. The old 30 FPS
+          // publication stays live while the browser asks for the screen again.
+          freshStream=await navigator.mediaDevices.getDisplayMedia(displayConstraints(screenConfigRef.current.quality,60));
+        }catch(cause){
+          console.warn("60 FPS screen refresh cancelled or failed",cause);
+          setError((cause as DOMException).name==="NotAllowedError"
+            ?"A transmissão continuou em 30 FPS porque a nova captura foi cancelada."
+            :"Não foi possível atualizar a captura para 60 FPS; a transmissão atual foi mantida.");
+          return;
+        }
+
+        const freshVideo=freshStream.getVideoTracks().find(valid);
+        // We only need a new video source. Keep the already-published screen
+        // audio untouched so mute state and audio continuity are preserved.
+        freshStream.getAudioTracks().forEach(track=>track.stop());
+        if(!freshVideo){
+          freshStream.getTracks().forEach(track=>track.stop());
+          setError("A nova captura não forneceu vídeo ativo; a transmissão atual foi mantida.");
+          return;
+        }
+        try{freshVideo.contentHint="motion";}catch{}
+
+        try{
+          if(stateRef.current.screenProvider==="agora"){
+            const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
+            if(!videoTrack)throw new Error("Track de vídeo Agora indisponível.");
+            // Agora supports replacing a published MediaStreamTrack in-place,
+            // so viewers stay in the same live publication.
+            await videoTrack.replaceTrack(freshVideo,false);
+          }else{
+            const room=livekitRef.current;
+            if(!room)throw new Error("LiveKit indisponível.");
+            await room.localParticipant.unpublishTrack(source,false);
+            try{
+              await room.localParticipant.publishTrack(freshVideo,{source:Track.Source.ScreenShare});
+            }catch(cause){
+              // Roll back to the previous source if publishing the replacement fails.
+              await room.localParticipant.publishTrack(source,{source:Track.Source.ScreenShare}).catch(()=>undefined);
+              throw cause;
+            }
+            screenLivekitTracksRef.current=screenLivekitTracksRef.current.map(track=>track===source?freshVideo:track);
+            if(!screenLivekitTracksRef.current.includes(freshVideo))screenLivekitTracksRef.current.unshift(freshVideo);
+          }
+
+          const merged=new MediaStream([freshVideo,...previousAudio]);
+          streamRef.current=merged;
+          showVideo(freshVideo);
+          freshVideo.addEventListener("ended",()=>{if(streamRef.current?.getVideoTracks()[0]===freshVideo)void stopScreen();},{once:true});
+          source.stop();
+          source=freshVideo;
+          captured=freshVideo.getSettings().frameRate;
+        }catch(cause){
+          console.error("Live screen source replacement failed",cause);
+          freshVideo.stop();
+          setError("Não foi possível trocar a fonte para 60 FPS; a transmissão atual foi mantida.");
+          return;
+        }
+      }
+    }else if(stateRef.current.screenProvider==="livekit"){
+      // LiveKit publishes the raw screen track, so 30 FPS must be applied to
+      // the source itself. Agora keeps a 60 FPS source and limits only encoder output.
+      try{await source.applyConstraints({frameRate:{ideal:30,max:30}});}
+      catch(cause){console.warn("LiveKit 30 FPS constraint failed",cause);}
+    }
+
     if(stateRef.current.screenProvider==="agora"){
       const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
       if(videoTrack){
-        const quality=screenConfigRef.current.quality,settings=source.getSettings(),width=settings.width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(nextFps===60?6000:3200):quality==="720p"?(nextFps===60?4500:2200):(nextFps===60?5000:3000);
+        const quality=screenConfigRef.current.quality,settings=source.getSettings(),width=settings.width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(nextFps===60?5000:3000):quality==="720p"?(nextFps===60?3000:2000):(nextFps===60?3500:2500);
         try{await videoTrack.setEncoderConfiguration({width,height,frameRate:nextFps,bitrateMax});}
         catch(cause){console.warn("Agora live FPS update failed",cause);}
       }
     }
+
     const actual=source.getSettings().frameRate;
     console.info("LumaCast live FPS update",{requestedFps:nextFps,captureSourceFps:actual,provider:stateRef.current.screenProvider});
-    if(nextFps===60&&actual&&actual<50)setError(`A captura desta transmissão foi aberta em ${Math.round(actual)} FPS. Pare e inicie uma vez após esta atualização para habilitar a fonte de 60 FPS.`);
-  },[]);
+    if(nextFps===60&&actual&&actual<50)setError(`O navegador manteve a captura em ${Math.round(actual)} FPS mesmo após a atualização para 60 FPS.`);
+    else setError("");
+  },[showVideo,stopScreen]);
   const toggleCamera=useCallback(async()=>{
     try{
       const room=await ensureLivekit();
