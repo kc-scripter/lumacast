@@ -301,10 +301,10 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       if(owner){
         const saved=sessionStorage.getItem("lumacast-broadcaster");
         if(saved){
-          try{const parsed=JSON.parse(saved) as {roomId:string;token:string};socket.emit("reclaim-room",parsed,(ack:RoomAck)=>ack.ok?apply(ack):socket.emit("create-room",(fresh:RoomAck)=>apply(fresh)));}
-          catch{socket.emit("create-room",(ack:RoomAck)=>apply(ack));}
-        }else socket.emit("create-room",(ack:RoomAck)=>apply(ack));
-      }else socket.emit("join-room",{roomId:requestedRoomId,participantToken:sessionStorage.getItem(`lumacast-participant-${requestedRoomId}`)},(ack:JoinAck)=>apply(ack));
+          try{const parsed=JSON.parse(saved) as {roomId:string;token:string};socket.emit("reclaim-room",parsed,(ack:RoomAck)=>ack.ok?apply(ack):socket.emit("create-room",{displayName:sessionStorage.getItem("lumacast-display-name")},(fresh:RoomAck)=>apply(fresh)));}
+          catch{socket.emit("create-room",{displayName:sessionStorage.getItem("lumacast-display-name")},(ack:RoomAck)=>apply(ack));}
+        }else socket.emit("create-room",{displayName:sessionStorage.getItem("lumacast-display-name")},(ack:RoomAck)=>apply(ack));
+      }else socket.emit("join-room",{roomId:requestedRoomId,participantToken:sessionStorage.getItem(`lumacast-participant-${requestedRoomId}`),displayName:sessionStorage.getItem("lumacast-display-name")},(ack:JoinAck)=>apply(ack));
     };
     const onState=(next:RoomState)=>{
       const previous=stateRef.current;updateState(next);

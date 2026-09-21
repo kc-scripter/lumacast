@@ -1,6 +1,8 @@
 import { randomBytes } from "node:crypto";
 const ROOM_RE = /^[A-Z2-9]{8}$/;
 export const validRoomId = (value) => typeof value === "string" && ROOM_RE.test(value);
+export const normalizeDisplayName = (value) => { if (typeof value !== "string" || /[\u0000-\u001f\u007f]/.test(value))
+    return null; const name = value.trim().replace(/\s+/g, " "); return name.length >= 2 && name.length <= 20 ? name : null; };
 export const newSecret = () => randomBytes(32).toString("base64url");
 export class RoomStore {
     rooms = new Map();
@@ -9,7 +11,9 @@ export class RoomStore {
         const bytes = randomBytes(8);
         id = Array.from(bytes, b => this.alphabet[b % this.alphabet.length]).join("");
     } while (this.rooms.has(id)); return id; }
-    create(id, ownerId, ownerUid) { const room = { id, ownerId, ownerUid, ownerToken: newSecret(), ownerLivekitActive: false, participants: new Map(), activeScreenSharerId: null, activeScreenUid: null, screenProvider: "agora", live: false }; this.rooms.set(id, room); return room; }
+    create(id, ownerId, ownerName, ownerUid) { const room = { id, ownerId, ownerName, ownerUid, ownerToken: newSecret(), ownerLivekitActive: false, participants: new Map(), activeScreenSharerId: null, activeScreenUid: null, screenProvider: "agora", live: false }; this.rooms.set(id, room); return room; }
+    nameFor(room, name, except) { const taken = [room.ownerId === except ? "" : room.ownerName, ...[...room.participants.values()].filter(p => p.socketId !== except).map(p => p.displayName)].map(value => value.toLocaleLowerCase()); let result = name, index = 2; while (taken.includes(result.toLocaleLowerCase()))
+        result = `${name} (${index++})`; return result; }
     get(id) { return this.rooms.get(id); }
     findByOwner(id) { return [...this.rooms.values()].find(room => room.ownerId === id); }
     findByParticipant(id) { return [...this.rooms.values()].find(room => room.participants.has(id)); }
