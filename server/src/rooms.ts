@@ -1,14 +1,14 @@
 import { randomBytes } from "node:crypto";
 
-export type Room = { id:string; broadcasterId:string; token:string; viewers:Set<string>; live:boolean; disconnectTimer?:NodeJS.Timeout };
+export type Room = { id:string; broadcasterId:string; token:string; dailyRoomName:string; dailyRoomUrl:string; viewers:Set<string>; live:boolean; disconnectTimer?:NodeJS.Timeout };
 const ROOM_RE=/^[A-Z2-9]{8}$/;
 export const validRoomId=(value:unknown):value is string=>typeof value==="string"&&ROOM_RE.test(value);
 
 export class RoomStore {
   private rooms=new Map<string,Room>();
   private alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  private roomId(){let id="";do{const bytes=randomBytes(8);id=Array.from(bytes,b=>this.alphabet[b%this.alphabet.length]).join("");}while(this.rooms.has(id));return id;}
-  create(broadcasterId:string){const room:Room={id:this.roomId(),broadcasterId,token:randomBytes(32).toString("base64url"),viewers:new Set(),live:false};this.rooms.set(room.id,room);return room;}
+  newId(){let id="";do{const bytes=randomBytes(8);id=Array.from(bytes,b=>this.alphabet[b%this.alphabet.length]).join("");}while(this.rooms.has(id));return id;}
+  create(id:string,broadcasterId:string,dailyRoomName:string,dailyRoomUrl:string){const room:Room={id,broadcasterId,token:randomBytes(32).toString("base64url"),dailyRoomName,dailyRoomUrl,viewers:new Set(),live:false};this.rooms.set(room.id,room);return room;}
   get(id:string){return this.rooms.get(id);}
   findByBroadcaster(socketId:string){return [...this.rooms.values()].find(r=>r.broadcasterId===socketId);}
   findByViewer(socketId:string){return [...this.rooms.values()].find(r=>r.viewers.has(socketId));}
