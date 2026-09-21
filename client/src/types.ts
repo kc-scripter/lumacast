@@ -6,6 +6,7 @@ export interface StreamStats { resolution:string; fps:number|null; captureFps?:n
 export interface AgoraCredentials { agoraAppId:string; agoraChannel:string; agoraUid:number; agoraToken:string; }
 export interface TokenAck { ok:boolean; agoraToken?:string; error?:string; }
 export type ScreenProvider="agora"|"livekit";
-export interface RoomState {live:boolean;count:number;activeScreenSharerId:string|null;activeScreenUid:number|null;screenProvider:ScreenProvider;livekitActive:boolean;}
+export interface RoomParticipant { id:string; displayName:string; }
+export interface RoomState {live:boolean;count:number;activeScreenSharerId:string|null;activeScreenUid:number|null;activeScreenSharerName:string|null;screenProvider:ScreenProvider;livekitActive:boolean;ownerName:string;participants:RoomParticipant[];}
 export interface RoomAck extends Partial<AgoraCredentials>,Partial<RoomState> { ok:boolean; roomId?:string; ownerToken?:string; broadcasterToken?:string; participantToken?:string; error?:string; viewers?:number; }
 export interface JoinAck extends Partial<AgoraCredentials>,Partial<RoomState> { ok:boolean; participantToken?:string; error?:string; }

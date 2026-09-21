@@ -8,7 +8,7 @@ import type { AgoraCredentials,CameraPreset,FrameRate,JoinAck,Quality,RoomAck,Ro
 type Camera={identity:string;track:MediaStreamTrack;local:boolean};
 type ScreenAck=RoomAck&{error?:string};
 type LiveKitAck={ok:boolean;livekitUrl?:string;livekitToken?:string;error?:string};
-const initial:RoomState={live:false,count:0,activeScreenSharerId:null,activeScreenUid:null,screenProvider:"agora",livekitActive:false};
+const initial:RoomState={live:false,count:0,activeScreenSharerId:null,activeScreenUid:null,activeScreenSharerName:null,screenProvider:"agora",livekitActive:false,ownerName:"",participants:[]};
 const valid=(track?:MediaStreamTrack|null):track is MediaStreamTrack=>!!track&&track.readyState==="live";
 const emitAck=<T,>(event:string,payload:object)=>new Promise<T>((resolve,reject)=>connectSocket().timeout(12_000).emit(event,payload,(error:Error|null,ack:T)=>error?reject(error):resolve(ack)));
 
@@ -281,7 +281,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       }
       const next:AgoraCredentials={agoraAppId:ack.agoraAppId,agoraChannel:ack.agoraChannel,agoraUid:ack.agoraUid,agoraToken:ack.agoraToken};
       credentialsRef.current=next;setCredentials(next);
-      updateState({live:!!ack.live,count:ack.count||0,activeScreenSharerId:ack.activeScreenSharerId||null,activeScreenUid:ack.activeScreenUid??null,screenProvider:ack.screenProvider||"agora",livekitActive:!!ack.livekitActive});
+      updateState({live:!!ack.live,count:ack.count||0,activeScreenSharerId:ack.activeScreenSharerId||null,activeScreenUid:ack.activeScreenUid??null,activeScreenSharerName:ack.activeScreenSharerName||null,screenProvider:ack.screenProvider||"agora",livekitActive:!!ack.livekitActive,ownerName:ack.ownerName||"",participants:ack.participants||[]});
       if("roomId" in ack&&ack.roomId){roomIdRef.current=ack.roomId;setRoomId(ack.roomId);}
       if("ownerToken" in ack&&ack.ownerToken)sessionStorage.setItem("lumacast-broadcaster",JSON.stringify({roomId:roomIdRef.current,token:ack.ownerToken}));
       if("participantToken" in ack&&ack.participantToken)sessionStorage.setItem(`lumacast-participant-${roomIdRef.current}`,ack.participantToken);
