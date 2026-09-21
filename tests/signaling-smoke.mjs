@@ -1,0 +1,17 @@
+import { io } from "socket.io-client";
+import assert from "node:assert/strict";
+const url="http://localhost:3001";
+const once=(socket,event,timeout=3000)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error(`Timeout: ${event}`)),timeout);socket.once(event,data=>{clearTimeout(timer);resolve(data);});});
+const ack=(socket,event,data)=>new Promise(resolve=>data===undefined?socket.emit(event,resolve):socket.emit(event,data,resolve));
+const connect=()=>new Promise(resolve=>{const socket=io(url,{forceNew:true,transports:["websocket"]});socket.once("connect",()=>resolve(socket));});
+const broadcaster=await connect();
+const created=await ack(broadcaster,"create-room");assert.equal(created.ok,true);assert.match(created.roomId,/^[A-Z2-9]{8}$/);assert.ok(created.broadcasterToken);
+const viewer1=await connect(),viewer2=await connect();
+const joined1=once(broadcaster,"viewer-joined");assert.equal((await ack(viewer1,"join-room",{roomId:created.roomId})).ok,true);const event1=await joined1;assert.equal(event1.viewerId,viewer1.id);assert.equal(event1.count,1);
+const joined2=once(broadcaster,"viewer-joined");assert.equal((await ack(viewer2,"join-room",{roomId:created.roomId})).ok,true);const event2=await joined2;assert.equal(event2.viewerId,viewer2.id);assert.equal(event2.count,2);
+const offer1=once(viewer1,"offer");broadcaster.emit("offer",{roomId:created.roomId,viewerId:viewer1.id,sdp:{type:"offer",sdp:"viewer-one"}});assert.equal((await offer1).sdp.sdp,"viewer-one");
+const answer1=once(broadcaster,"answer");viewer1.emit("answer",{roomId:created.roomId,viewerId:viewer1.id,sdp:{type:"answer",sdp:"answer-one"}});assert.equal((await answer1).viewerId,viewer1.id);
+const live1=once(viewer1,"broadcast-started"),live2=once(viewer2,"broadcast-started");broadcaster.emit("broadcast-started",{roomId:created.roomId});await Promise.all([live1,live2]);
+const left=once(broadcaster,"viewer-left");viewer1.disconnect();assert.equal((await left).count,1);
+const ended=once(viewer2,"broadcast-ended");broadcaster.emit("broadcast-ended",{roomId:created.roomId});await ended;
+broadcaster.disconnect();viewer2.disconnect();console.log(JSON.stringify({ok:true,roomId:created.roomId,multiViewer:true,targetedOffer:true,answerRouting:true,disconnectCleanup:true}));
