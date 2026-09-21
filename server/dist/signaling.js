@@ -121,7 +121,7 @@ export function registerSignaling(io) {
         socket.on("get-livekit-token", async (input, ack) => { if (!allowed(socket))
             return reply(ack, { ok: false, error: "Muitas tentativas." }); const room = member(input); if (!room)
             return reply(ack, { ok: false, error: "Participante não autorizado." }); try {
-            const screen = room.activeScreenSharerId === socket.id && room.screenProvider === "livekit", token = await createLiveKitToken(room.id, socket.id, screen);
+            const screen = room.activeScreenSharerId === socket.id, token = await createLiveKitToken(room.id, socket.id, screen);
             reply(ack, { ok: true, livekitUrl: process.env.LIVEKIT_URL, livekitToken: token });
         }
         catch (error) {

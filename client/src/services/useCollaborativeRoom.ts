@@ -216,7 +216,10 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         catch(cause){console.warn("Display capture 60 FPS applyConstraints failed",cause);}
       }
       const capturedFps=video.getSettings().frameRate;
-      if(capturedFps&&capturedFps<50)console.warn(`A fonte de captura permaneceu em ${capturedFps} FPS após solicitar 60 FPS.`);
+      if(capturedFps&&capturedFps<50){
+        console.warn(`A fonte de captura permaneceu em ${capturedFps} FPS após solicitar 60 FPS.`);
+        if(fps===60)setError(`O navegador entregou a captura a ${Math.round(capturedFps)} FPS, mesmo com 60 FPS selecionado.`);
+      }
       try{video.contentHint="motion";}catch{}
       streamRef.current=stream;screenAudioMutedRef.current=false;setMuted(false);setLocalScreenActive(true);showVideo(video);
       video.addEventListener("ended",()=>{if(streamRef.current?.getVideoTracks()[0]===video)void stopScreen();},{once:true});
@@ -282,6 +285,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         cameraRef.current=track;
         putCamera({identity:socketIdRef.current,track,local:true});
         setCameraOn(true);
+        track.addEventListener("ended",()=>{if(cameraRef.current===track){cameraRef.current=null;removeCamera(socketIdRef.current);setCameraOn(false);connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:screenLivekitTracksRef.current.some(item=>item.kind==="audio"&&valid(item))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});}},{once:true});
       }
       connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:!cameraOn||screenLivekitTracksRef.current.some(track=>track.kind==="audio"&&valid(track))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});
     }catch(cause){console.error("LiveKit camera error",cause);setError("Não foi possível ativar a câmera.");}
