@@ -1,20 +1,22 @@
 import { randomBytes } from "node:crypto";
 
-export type Room = { id:string; broadcasterId:string; broadcasterUid:number; token:string; viewers:Map<string,number>; live:boolean; disconnectTimer?:NodeJS.Timeout };
+export type ScreenProvider="agora"|"livekit";
+export type Participant={socketId:string;agoraUid:number;token:string;livekitActive:boolean;disconnectTimer?:NodeJS.Timeout};
+export type Room={id:string;ownerId:string;ownerUid:number;ownerToken:string;ownerLivekitActive:boolean;participants:Map<string,Participant>;activeScreenSharerId:string|null;activeScreenUid:number|null;screenProvider:ScreenProvider;live:boolean;ownerDisconnectTimer?:NodeJS.Timeout;screenDisconnectTimer?:NodeJS.Timeout};
 const ROOM_RE=/^[A-Z2-9]{8}$/;
 export const validRoomId=(value:unknown):value is string=>typeof value==="string"&&ROOM_RE.test(value);
-
-export class RoomStore {
+export const newSecret=()=>randomBytes(32).toString("base64url");
+export class RoomStore{
   private rooms=new Map<string,Room>();
   private alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   newId(){let id="";do{const bytes=randomBytes(8);id=Array.from(bytes,b=>this.alphabet[b%this.alphabet.length]).join("");}while(this.rooms.has(id));return id;}
-  create(id:string,broadcasterId:string,broadcasterUid:number){const room:Room={id,broadcasterId,broadcasterUid,token:randomBytes(32).toString("base64url"),viewers:new Map(),live:false};this.rooms.set(room.id,room);return room;}
+  create(id:string,ownerId:string,ownerUid:number){const room:Room={id,ownerId,ownerUid,ownerToken:newSecret(),ownerLivekitActive:false,participants:new Map(),activeScreenSharerId:null,activeScreenUid:null,screenProvider:"agora",live:false};this.rooms.set(id,room);return room;}
   get(id:string){return this.rooms.get(id);}
-  findByBroadcaster(socketId:string){return [...this.rooms.values()].find(r=>r.broadcasterId===socketId);}
-  findByViewer(socketId:string){return [...this.rooms.values()].find(r=>r.viewers.has(socketId));}
-  isBroadcaster(id:string,socketId:string){return this.rooms.get(id)?.broadcasterId===socketId;}
-  reclaim(id:string,token:string,newSocketId:string){const room=this.rooms.get(id);if(!room||room.token!==token)return null;if(room.disconnectTimer)clearTimeout(room.disconnectTimer);room.disconnectTimer=undefined;room.broadcasterId=newSocketId;return room;}
-  scheduleBroadcasterRemoval(id:string,onExpired:(room:Room)=>void){const room=this.rooms.get(id);if(!room)return;room.disconnectTimer=setTimeout(()=>{if(this.rooms.get(id)===room){this.rooms.delete(id);onExpired(room);}},30_000);}
-  delete(id:string){const room=this.rooms.get(id);if(room?.disconnectTimer)clearTimeout(room.disconnectTimer);this.rooms.delete(id);}
+  findByOwner(id:string){return [...this.rooms.values()].find(room=>room.ownerId===id);}
+  findByParticipant(id:string){return [...this.rooms.values()].find(room=>room.participants.has(id));}
+  isMember(room:Room,id:string){return room.ownerId===id||room.participants.has(id);}
+  getUid(room:Room,id:string){return room.ownerId===id?room.ownerUid:room.participants.get(id)?.agoraUid;}
+  reclaim(room:Room,token:string,id:string){if(room.ownerToken!==token)return false;if(room.ownerDisconnectTimer)clearTimeout(room.ownerDisconnectTimer);room.ownerDisconnectTimer=undefined;const old=room.ownerId;room.ownerId=id;if(room.activeScreenSharerId===old){if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);room.screenDisconnectTimer=undefined;room.activeScreenSharerId=id;}return true;}
+  remove(id:string){const room=this.rooms.get(id);if(!room)return;if(room.ownerDisconnectTimer)clearTimeout(room.ownerDisconnectTimer);if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);for(const participant of room.participants.values())if(participant.disconnectTimer)clearTimeout(participant.disconnectTimer);this.rooms.delete(id);}
   count(){return this.rooms.size;}
 }

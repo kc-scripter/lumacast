@@ -1,0 +1,29 @@
+/* Collaborative media controls */
+.collaborative-layout{position:relative;display:flex;gap:18px;align-items:stretch}
+.collaborative-layout .studio-stage,.collaborative-layout .watch-main{flex:1;min-width:0}
+.participants-sidebar{width:68px;flex:none;min-height:200px;border:1px solid #ffffff14;border-radius:18px;background:#101119;padding:12px;transition:width 280ms cubic-bezier(.16,1,.3,1);overflow:hidden;z-index:4}
+.participants-sidebar.open{width:280px}
+.participants-toggle{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid #ffffff1c;border-radius:10px;color:#b7a9ff;background:#ffffff0a;cursor:pointer}
+.participants-toggle svg,.participants-heading svg{width:19px;height:19px}
+.participants-heading{display:flex;align-items:center;gap:10px;margin:17px 0;color:#e8e5f4;font-size:13px}
+.participants-list{display:flex;flex-direction:column;gap:12px}
+.camera-card{position:relative;display:block;width:100%;padding:0;border:1px solid #ffffff1c;border-radius:11px;background:#08090f;overflow:hidden;text-align:left;color:white;cursor:pointer}
+.camera-card video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.camera-card span{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:11px}
+.camera-card span svg{width:13px;height:13px;color:#fb8e9b}
+.participants-mini{display:flex;flex-direction:column;gap:7px}
+.participants-mini button{border:0;padding:0;background:none;cursor:pointer}
+.participants-mini video{width:40px;aspect-ratio:1;object-fit:cover;border-radius:8px}
+.camera-overlay{position:absolute;right:92px;bottom:28px;width:min(360px,38vw);aspect-ratio:16/9;z-index:12;border:1px solid #ffffff42;border-radius:14px;background:#07070c;overflow:hidden;box-shadow:0 20px 55px #000b;transition:width 280ms cubic-bezier(.16,1,.3,1)}
+.camera-overlay.large{width:min(40vw,680px)}
+.camera-overlay video{width:100%;height:100%;object-fit:cover}
+.camera-overlay>span{position:absolute;left:12px;bottom:10px;color:white;font-size:11px;text-shadow:0 1px 5px #000}
+.camera-overlay-actions{position:absolute;right:8px;top:8px;display:flex;gap:5px}
+.camera-overlay-actions button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:7px;background:#090a0fbb;color:white;cursor:pointer}
+.camera-overlay-actions svg{width:15px;height:15px}
+.collaborative-controls{margin-top:16px}
+.viewer-share-options{display:flex;gap:8px;align-items:center;margin-top:10px}
+.viewer-share-options select,.viewer-share-options button{padding:7px 9px;border:1px solid #ffffff1a;border-radius:7px;background:#161721;color:#cbc9d5;font-size:11px}
+.viewer-share-options .active{border-color:#8a66ee;color:#fff}
+.provider-switch{position:absolute;inset:auto 20px 20px auto;padding:8px 12px;border-radius:8px;background:#171420dd;color:white;font-size:12px}
+@media(max-width:700px){.collaborative-layout{display:block;padding-bottom:82px}.participants-sidebar,.participants-sidebar.open{position:fixed;bottom:0;left:0;right:0;width:100%;min-height:0;max-height:48vh;border-radius:16px 16px 0 0;overflow:auto;transition:max-height 280ms cubic-bezier(.16,1,.3,1)}.participants-sidebar:not(.open){height:66px;max-height:66px}.participants-heading{position:absolute;top:6px;left:64px;margin:12px}.participants-mini{display:none}.participants-list{padding-top:12px}.camera-card{max-width:280px}.camera-overlay,.camera-overlay.large{position:fixed;right:12px;bottom:78px;width:min(55vw,360px)}.collaborative-controls{flex-wrap:wrap}.viewer-share-options{flex-wrap:wrap}}
