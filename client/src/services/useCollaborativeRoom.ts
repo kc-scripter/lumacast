@@ -211,7 +211,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     if(!source||stateRef.current.screenProvider!=="agora")return;
     const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
     if(!videoTrack)return;
-    if(nextFps===60&&(!source.getSettings().frameRate||source.getSettings().frameRate!>=50)){
+    if(nextFps===60&&(!source.getSettings().frameRate||source.getSettings().frameRate!<50)){
       try{await source.applyConstraints({frameRate:{ideal:60,max:60}});}catch(cause){console.warn("Live capture 60 FPS applyConstraints failed",cause);}
     }
     const quality=screenConfigRef.current.quality,bitrateMax=quality==="1080p"?(nextFps===60?5000:3000):quality==="720p"?(nextFps===60?3000:2000):(nextFps===60?3500:2500);
