@@ -1,0 +1,75 @@
+/* Shared screen and cameras form one bounded, responsive call surface. */
+.room-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:10px;border:1px solid #30313f;border-radius:20px;background:#111219;box-shadow:0 20px 60px #0003;container-type:inline-size}
+.room-stage.with-cameras{grid-template-columns:minmax(0,1fr) clamp(150px,18vw,220px)}
+.room-stage-screen{min-width:0;display:grid;align-items:center;background:#08090d;border-radius:12px;overflow:hidden}
+.room-stage .room-stage-screen .broadcast-screen,.viewer-compact .watch-main .room-stage .video-stage{width:100%;max-height:none;aspect-ratio:16/9;margin:0;border:0;border-radius:12px}
+.room-stage .camera-dock{margin:0;border:0;background:transparent;min-width:0;max-height:clamp(260px,58vh,680px);display:flex;flex-direction:column}
+.room-stage .camera-dock-head{flex-shrink:0;padding:0 4px;height:32px}
+.room-stage .camera-dock-list{display:flex;flex-direction:column;overflow:auto;padding:4px;gap:10px;min-height:0}
+.room-stage .camera-dock-card{flex:0 0 auto;width:100%;border-radius:11px}
+.room-stage .camera-dock-card>span{height:30px;font-size:11px;background:#191a24}
+.room-stage .camera-dock-card video{aspect-ratio:16/10}
+.room-stage:has(.camera-dock.collapsed){grid-template-columns:minmax(0,1fr)}
+.room-stage .camera-dock.collapsed{grid-row:2}
+.room-stage .stage-placeholder,.room-stage .video-empty{padding:20px}
+.room-stage .stage-placeholder h2,.room-stage .video-empty h2{font-size:clamp(14px,1.3vw,18px)}
+.collaborative-controls{padding:12px;border:1px solid #292b38;border-radius:16px;background:#111219}
+@media(max-width:1100px){
+  .room-stage.with-cameras{grid-template-columns:minmax(0,1fr)}
+  .room-stage .camera-dock-list{flex-direction:row}
+  .room-stage .camera-dock-card{flex:0 0 156px;width:156px}
+}
+@media(max-width:720px){
+  .room-stage{padding:7px;border-radius:15px;gap:6px}
+  .room-stage .camera-dock-card{flex-basis:132px;width:132px}
+  .room-stage .camera-dock-head small{font-size:10px}
+  .video-controls{opacity:1}
+}
+
+/* Quiet backdrop, clear actions and an honest illustrative room preview. */
+.home-shell:before{opacity:.035;background-size:64px 64px}
+.home-content{width:51%;padding-right:24px}
+.home-content h1{font-size:clamp(42px,4.7vw,76px);line-height:1.08}
+.home-content .lede{font-size:17px;max-width:540px;color:#a9abba}
+.home-content .eyebrow{font-size:10px;letter-spacing:.16em}
+.home-content .action-grid{grid-template-columns:1fr;max-width:480px;gap:12px}
+.home-content .primary-card{min-height:76px;padding:16px 20px;border-radius:14px}
+.home-content .viewer-card{min-height:0;padding:17px 20px;border-radius:14px;background:#12131b}
+.home-content .viewer-copy form{height:42px}
+.home-content .benefit-row{flex-wrap:wrap;gap:12px 20px;max-width:510px;font-size:11px}
+.home-visual.product-preview{position:absolute;right:5vw;top:50%;transform:translateY(-50%);width:43%;height:auto;perspective:none}
+.product-demo{border:1px solid #3b364e;border-radius:20px;background:#14151f;box-shadow:0 40px 100px #0008,0 0 90px #7657ff16;overflow:hidden}
+.demo-header,.demo-toolbar{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;color:#d9d6e6;font-size:12px}
+.demo-header{border-bottom:1px solid #ffffff0b}
+.demo-header small{color:#858397;font-size:10px}
+.demo-live{color:#ff9db4;font-size:9px;letter-spacing:.1em;border:1px solid #73364a;background:#371b28;padding:5px 7px;border-radius:5px}
+.demo-room{display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:10px;padding:16px}
+.demo-share{aspect-ratio:4/3;display:flex;flex-direction:column;justify-content:center;padding:24px;border:1px solid #605189;border-radius:11px;background:radial-gradient(ellipse at top right,#8d64c755,transparent 75%),#242038}
+.demo-share small{font-size:9px;letter-spacing:.16em;color:#c6b6ef}
+.demo-share h2{font:700 clamp(20px,2.2vw,36px)/1.2 Manrope;margin:14px 0;color:#f0eaff}
+.demo-share p{font-size:11px;color:#b9afcc;line-height:1.5}
+.demo-cameras{display:flex;flex-direction:column;gap:9px}
+.demo-person{flex:1;min-height:70px;border:1px solid #3b364d;border-radius:9px;background:#282235;display:grid;place-content:center;gap:6px;text-align:center}
+.demo-person:nth-child(2){background:#203132;border-color:#34494a}
+.demo-person:nth-child(3){background:#32272a;border-color:#4a383e}
+.demo-person b{display:grid;place-items:center;margin:auto;width:30px;height:30px;border-radius:50%;background:#ffffff10;font-size:12px}
+.demo-person span{font-size:9px;color:#c4bfce}
+.demo-toolbar{padding:10px 16px 16px;gap:10px;font-size:10px}
+.demo-toolbar-icons{display:flex;gap:6px}
+.demo-toolbar-icons span{display:grid;place-items:center;width:32px;height:30px;border-radius:8px;background:#292634;color:#c7b7f4}
+.demo-toolbar-icons svg{width:15px}
+.preview-caption{text-align:center;color:#9290a5;font-size:11px;margin-top:17px}
+@media(max-width:1000px){
+  .home-content{width:100%;padding-right:0;min-height:0;padding-bottom:30px}
+  .home-visual.product-preview{position:relative;inset:auto;transform:none;width:100%;max-width:620px;margin:0 auto 36px;display:block}
+  .home-content .action-grid{max-width:100%;grid-template-columns:1fr 1fr}
+  .home-content .lede{max-width:640px}
+}
+@media(max-width:600px){
+  .home-content .action-grid{grid-template-columns:1fr}
+  .demo-room{padding:10px;gap:7px;grid-template-columns:minmax(0,1fr) 74px}
+  .demo-share{padding:14px;aspect-ratio:auto}
+  .demo-share h2{font-size:23px}
+  .demo-header{padding:14px 12px}
+  .home-content h1{font-size:42px}
+}

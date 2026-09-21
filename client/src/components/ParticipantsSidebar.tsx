@@ -29,7 +29,7 @@ export function CameraDock({cameras,participants}:{cameras:Camera[];participants
   const overlayRef=useRef<HTMLDivElement>(null),dragRef=useRef<DragState|null>(null);
   const names=useMemo(()=>new Map(participants.map(person=>[person.id,person.displayName])),[participants]);
   const selected=cameras.find(camera=>camera.identity===pinned);
-  const cameraName=(camera:Camera)=>names.get(camera.identity)||sessionStorage.getItem("lumacast-display-name")||"Participante";
+  const cameraName=(camera:Camera)=>names.get(camera.identity)||(camera.local?"Você":"Participante");
 
   useEffect(()=>{if(pinned&&!selected)setPinned(null);},[pinned,selected]);
   useEffect(()=>{setPosition(null);setLarge(false);},[pinned]);
@@ -58,7 +58,7 @@ export function CameraDock({cameras,participants}:{cameras:Camera[];participants
       <button className="camera-dock-head" onClick={()=>setOpen(value=>!value)} aria-expanded={open}>
         <span><Users/><b>Câmeras</b><small>{countText}</small></span>{open?<ChevronDown/>:<ChevronUp/>}
       </button>
-      {open&&cameras.length>0&&<div className="camera-dock-list">{cameras.map(camera=><button className="camera-dock-card" key={camera.identity} onClick={()=>setPinned(camera.identity)}>
+      {open&&cameras.length>0&&<div className="camera-dock-list">{cameras.map(camera=><button type="button" aria-label={`Ampliar câmera de ${cameraName(camera)}`} className="camera-dock-card" key={camera.identity} onClick={()=>setPinned(camera.identity)}>
         <CameraVideo track={camera.track}/><span>{cameraName(camera)}{camera.local&&<em>VOCÊ</em>}</span><i className="camera-expand-hint"><Maximize2/></i>
       </button>)}</div>}
     </section>

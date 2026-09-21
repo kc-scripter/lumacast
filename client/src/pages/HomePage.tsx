@@ -37,7 +37,17 @@ export function HomePage(){
       </div>
       <div className="benefit-row"><span><Zap/>Latência ultrabaixa</span><span><LockKeyhole/>Conexão protegida</span><span><RadioTower/>Até 1080p · 60 FPS</span></div>
     </section>
-    <aside className="home-visual" aria-hidden="true"><div className="glow"/><div className="screen-mock"><div className="mock-top"><span/><span/><span/><i>AO VIVO</i></div><div className="mock-canvas"><div className="mock-window"><div/><div/><div/><div/></div><div className="cursor">↖</div></div><div className="mock-foot"><span><i/> Você está transmitindo</span><b>8 espectadores</b></div></div><div className="float-shell secure"><div className="float-card"><LockKeyhole/><span><b>Privado por padrão</b><small>A sessão é temporária</small></span></div></div><div className="float-shell signal"><div className="float-card"><span className="bars"><i/><i/><i/></span><span><b>Conexão excelente</b><small>32 ms · 6.2 Mbps</small></span></div></div></aside>
+    <aside className="home-visual product-preview" aria-label="Prévia ilustrativa de uma sala LumaCast">
+      <div className="product-demo">
+        <div className="demo-header"><b>Sala da equipe <small> / LumaCast</small></b><span className="demo-live">AO VIVO</span></div>
+        <div className="demo-room">
+          <div className="demo-share"><small>IDEIAS EM MOVIMENTO</small><h2>Todo mundo<br/>na mesma tela.</h2><p>Apresente. Assista. Compartilhe o momento.</p></div>
+          <div className="demo-cameras">{["Ana","Lucas","Você"].map(name=><div className="demo-person" key={name}><b>{name[0]}</b><span>{name}</span></div>)}</div>
+        </div>
+        <div className="demo-toolbar"><span>Tela compartilhada · 3 participantes</span><div className="demo-toolbar-icons" aria-hidden="true"><span><MonitorPlay/></span><span><Cast/></span><span><LockKeyhole/></span></div></div>
+      </div>
+      <p className="preview-caption">Prévia da sala · Tela e participantes, juntos.</p>
+    </aside>
     <footer>© {new Date().getFullYear()} LumaCast <span>Privacidade <i>·</i> <button type="button" className="footer-link" onClick={()=>location.assign("/como-funciona")}>Como funciona</button></span></footer>
     {intent&&<NameDialog eyebrow={intent==="broadcast"?"Como quer ser chamado?":`Entrar na sala ${code}`} submitLabel={intent==="broadcast"?"Criar sala":"Entrar na sala"} onSubmit={continueWithName} onCancel={()=>setIntent(null)}/>}
   </main>;
