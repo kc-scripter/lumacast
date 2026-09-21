@@ -22,6 +22,38 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const clearVideo=useCallback(()=>{if(videoRef.current)videoRef.current.srcObject=null;setStats(null);},[]);
   const showVideo=useCallback((track:MediaStreamTrack)=>{if(!videoRef.current)return;videoRef.current.srcObject=new MediaStream([track]);void videoRef.current.play().catch(()=>undefined);},[]);
   const renew=useCallback(async(client:IAgoraRTCClient,screen=false)=>{const ack=await emitAck<TokenAck>("renew-agora-token",{roomId:roomIdRef.current,screen});if(!ack.ok||!ack.agoraToken)throw new Error(ack.error||"Token Agora inválido.");await client.renewToken(ack.agoraToken);},[]);
+  const tuneAgoraSender=useCallback(async(track:ILocalVideoTrack,quality:Quality,fps:FrameRate,bitrateMax:number)=>{
+    const source=track.getMediaStreamTrack();
+    if(/Firefox\//.test(navigator.userAgent)&&fps===60){
+      try{await source.applyConstraints({frameRate:60,resizeMode:"none"} as MediaTrackConstraints&{resizeMode?:"none"});}
+      catch(cause){console.warn("Firefox native 60 FPS constraint failed",cause);}
+    }
+    try{
+      await track.setEncoderConfiguration(quality==="1080p"&&fps===60?"1080p_5":{
+        width:quality==="1080p"?1920:quality==="720p"?1280:source.getSettings().width||1280,
+        height:quality==="1080p"?1080:quality==="720p"?720:source.getSettings().height||720,
+        frameRate:fps,
+        bitrateMax
+      });
+    }catch(cause){console.warn("Agora encoder configuration failed",cause);}
+    if(/Chrome|Chromium|Edg\//.test(navigator.userAgent)){
+      try{await track.setOptimizationMode("motion");}catch(cause){console.warn("Agora motion optimization failed",cause);}
+    }
+    try{
+      const sender=track.getRTCRtpTransceiver()?.sender;
+      if(sender){
+        const params=sender.getParameters();
+        if(!params.encodings?.length)params.encodings=[{}];
+        for(const encoding of params.encodings){
+          encoding.maxFramerate=fps;
+          encoding.maxBitrate=bitrateMax*1000;
+          encoding.priority="high";
+        }
+        params.degradationPreference="maintain-framerate";
+        await sender.setParameters(params);
+      }
+    }catch(cause){console.warn("WebRTC sender tuning failed",cause);}
+  },[]);
   const ensureLivekit=useCallback(async(forceNew=false):Promise<Room>=>{
     if(!forceNew&&livekitRef.current&&livekitRef.current.state!=="disconnected")return livekitRef.current;
     if(livekitPromiseRef.current){const pending=livekitPromiseRef.current;if(!forceNew)return pending;await pending;}

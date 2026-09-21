@@ -161,3 +161,18 @@
   .float-shell.secure .float-card:hover{transform:translate3d(-4px,-6px,0) rotate(-.6deg) scale(1.018);border-color:#393a4b;box-shadow:0 16px 38px #0006}
   .float-shell.signal .float-card:hover{transform:translate3d(4px,-6px,0) rotate(.6deg) scale(1.018);border-color:#393a4b;box-shadow:0 16px 38px #0006}
 }
+
+/* Spectator-only desktop composition: reserve space for every control before sizing 16:9 video. */
+@media(min-width:721px){
+  .viewer-compact{height:100dvh;min-height:0}
+  .viewer-compact .viewer-compact-layout{height:calc(100dvh - 125px);min-height:0;flex:0 1 auto;padding:10px 0 8px;align-items:stretch}
+  .viewer-compact .watch-main{display:flex;min-height:0;flex-direction:column}
+  .viewer-compact .watch-heading{flex:none;margin-bottom:10px}
+  .viewer-compact .video-stage{width:min(100%,calc((100dvh - 306px)*16 / 9));max-height:calc(100dvh - 306px);margin:0 auto;flex:0 1 auto}
+  .viewer-compact .collaborative-controls{flex:none;margin-top:10px;gap:8px}
+  .viewer-compact .control-dock button{height:42px}
+  .viewer-compact .viewer-share-options{flex:none;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .viewer-compact .participants-sidebar{align-self:stretch;min-height:0;max-height:none}
+  .viewer-compact .participants-sidebar.open{display:flex;flex-direction:column;overflow:hidden}
+  .viewer-compact .participants-sidebar.open .participants-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
+}
