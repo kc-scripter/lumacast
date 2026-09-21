@@ -1,6 +1,6 @@
 # LumaCast
 
-Transmissão de tela em tempo real no navegador com WebRTC. O servidor coordena a sala e o signaling; áudio e vídeo trafegam diretamente entre o transmissor e cada espectador.
+Transmissão de tela em tempo real no navegador com WebRTC e distribuição de mídia pelo SFU do Agora RTC.
 
 ## Requisitos
 
@@ -38,7 +38,7 @@ server/
   src/rooms.ts       salas efêmeras em memória
 ```
 
-Ao criar uma sala, o servidor gera um código com `crypto.randomBytes`, cria uma sala Daily privada e emite tokens temporários com permissões distintas. O transmissor pode publicar apenas tela e áudio; espectadores são somente leitura. A mídia passa pelo SFU do Daily, enquanto o Socket.IO mantém apenas presença, contador e estado da transmissão.
+Ao criar uma sala, o servidor gera um código com `crypto.randomBytes`, associa um canal Agora estável e emite tokens RTC temporários com permissões distintas. O transmissor entra como host e publica apenas a tela e o áudio do sistema fornecidos pelo navegador; espectadores entram como audience e somente recebem mídia. O Socket.IO mantém presença, contador, reclaim, estado da transmissão e renovação segura dos tokens.
 
 As salas existem apenas em memória. O vídeo não é enviado, gravado ou armazenado pelo servidor. Se o transmissor perder o WebSocket, ele pode recuperar a sala por 30 segundos com o token guardado na sessão do navegador.
 
@@ -58,7 +58,8 @@ O frontend pode ser hospedado como site estático usando a pasta `dist`. O backe
 PORT=3001
 PUBLIC_URL=https://app.example.com
 CLIENT_ORIGIN=https://app.example.com
-DAILY_API_KEY=seu-token-secreto
+AGORA_APP_ID=seu-app-id
+AGORA_APP_CERTIFICATE=seu-certificado-secreto
 ```
 
 Use HTTPS/WSS em produção: `getDisplayMedia`, permissões de captura e várias APIs WebRTC exigem contexto seguro. Configure proxy reverso com suporte a upgrade de WebSocket para `/socket.io`.
@@ -67,7 +68,7 @@ Use HTTPS/WSS em produção: `getDisplayMedia`, permissões de captura e várias
 
 - IDs são validados, cada sala aceita um único transmissor e eventos sensíveis conferem o papel do socket.
 - Há rate limiting HTTP e limitação básica por IP para eventos de signaling.
-- A chave do Daily existe somente no backend; navegadores recebem tokens privados temporários e limitados por função.
-- A mídia é distribuída pelo SFU do Daily, sem multiplicar o upload do transmissor por espectador.
+- O certificado do Agora existe somente no backend; navegadores recebem App ID, canal, UID e tokens RTC temporários limitados por função.
+- A mídia é distribuída pelo SFU do Agora RTC, sem multiplicar o upload do transmissor por espectador.
 - Salas estão em memória; para várias instâncias do backend, use um adapter Socket.IO compartilhado e um armazenamento distribuído de presença.
 - A qualidade real depende do navegador, da rede, do conteúdo compartilhado e das constraints aceitas pelo dispositivo.

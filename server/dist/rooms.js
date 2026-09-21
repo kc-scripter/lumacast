@@ -8,7 +8,7 @@ export class RoomStore {
         const bytes = randomBytes(8);
         id = Array.from(bytes, b => this.alphabet[b % this.alphabet.length]).join("");
     } while (this.rooms.has(id)); return id; }
-    create(id, broadcasterId, dailyRoomName, dailyRoomUrl) { const room = { id, broadcasterId, token: randomBytes(32).toString("base64url"), dailyRoomName, dailyRoomUrl, viewers: new Set(), live: false }; this.rooms.set(room.id, room); return room; }
+    create(id, broadcasterId, broadcasterUid) { const room = { id, broadcasterId, broadcasterUid, token: randomBytes(32).toString("base64url"), viewers: new Map(), live: false }; this.rooms.set(room.id, room); return room; }
     get(id) { return this.rooms.get(id); }
     findByBroadcaster(socketId) { return [...this.rooms.values()].find(r => r.broadcasterId === socketId); }
     findByViewer(socketId) { return [...this.rooms.values()].find(r => r.viewers.has(socketId)); }
