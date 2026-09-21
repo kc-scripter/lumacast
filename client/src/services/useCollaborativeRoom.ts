@@ -8,11 +8,17 @@ import type { AgoraCredentials,CameraPreset,FrameRate,JoinAck,Quality,RoomAck,Ro
 type Camera={identity:string;track:MediaStreamTrack;local:boolean};
 type ScreenAck=RoomAck&{error?:string};
 type LiveKitAck={ok:boolean;livekitUrl?:string;livekitToken?:string;error?:string};
+type ExtendedMediaTrackConstraints=MediaTrackConstraints&{resizeMode?:"none"|"crop-and-scale"};
 const initial:RoomState={live:false,count:0,activeScreenSharerId:null,activeScreenUid:null,activeScreenSharerName:null,screenProvider:"agora",livekitActive:false,ownerName:"",participants:[]};
 const valid=(track?:MediaStreamTrack|null):track is MediaStreamTrack=>!!track&&track.readyState==="live";
 const emitAck=<T,>(event:string,payload:object)=>new Promise<T>((resolve,reject)=>connectSocket().timeout(12_000).emit(event,payload,(error:Error|null,ack:T)=>error?reject(error):resolve(ack)));
 const videoSize=(quality:Quality,settings:MediaTrackSettings)=>quality==="1080p"?{width:1920,height:1080}:quality==="720p"?{width:1280,height:720}:{width:settings.width||1920,height:settings.height||1080};
 const videoBitrate=(quality:Quality,fps:FrameRate)=>quality==="1080p"?(fps===60?7500:4500):quality==="720p"?(fps===60?4500:2500):(fps===60?6000:3500);
+const captureConstraints=(quality:Quality,settings:MediaTrackSettings):ExtendedMediaTrackConstraints=>{
+  if(/Firefox\//.test(navigator.userAgent))return{resizeMode:"none",frameRate:{ideal:60,max:60}};
+  const size=videoSize(quality,settings);
+  return{width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}};
+};
 
 export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
@@ -206,7 +212,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       if(!valid(video)){stream.getTracks().forEach(track=>track.stop());connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);setError("Não foi possível capturar a tela.");return;}
       const initialCaptureFps=video.getSettings().frameRate;
       if(!initialCaptureFps||initialCaptureFps<50){
-        try{const size=videoSize(quality,video.getSettings());await video.applyConstraints({width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}});}
+        try{await video.applyConstraints(captureConstraints(quality,video.getSettings()));}
         catch(cause){console.warn("Display capture 60 FPS applyConstraints failed",cause);}
       }
       const capturedFps=video.getSettings().frameRate;
@@ -229,11 +235,11 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     screenConfigRef.current={...screenConfigRef.current,fps:nextFps};
     const source=streamRef.current?.getVideoTracks().find(valid);
     if(!source)return;
-    const quality=screenConfigRef.current.quality,bitrateMax=videoBitrate(quality,nextFps),size=videoSize(quality,source.getSettings());
+    const quality=screenConfigRef.current.quality,bitrateMax=videoBitrate(quality,nextFps);
     try{
       // Keep the capture source at 60 even while publishing 30. This makes the
       // live FPS switch immediate and avoids another permission prompt.
-      await source.applyConstraints({width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}});
+      await source.applyConstraints(captureConstraints(quality,source.getSettings()));
       if(stateRef.current.screenProvider==="agora"){
         const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
         if(!videoTrack)throw new Error("Faixa de vídeo indisponível.");
@@ -248,9 +254,9 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     screenConfigRef.current={...screenConfigRef.current,quality:nextQuality};
     const source=streamRef.current?.getVideoTracks().find(valid);
     if(!source)return;
-    const fps=screenConfigRef.current.fps,bitrateMax=videoBitrate(nextQuality,fps),size=videoSize(nextQuality,source.getSettings());
+    const fps=screenConfigRef.current.fps,bitrateMax=videoBitrate(nextQuality,fps);
     try{
-      await source.applyConstraints({width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}});
+      await source.applyConstraints(captureConstraints(nextQuality,source.getSettings()));
       if(stateRef.current.screenProvider==="agora"){
         const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
         if(!videoTrack)throw new Error("Faixa de vídeo indisponível.");
