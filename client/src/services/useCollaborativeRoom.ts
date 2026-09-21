@@ -14,7 +14,7 @@ const emitAck=<T,>(event:string,payload:object)=>new Promise<T>((resolve,reject)
 
 export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
-  const startingRef=useRef(false),fallbackPromiseRef=useRef<Promise<boolean>|null>(null),screenAudioBusyRef=useRef(false),screenAudioMutedRef=useRef(false);
+  const startingRef=useRef(false),fallbackPromiseRef=useRef<Promise<boolean>|null>(null),screenAudioBusyRef=useRef(false),screenAudioMutedRef=useRef(false),screenBridgeRef=useRef<{video:HTMLVideoElement;canvas:HTMLCanvasElement;track:MediaStreamTrack;raf:number}|null>(null);
   const [roomId,setRoomId]=useState(requestedRoomId||""),[credentials,setCredentials]=useState<AgoraCredentials|null>(null),[roomState,setRoomState]=useState<RoomState>(initial),[ready,setReady]=useState(false),[status,setStatus]=useState("Conectando"),[error,setError]=useState(""),[stats,setStats]=useState<StreamStats|null>(null),[cameras,setCameras]=useState<Camera[]>([]),[cameraOn,setCameraOn]=useState(false),[cameraPreset,setCameraPreset]=useState<CameraPreset>("720p40"),[switching,setSwitching]=useState(false),[muted,setMuted]=useState(false),[localScreenActive,setLocalScreenActive]=useState(false);
   const updateState=useCallback((next:Partial<RoomState>)=>{stateRef.current={...stateRef.current,...next};setRoomState(stateRef.current);},[]);
   const putCamera=useCallback((camera:Camera)=>setCameras(current=>[...current.filter(item=>item.identity!==camera.identity),camera]),[]);
@@ -22,6 +22,36 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const clearVideo=useCallback(()=>{if(videoRef.current)videoRef.current.srcObject=null;setStats(null);},[]);
   const showVideo=useCallback((track:MediaStreamTrack)=>{if(!videoRef.current)return;videoRef.current.srcObject=new MediaStream([track]);void videoRef.current.play().catch(()=>undefined);},[]);
   const renew=useCallback(async(client:IAgoraRTCClient,screen=false)=>{const ack=await emitAck<TokenAck>("renew-agora-token",{roomId:roomIdRef.current,screen});if(!ack.ok||!ack.agoraToken)throw new Error(ack.error||"Token Agora inválido.");await client.renewToken(ack.agoraToken);},[]);
+  const stopScreenBridge=useCallback(()=>{
+    const bridge=screenBridgeRef.current;
+    screenBridgeRef.current=null;
+    if(!bridge)return;
+    cancelAnimationFrame(bridge.raf);
+    bridge.track.stop();
+    bridge.video.pause();
+    bridge.video.srcObject=null;
+  },[]);
+  const createScreenBridge=useCallback(async(source:MediaStreamTrack,width:number,height:number)=>{
+    stopScreenBridge();
+    if(!/Firefox\//.test(navigator.userAgent))return source;
+    const video=document.createElement("video");
+    video.muted=true;video.playsInline=true;video.autoplay=true;video.srcObject=new MediaStream([source]);
+    await video.play();
+    if(video.readyState<1)await new Promise<void>(resolve=>video.addEventListener("loadedmetadata",()=>resolve(),{once:true}));
+    const canvas=document.createElement("canvas");
+    canvas.width=width;canvas.height=height;
+    const context=canvas.getContext("2d",{alpha:false});
+    if(!context){video.pause();video.srcObject=null;return source;}
+    let raf=0;
+    const draw=()=>{if(video.readyState>=2)context.drawImage(video,0,0,canvas.width,canvas.height);raf=requestAnimationFrame(draw);if(screenBridgeRef.current)screenBridgeRef.current.raf=raf;};
+    draw();
+    const stream=canvas.captureStream(60),track=stream.getVideoTracks()[0];
+    if(!track){cancelAnimationFrame(raf);video.pause();video.srcObject=null;return source;}
+    try{track.contentHint="motion";}catch{}
+    screenBridgeRef.current={video,canvas,track,raf};
+    console.info("LumaCast Firefox 60 FPS bridge",{source:source.getSettings(),bridge:track.getSettings()});
+    return track;
+  },[stopScreenBridge]);
   const tuneAgoraSender=useCallback(async(track:ILocalVideoTrack,quality:Quality,fps:FrameRate,bitrateMax:number)=>{
     const source=track.getMediaStreamTrack();
     if(/Firefox\//.test(navigator.userAgent)&&fps===60){
@@ -127,6 +157,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
           screenClientRef.current=null;
           try{await agora.unpublish();await agora.leave();}catch(cause){console.error("Agora fallback cleanup error",cause);}
         }
+        stopScreenBridge();
         const room=await ensureLivekit(true),video=stream.getVideoTracks().find(valid),audio=stream.getAudioTracks().find(valid);
         if(streamRef.current!==stream||!video)throw new Error("Tela encerrada.");
         await room.localParticipant.publishTrack(video,{source:Track.Source.ScreenShare});
@@ -139,7 +170,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     })();
     fallbackPromiseRef.current=pending;
     try{return await pending;}finally{if(fallbackPromiseRef.current===pending)fallbackPromiseRef.current=null;}
-  },[ensureLivekit,updateState]);
+  },[ensureLivekit,stopScreenBridge,updateState]);
   const stopScreen=useCallback(async()=>{
     if(stoppingRef.current)return;
     stoppingRef.current=true;
@@ -156,23 +187,25 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       if(room)for(const track of livekitTracks){try{await room.localParticipant.unpublishTrack(track,false);}catch(cause){console.error("LiveKit screen unpublish error",cause);}}
     }finally{
       tracks.forEach(track=>track.close());
+      stopScreenBridge();
       stream?.getTracks().forEach(track=>track.stop());
       clearVideo();screenAudioMutedRef.current=false;screenAudioBusyRef.current=false;setMuted(false);setLocalScreenActive(false);
       connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);
       updateState({live:false,activeScreenSharerId:null,activeScreenUid:null,screenProvider:"agora"});
       stoppingRef.current=false;
     }
-  },[clearVideo,updateState]);
+  },[clearVideo,stopScreenBridge,updateState]);
   const publishAgora=useCallback(async(auth:AgoraCredentials,stream:MediaStream)=>{const client=AgoraRTC.createClient({mode:"live",codec:"vp8"});screenClientRef.current=client;client.on("connection-state-change",state=>{if(state==="CONNECTED"){if(fallbackTimerRef.current){clearTimeout(fallbackTimerRef.current);fallbackTimerRef.current=null;}const publishable=screenTracksRef.current.filter(track=>track.trackMediaType!=="audio"||!screenAudioMutedRef.current);if(streamRef.current===stream&&publishable.length&&!client.localTracks.length&&!publishingRef.current){publishingRef.current=true;void client.publish(publishable).catch(cause=>console.error("Agora screen republish error",cause)).finally(()=>publishingRef.current=false);}}else if(state==="DISCONNECTED"&&streamRef.current===stream&&stateRef.current.screenProvider==="agora"&&!fallbackTimerRef.current)fallbackTimerRef.current=setTimeout(()=>{if(client.connectionState!=="CONNECTED")void fallback();},9_000);});client.on("token-privilege-will-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token renewal error",cause)));client.on("token-privilege-did-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token expiry error",cause)));await client.setClientRole("host");await client.join(auth.agoraAppId,auth.agoraChannel,auth.agoraToken,auth.agoraUid);
     const video=stream.getVideoTracks().find(valid),audio=stream.getAudioTracks().find(valid);
     if(!video)throw new Error("A captura não forneceu vídeo ativo.");
     const {quality,fps}=screenConfigRef.current,settings=video.getSettings(),width=settings.width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(fps===60?5000:3000):quality==="720p"?(fps===60?3000:2000):(fps===60?3500:2500);
-    const videoAgoraTrack=AgoraRTC.createCustomVideoTrack({mediaStreamTrack:video,width,height,frameRate:fps,bitrateMax});
+    const publishSource=await createScreenBridge(video,width,height);
+    const videoAgoraTrack=AgoraRTC.createCustomVideoTrack({mediaStreamTrack:publishSource,width,height,frameRate:fps,bitrateMax});
     await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);
     const tracks:(ILocalVideoTrack|ILocalAudioTrack)[]=[videoAgoraTrack];
     if(audio)tracks.push(AgoraRTC.createCustomAudioTrack({mediaStreamTrack:audio,encoderConfig:"music_standard"}));
     console.info("LumaCast capture",{video:video.getSettings(),requestedFps:fps,bitrateMax,hasAudio:!!audio});
-    screenTracksRef.current=tracks;await client.publish(tracks);await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);},[fallback,renew,tuneAgoraSender]);
+    screenTracksRef.current=tracks;await client.publish(tracks);await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);},[createScreenBridge,fallback,renew,tuneAgoraSender]);
   const startScreen=useCallback(async(quality:Quality,fps:FrameRate)=>{
     if(startingRef.current||stoppingRef.current||streamRef.current)return;
     startingRef.current=true;
@@ -214,10 +247,10 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     if(!source||stateRef.current.screenProvider!=="agora")return;
     const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
     if(!videoTrack)return;
-    const quality=screenConfigRef.current.quality,settings=source.getSettings(),width=settings.width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(nextFps===60?5000:3000):quality==="720p"?(nextFps===60?3000:2000):(nextFps===60?3500:2500);
+    const quality=screenConfigRef.current.quality,publishedSource=videoTrack.getMediaStreamTrack(),settings=publishedSource.getSettings(),width=settings.width||source.getSettings().width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||source.getSettings().height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(nextFps===60?5000:3000):quality==="720p"?(nextFps===60?3000:2000):(nextFps===60?3500:2500);
     try{
       await tuneAgoraSender(videoTrack,quality,nextFps,bitrateMax);
-      console.info("LumaCast Agora encoder FPS",{captureFps:source.getSettings().frameRate,encoderFps:nextFps});
+      console.info("LumaCast Agora encoder FPS",{captureFps:source.getSettings().frameRate,publishedSourceFps:publishedSource.getSettings().frameRate,encoderFps:nextFps});
       setError("");
     }catch(cause){console.warn("Agora live FPS update failed",cause);}
   },[tuneAgoraSender]);
