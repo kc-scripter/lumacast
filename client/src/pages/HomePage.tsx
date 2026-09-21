@@ -4,7 +4,7 @@ import { Logo } from "../components/Logo";
 
 export function HomePage(){
   const [code,setCode]=useState(""),[name,setName]=useState(""),[intent,setIntent]=useState<"broadcast"|"watch"|null>(null),[nameError,setNameError]=useState("");
-  const submitName=()=>{const value=name.trim().replace(/\s+/g," ");if(value.length<2||value.length>20||/[\u0000-\u001f\u007f]/.test(value)){setNameError("Use um nome entre 2 e 20 caracteres.");return;}sessionStorage.setItem("lumacast-display-name",value);location.assign(intent==="broadcast"?"/broadcast":`/watch/${code.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12)}`);};
+  const submitName=()=>{const value=name.trim().replace(/\s+/g," ");if(value.length<2||value.length>20||/[\u0000-\u001f\u007f]/.test(value)){setNameError("Use um nome entre 2 e 20 caracteres.");return;}const roomCode=code.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,12);sessionStorage.setItem("lumacast-display-name",value);if(intent==="broadcast"){sessionStorage.removeItem("lumacast-broadcaster");location.assign("/broadcast");return;}sessionStorage.removeItem(`lumacast-participant-${roomCode}`);location.assign(`/watch/${roomCode}`);};
   return <main className="home-shell">
     <header className="home-nav"><Logo/><div className="secure-note"><LockKeyhole/>Conexão protegida</div></header>
     <section className="home-content">
