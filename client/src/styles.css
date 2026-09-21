@@ -73,3 +73,29 @@ button{transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,b
   .home-visual,.float-card{animation:none}
   .studio-side>.side-card,.studio-side>.connection-card{animation-delay:.04s}
 }
+
+
+/* How it works */
+.footer-link{border:0;background:none;padding:0;color:inherit;font-size:inherit;cursor:pointer}
+.home-shell>footer span i{font-style:normal;margin:0 5px;color:#3f4150}
+@media(hover:hover){.footer-link:hover{color:#b9aaff;text-decoration:underline;text-underline-offset:3px}}
+
+.how-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:#05060bc7;backdrop-filter:blur(10px);animation:howBackdropIn .2s ease both}
+.how-modal{position:relative;width:min(620px,100%);border:1px solid #353748;border-radius:22px;background:linear-gradient(180deg,#171824,#101117);box-shadow:0 35px 100px #000c,0 0 0 1px #7657ff12;padding:30px;animation:howModalIn .3s cubic-bezier(.16,1,.3,1) both}
+.how-close{position:absolute;right:17px;top:17px;width:36px;height:36px;border:1px solid #303241;border-radius:10px;background:#1a1b25;color:#8f91a2;display:grid;place-items:center;cursor:pointer}
+.how-close svg{width:17px}
+.how-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#9f8aff;margin-bottom:10px}
+.how-modal h2{font:800 28px Manrope;margin:0;letter-spacing:-.03em}
+.how-intro{margin:10px 42px 24px 0;color:#9294a5;font-size:14px;line-height:1.55}
+.how-steps{display:grid;gap:10px}
+.how-steps article{display:flex;gap:14px;align-items:flex-start;border:1px solid #292b39;background:#0d0e14;border-radius:14px;padding:15px;transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,background .2s ease}
+.how-step-icon{flex:none;width:39px;height:39px;border-radius:11px;background:#262139;color:#ad9aff;display:grid;place-items:center}
+.how-step-icon svg{width:18px}
+.how-steps b{display:block;font:700 13px Manrope;color:#e7e6ed;margin-top:1px}
+.how-steps p{margin:5px 0 0;color:#777989;font-size:11px;line-height:1.5}
+.how-cta{width:100%;height:46px;margin-top:18px;border:1px solid #9f8cff;border-radius:12px;background:linear-gradient(135deg,#7657ff,#593bdb);box-shadow:0 10px 28px #5a3de633;display:flex;align-items:center;justify-content:center;gap:9px;font-weight:800;font-size:13px;cursor:pointer}
+.how-cta svg{width:17px}
+@media(hover:hover){.how-close:hover{color:#ddd8ff;border-color:#5d4da5;background:#242033}.how-steps article:hover{transform:translateX(3px);border-color:#3f3a55;background:#11121a}.how-cta:hover{transform:translateY(-2px);box-shadow:0 15px 38px #6547ee55}}
+@keyframes howBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes howModalIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:720px){.how-overlay{padding:14px}.how-modal{padding:24px 18px 18px;border-radius:18px}.how-modal h2{font-size:24px}.how-intro{margin-right:34px}.how-steps article{padding:13px}.how-cta{margin-top:14px}}
