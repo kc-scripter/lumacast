@@ -3,9 +3,11 @@ import type { FrameRate, Quality, StreamStats } from "../types";
 
 type ExtendedDisplayMediaOptions=DisplayMediaStreamOptions&{systemAudio?:"include"|"exclude";windowAudio?:"exclude"|"window"|"system";surfaceSwitching?:"include"|"exclude";selfBrowserSurface?:"include"|"exclude"};
 export function displayConstraints(quality:Quality,frameRate:FrameRate):DisplayMediaStreamOptions{
-  const height=quality==="1080p"?1080:quality==="720p"?720:undefined,width=quality==="1080p"?1920:quality==="720p"?1280:undefined;
+  const height=quality==="1080p"?1080:quality==="720p"?720:undefined,width=quality==="1080p"?1920:quality==="720p"?1280:undefined,firefox=/Firefox\//.test(navigator.userAgent);
   const options:ExtendedDisplayMediaOptions={
-    video:{frameRate:{ideal:frameRate,max:frameRate},...(width?{width:{ideal:width},height:{ideal:height}}:{})},
+    // Firefox's native capture path can follow the display refresh rate. Asking
+    // it to crop/scale the source first commonly keeps desktop capture at 30 FPS.
+    video:{frameRate:{ideal:frameRate,max:frameRate},...(firefox?{resizeMode:"none"}:width?{width:{ideal:width},height:{ideal:height}}:{})},
     audio:true,
     systemAudio:"include",
     windowAudio:"system",
