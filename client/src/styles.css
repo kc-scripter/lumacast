@@ -17,7 +17,7 @@ button{transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,b
 @keyframes uiFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes uiFadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes uiVisualIn{from{opacity:0;transform:translateX(26px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}
-@keyframes floatDrift{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+@keyframes floatDrift{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-8px,0)}}
 @keyframes orbFloat{0%,100%{transform:translateY(0);box-shadow:0 0 50px #7756ff25}50%{transform:translateY(-5px);box-shadow:0 8px 58px #7756ff38}}
 @keyframes pulseDot{0%{box-shadow:0 0 0 0 #ff4d7940}70%{box-shadow:0 0 0 7px #ff4d7900}100%{box-shadow:0 0 0 0 #ff4d7900}}
 @keyframes pulseOk{0%{box-shadow:0 0 0 0 #49e6a12c}70%{box-shadow:0 0 0 7px #49e6a100}100%{box-shadow:0 0 0 0 #49e6a100}}
@@ -33,8 +33,8 @@ button{transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,b
 .home-content .action-grid{animation:uiFadeUp .62s .19s cubic-bezier(.16,1,.3,1) both}
 .home-content .benefit-row{animation:uiFadeUp .58s .25s cubic-bezier(.16,1,.3,1) both}
 .home-visual{animation:uiVisualIn .82s .12s cubic-bezier(.16,1,.3,1) both}
-.float-card.secure{animation:floatDrift 5.2s ease-in-out 1s infinite alternate}
-.float-card.signal{animation:floatDrift 4.7s ease-in-out 1.35s infinite alternate-reverse}
+.float-card.secure{animation:floatDrift 7.6s cubic-bezier(.45,0,.55,1) -.8s infinite;will-change:transform;backface-visibility:hidden}
+.float-card.signal{animation:floatDrift 8.4s cubic-bezier(.45,0,.55,1) -3.1s infinite;will-change:transform;backface-visibility:hidden}
 
 .studio-nav,.viewer-nav{animation:uiFadeDown .38s cubic-bezier(.16,1,.3,1) both}
 .studio-stage,.watch-area{animation:uiFadeUp .48s .03s cubic-bezier(.16,1,.3,1) both}
