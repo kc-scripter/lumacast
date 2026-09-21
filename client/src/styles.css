@@ -11,3 +11,65 @@ button{transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,b
 .viewer-shell{display:flex;flex-direction:column}.viewer-nav{flex:none}.watch-area{width:min(1380px,calc(100% - 64px));margin:0 auto;padding:27px 0 18px;flex:1}.watch-heading{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px}.watch-heading h1{font:700 22px Manrope;margin:5px 0 0}.mini-label{display:flex;align-items:center;gap:6px;color:#8f78ff;font-size:9px;letter-spacing:.12em}.mini-label svg{width:13px}.watch-heading button,.back-home{border:1px solid #313342;background:#161720;border-radius:10px;height:38px;padding:0 13px;display:flex;align-items:center;gap:7px;font-size:11px;cursor:pointer;color:#9fa1b2}.watch-heading button.active{color:#c1b1ff;border-color:#6652bd}.watch-heading button svg,.back-home svg{width:15px}.video-stage{max-height:calc(100vh - 220px);margin:auto}.video-controls{position:absolute;z-index:4;right:17px;bottom:17px;display:flex;gap:8px;opacity:0;transition:.2s}.video-stage:hover .video-controls,.video-stage:focus-within .video-controls{opacity:1}.video-controls button{width:40px;height:40px;border:1px solid #ffffff26;background:#11121bcc;backdrop-filter:blur(8px);border-radius:10px;display:grid;place-items:center;cursor:pointer}.video-controls svg{width:18px}.reconnect-line{display:flex;align-items:center;justify-content:center;gap:8px;color:#c5b7ff;font-size:12px;margin-top:13px}.reconnect-line svg{width:16px;animation:spin 1s linear infinite}.back-home{margin:13px auto 0}.viewer-foot{height:49px;border-top:1px solid #252734;display:flex;align-items:center;justify-content:space-between;padding:0 32px;color:#616373;font-size:10px}.viewer-foot span:first-child{display:flex;align-items:center;gap:6px}.viewer-foot svg{width:14px;color:#5cdb9f}.viewer-stats{position:fixed;left:50%;bottom:55px;transform:translateX(-50%);width:min(900px,calc(100% - 40px));z-index:10;box-shadow:0 20px 60px #000b}@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:1050px){.home-content{width:62%}.home-visual{opacity:.55;right:-14vw}.action-grid{grid-template-columns:1fr}.studio-main{grid-template-columns:1fr}.studio-side{display:grid;grid-template-columns:1fr 1fr}.connection-card{grid-column:1/3}.broadcast-screen{max-height:none}}
 @media(max-width:720px){.home-shell{padding:0 20px;overflow:auto}.home-nav{height:70px}.secure-note{font-size:0}.home-content{width:100%;min-height:auto;padding:70px 0 100px}.home-content h1{font-size:47px}.lede{font-size:16px}.home-visual{display:none}.benefit-row{flex-wrap:wrap;gap:13px 22px}.home-shell>footer{left:20px;right:20px;bottom:16px}.home-shell>footer span{display:none}.studio-nav,.viewer-nav{height:65px;padding:0 16px;grid-template-columns:auto 1fr auto}.studio-nav .brand>span:last-child,.viewer-nav .brand>span:last-child{display:none}.room-head,.viewer-room{justify-self:center}.status-pill{font-size:0;padding:8px}.status-pill i{margin:0}.viewer-count{display:none}.studio-main{padding:14px;gap:14px}.broadcast-screen{border-radius:12px}.control-dock{gap:6px}.control{min-width:48px;width:48px}.control span{display:none}.go-live,.stop-live{min-width:0;flex:1}.studio-side{display:flex}.stats-grid{grid-template-columns:1fr 1fr}.stat.wide{grid-column:span 2}.watch-area{width:calc(100% - 28px);padding-top:18px}.watch-heading h1{font-size:18px}.watch-heading button{font-size:0;width:40px;padding:0;justify-content:center}.video-stage{aspect-ratio:9/14;max-height:calc(100vh - 190px)}.viewer-foot{padding:0 15px}.viewer-foot span:last-child{display:none}}
+
+
+/* Motion polish */
+@keyframes uiFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes uiFadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes uiVisualIn{from{opacity:0;transform:translateX(26px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes floatDrift{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+@keyframes orbFloat{0%,100%{transform:translateY(0);box-shadow:0 0 50px #7756ff25}50%{transform:translateY(-5px);box-shadow:0 8px 58px #7756ff38}}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 #ff4d7940}70%{box-shadow:0 0 0 7px #ff4d7900}100%{box-shadow:0 0 0 0 #ff4d7900}}
+@keyframes pulseOk{0%{box-shadow:0 0 0 0 #49e6a12c}70%{box-shadow:0 0 0 7px #49e6a100}100%{box-shadow:0 0 0 0 #49e6a100}}
+@keyframes liveBadgeIn{from{opacity:0;transform:translateY(-7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes drawerIn{from{opacity:0;transform:translateY(9px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes viewerDrawerIn{from{opacity:0;transform:translate(-50%,9px) scale(.99)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,12px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+
+.home-nav{animation:uiFadeDown .55s cubic-bezier(.16,1,.3,1) both}
+.home-content .eyebrow{animation:uiFadeUp .5s .04s cubic-bezier(.16,1,.3,1) both}
+.home-content h1{animation:uiFadeUp .58s .09s cubic-bezier(.16,1,.3,1) both}
+.home-content .lede{animation:uiFadeUp .58s .14s cubic-bezier(.16,1,.3,1) both}
+.home-content .action-grid{animation:uiFadeUp .62s .19s cubic-bezier(.16,1,.3,1) both}
+.home-content .benefit-row{animation:uiFadeUp .58s .25s cubic-bezier(.16,1,.3,1) both}
+.home-visual{animation:uiVisualIn .82s .12s cubic-bezier(.16,1,.3,1) both}
+.float-card.secure{animation:floatDrift 5.2s ease-in-out 1s infinite alternate}
+.float-card.signal{animation:floatDrift 4.7s ease-in-out 1.35s infinite alternate-reverse}
+
+.studio-nav,.viewer-nav{animation:uiFadeDown .38s cubic-bezier(.16,1,.3,1) both}
+.studio-stage,.watch-area{animation:uiFadeUp .48s .03s cubic-bezier(.16,1,.3,1) both}
+.studio-side>.side-card:nth-child(1){animation:uiFadeUp .45s .08s cubic-bezier(.16,1,.3,1) both}
+.studio-side>.side-card:nth-child(2){animation:uiFadeUp .45s .13s cubic-bezier(.16,1,.3,1) both}
+.studio-side>.connection-card{animation:uiFadeUp .45s .18s cubic-bezier(.16,1,.3,1) both}
+
+.broadcast-screen,.video-stage{transition:border-color .28s ease,box-shadow .28s ease,background .28s ease}
+.broadcast-screen.has-video,.video-stage.has-video{border-color:#3a3550;box-shadow:0 18px 60px #0007,0 0 0 1px #7657ff14}
+.stage-placeholder>span,.orb{animation:orbFloat 4.2s ease-in-out infinite}
+
+.side-card,.connection-card,.stat{transition:transform .22s cubic-bezier(.2,.8,.2,1),border-color .22s ease,background-color .22s ease,box-shadow .22s ease}
+.card-title>span{transition:transform .22s cubic-bezier(.2,.8,.2,1),background-color .22s ease,color .22s ease}
+.share-code span{transition:border-color .22s ease,background-color .22s ease,box-shadow .22s ease}
+.segmented button.active{box-shadow:inset 0 0 0 1px #8f79ff22,0 4px 14px #0003}
+
+.live-corner{animation:liveBadgeIn .32s cubic-bezier(.16,1,.3,1) both}
+.live-corner i,.status-pill.live i{animation:pulseDot 1.7s ease-out infinite}
+.connection-card i.ok{animation:pulseOk 2s ease-out infinite}
+
+.stats-drawer{animation:drawerIn .28s cubic-bezier(.16,1,.3,1) both}
+.viewer-stats{animation:viewerDrawerIn .28s cubic-bezier(.16,1,.3,1) both}
+.toast-error{animation:toastIn .3s cubic-bezier(.16,1,.3,1) both}
+.video-controls{transform:translateY(7px);transition:opacity .22s ease,transform .22s cubic-bezier(.2,.8,.2,1)}
+.video-stage:hover .video-controls,.video-stage:focus-within .video-controls{transform:translateY(0)}
+
+@media(hover:hover){
+  .side-card:hover,.connection-card:hover{transform:translateY(-2px);border-color:#3a3c50;box-shadow:0 14px 34px #0004}
+  .side-card:hover .card-title>span{transform:translateY(-1px) rotate(-2deg);background:#2a2440;color:#c2b4ff}
+  .share-code:hover span{border-color:#49435f;background:#101117;box-shadow:inset 0 0 0 1px #7657ff0d}
+  .stat:hover{transform:translateY(-2px);border-color:#37394a;background:#101119}
+  .broadcast-screen:not(.has-video):hover,.video-stage:not(.has-video):hover{border-color:#38344c;box-shadow:inset 0 0 110px #0004,0 14px 42px #0004}
+}
+
+@media(max-width:720px){
+  .home-visual,.float-card{animation:none}
+  .studio-side>.side-card,.studio-side>.connection-card{animation-delay:.04s}
+}
