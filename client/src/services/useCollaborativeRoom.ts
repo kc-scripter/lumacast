@@ -163,7 +163,11 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       catch(cause){console.error("Screen capture error",cause);setError((cause as DOMException).name==="NotAllowedError"?"O compartilhamento foi cancelado.":"Não foi possível capturar a tela.");connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);return;}
       const video=stream.getVideoTracks()[0];
       if(!valid(video)){stream.getTracks().forEach(track=>track.stop());connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);setError("Não foi possível capturar a tela.");return;}
-      try{await video.applyConstraints({frameRate:{ideal:fps,max:fps}});}catch(cause){console.warn("Display FPS constraint not applied",cause);}
+      try{
+        const isFirefox=/Firefox\//.test(navigator.userAgent);
+        const constraints=(isFirefox&&fps===60?{frameRate:{ideal:60},resizeMode:"none"}:{frameRate:fps===60?{ideal:60}:{ideal:30,max:30}}) as MediaTrackConstraints&{resizeMode?:"none"|"crop-and-scale"};
+        await video.applyConstraints(constraints);
+      }catch(cause){console.warn("Display FPS constraint not applied",cause);}
       const capturedFps=video.getSettings().frameRate;
       if(fps===60&&capturedFps&&capturedFps<50)console.warn(`60 FPS solicitado, mas o navegador entregou ${capturedFps} FPS para a captura.`);
       try{video.contentHint="motion";}catch{}
@@ -184,7 +188,9 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     const source=streamRef.current?.getVideoTracks().find(valid);
     if(!source)return;
     try{
-      await source.applyConstraints({frameRate:{ideal:nextFps,max:nextFps}});
+      const isFirefox=/Firefox\//.test(navigator.userAgent);
+      const constraints=(isFirefox&&nextFps===60?{frameRate:{ideal:60},resizeMode:"none"}:{frameRate:nextFps===60?{ideal:60}:{ideal:30,max:30}}) as MediaTrackConstraints&{resizeMode?:"none"|"crop-and-scale"};
+      await source.applyConstraints(constraints);
       try{source.contentHint="motion";}catch{}
     }catch(cause){console.warn("Display FPS constraint update failed",cause);}
     if(stateRef.current.screenProvider==="agora"){
