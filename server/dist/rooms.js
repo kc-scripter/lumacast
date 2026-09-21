@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 const ROOM_RE = /^[A-Z2-9]{8}$/;
 export const validRoomId = (value) => typeof value === "string" && ROOM_RE.test(value);
+export const newSecret = () => randomBytes(32).toString("base64url");
 export class RoomStore {
     rooms = new Map();
     alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -8,20 +9,25 @@ export class RoomStore {
         const bytes = randomBytes(8);
         id = Array.from(bytes, b => this.alphabet[b % this.alphabet.length]).join("");
     } while (this.rooms.has(id)); return id; }
-    create(id, broadcasterId, broadcasterUid) { const room = { id, broadcasterId, broadcasterUid, token: randomBytes(32).toString("base64url"), viewers: new Map(), live: false }; this.rooms.set(room.id, room); return room; }
+    create(id, ownerId, ownerUid) { const room = { id, ownerId, ownerUid, ownerToken: newSecret(), ownerLivekitActive: false, participants: new Map(), activeScreenSharerId: null, activeScreenUid: null, screenProvider: "agora", live: false }; this.rooms.set(id, room); return room; }
     get(id) { return this.rooms.get(id); }
-    findByBroadcaster(socketId) { return [...this.rooms.values()].find(r => r.broadcasterId === socketId); }
-    findByViewer(socketId) { return [...this.rooms.values()].find(r => r.viewers.has(socketId)); }
-    isBroadcaster(id, socketId) { return this.rooms.get(id)?.broadcasterId === socketId; }
-    reclaim(id, token, newSocketId) { const room = this.rooms.get(id); if (!room || room.token !== token)
-        return null; if (room.disconnectTimer)
-        clearTimeout(room.disconnectTimer); room.disconnectTimer = undefined; room.broadcasterId = newSocketId; return room; }
-    scheduleBroadcasterRemoval(id, onExpired) { const room = this.rooms.get(id); if (!room)
-        return; room.disconnectTimer = setTimeout(() => { if (this.rooms.get(id) === room) {
-        this.rooms.delete(id);
-        onExpired(room);
-    } }, 30_000); }
-    delete(id) { const room = this.rooms.get(id); if (room?.disconnectTimer)
-        clearTimeout(room.disconnectTimer); this.rooms.delete(id); }
+    findByOwner(id) { return [...this.rooms.values()].find(room => room.ownerId === id); }
+    findByParticipant(id) { return [...this.rooms.values()].find(room => room.participants.has(id)); }
+    isMember(room, id) { return room.ownerId === id || room.participants.has(id); }
+    getUid(room, id) { return room.ownerId === id ? room.ownerUid : room.participants.get(id)?.agoraUid; }
+    reclaim(room, token, id) { if (room.ownerToken !== token)
+        return false; if (room.ownerDisconnectTimer)
+        clearTimeout(room.ownerDisconnectTimer); room.ownerDisconnectTimer = undefined; const old = room.ownerId; room.ownerId = id; if (room.activeScreenSharerId === old) {
+        if (room.screenDisconnectTimer)
+            clearTimeout(room.screenDisconnectTimer);
+        room.screenDisconnectTimer = undefined;
+        room.activeScreenSharerId = id;
+    } return true; }
+    remove(id) { const room = this.rooms.get(id); if (!room)
+        return; if (room.ownerDisconnectTimer)
+        clearTimeout(room.ownerDisconnectTimer); if (room.screenDisconnectTimer)
+        clearTimeout(room.screenDisconnectTimer); for (const participant of room.participants.values())
+        if (participant.disconnectTimer)
+            clearTimeout(participant.disconnectTimer); this.rooms.delete(id); }
     count() { return this.rooms.size; }
 }
