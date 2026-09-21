@@ -11,6 +11,8 @@ type LiveKitAck={ok:boolean;livekitUrl?:string;livekitToken?:string;error?:strin
 const initial:RoomState={live:false,count:0,activeScreenSharerId:null,activeScreenUid:null,activeScreenSharerName:null,screenProvider:"agora",livekitActive:false,ownerName:"",participants:[]};
 const valid=(track?:MediaStreamTrack|null):track is MediaStreamTrack=>!!track&&track.readyState==="live";
 const emitAck=<T,>(event:string,payload:object)=>new Promise<T>((resolve,reject)=>connectSocket().timeout(12_000).emit(event,payload,(error:Error|null,ack:T)=>error?reject(error):resolve(ack)));
+const videoSize=(quality:Quality,settings:MediaTrackSettings)=>quality==="1080p"?{width:1920,height:1080}:quality==="720p"?{width:1280,height:720}:{width:settings.width||1920,height:settings.height||1080};
+const videoBitrate=(quality:Quality,fps:FrameRate)=>quality==="1080p"?(fps===60?7500:4500):quality==="720p"?(fps===60?4500:2500):(fps===60?6000:3500);
 
 export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
@@ -23,11 +25,11 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const showVideo=useCallback((track:MediaStreamTrack)=>{if(!videoRef.current)return;videoRef.current.srcObject=new MediaStream([track]);void videoRef.current.play().catch(()=>undefined);},[]);
   const renew=useCallback(async(client:IAgoraRTCClient,screen=false)=>{const ack=await emitAck<TokenAck>("renew-agora-token",{roomId:roomIdRef.current,screen});if(!ack.ok||!ack.agoraToken)throw new Error(ack.error||"Token Agora inválido.");await client.renewToken(ack.agoraToken);},[]);
   const tuneAgoraSender=useCallback(async(track:ILocalVideoTrack,quality:Quality,fps:FrameRate,bitrateMax:number)=>{
-    const source=track.getMediaStreamTrack(),settings=source.getSettings();
+    const source=track.getMediaStreamTrack(),settings=source.getSettings(),size=videoSize(quality,settings);
     try{
       await track.setEncoderConfiguration({
-        width:quality==="1080p"?1920:quality==="720p"?1280:settings.width||1920,
-        height:quality==="1080p"?1080:quality==="720p"?720:settings.height||1080,
+        width:size.width,
+        height:size.height,
         frameRate:fps,
         bitrateMax
       });
@@ -162,7 +164,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const publishAgora=useCallback(async(auth:AgoraCredentials,stream:MediaStream)=>{const client=AgoraRTC.createClient({mode:"live",codec:"vp8"});screenClientRef.current=client;client.on("connection-state-change",state=>{if(state==="CONNECTED"){if(fallbackTimerRef.current){clearTimeout(fallbackTimerRef.current);fallbackTimerRef.current=null;}const publishable=screenTracksRef.current.filter(track=>track.trackMediaType!=="audio"||!screenAudioMutedRef.current);if(streamRef.current===stream&&publishable.length&&!client.localTracks.length&&!publishingRef.current){publishingRef.current=true;void client.publish(publishable).catch(cause=>console.error("Agora screen republish error",cause)).finally(()=>publishingRef.current=false);}}else if(state==="DISCONNECTED"&&streamRef.current===stream&&stateRef.current.screenProvider==="agora"&&!fallbackTimerRef.current)fallbackTimerRef.current=setTimeout(()=>{if(client.connectionState!=="CONNECTED")void fallback();},9_000);});client.on("token-privilege-will-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token renewal error",cause)));client.on("token-privilege-did-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token expiry error",cause)));await client.setClientRole("host");await client.join(auth.agoraAppId,auth.agoraChannel,auth.agoraToken,auth.agoraUid);
     const video=stream.getVideoTracks().find(valid),audio=stream.getAudioTracks().find(valid);
     if(!video)throw new Error("A captura não forneceu vídeo ativo.");
-    const {quality,fps}=screenConfigRef.current,settings=video.getSettings(),width=settings.width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(fps===60?5000:3000):quality==="720p"?(fps===60?3000:2000):(fps===60?3500:2500);
+    const {quality,fps}=screenConfigRef.current,settings=video.getSettings(),size=videoSize(quality,settings),width=size.width,height=size.height,bitrateMax=videoBitrate(quality,fps);
     const videoAgoraTrack=AgoraRTC.createCustomVideoTrack({mediaStreamTrack:video,width,height,frameRate:fps,bitrateMax,optimizationMode:"motion"});
     await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);
     const tracks:(ILocalVideoTrack|ILocalAudioTrack)[]=[videoAgoraTrack];
@@ -181,13 +183,15 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       screenCredentialsRef.current=auth;
       updateState({activeScreenSharerId:socketIdRef.current,activeScreenUid:auth.agoraUid,screenProvider:"agora"});
       let stream:MediaStream;
-      try{stream=await navigator.mediaDevices.getDisplayMedia(displayConstraints("auto",60));}
+      // Capture at 60 from the beginning so switching 30 -> 60 does not require
+      // reopening the browser's screen picker. The encoder can still publish 30.
+      try{stream=await navigator.mediaDevices.getDisplayMedia(displayConstraints(quality,60));}
       catch(cause){console.error("Screen capture error",cause);setError((cause as DOMException).name==="NotAllowedError"?"O compartilhamento foi cancelado.":"Não foi possível capturar a tela.");connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);return;}
       const video=stream.getVideoTracks()[0];
       if(!valid(video)){stream.getTracks().forEach(track=>track.stop());connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);setError("Não foi possível capturar a tela.");return;}
       const initialCaptureFps=video.getSettings().frameRate;
       if(!initialCaptureFps||initialCaptureFps<50){
-        try{await video.applyConstraints({frameRate:{ideal:60,max:60}});}
+        try{const size=videoSize(quality,video.getSettings());await video.applyConstraints({width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}});}
         catch(cause){console.warn("Display capture 60 FPS applyConstraints failed",cause);}
       }
       const capturedFps=video.getSettings().frameRate;
@@ -208,29 +212,34 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   const updateScreenFrameRate=useCallback(async(nextFps:FrameRate)=>{
     screenConfigRef.current={...screenConfigRef.current,fps:nextFps};
     const source=streamRef.current?.getVideoTracks().find(valid);
-    if(!source||stateRef.current.screenProvider!=="agora")return;
-    const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
-    if(!videoTrack)return;
-    const sourceFps=source.getSettings().frameRate;
-    if(nextFps===60&&(!sourceFps||sourceFps<50)){
-      try{await source.applyConstraints({frameRate:{ideal:60,max:60}});}catch(cause){console.warn("Live capture 60 FPS applyConstraints failed",cause);}
-    }
-    const quality=screenConfigRef.current.quality,bitrateMax=quality==="1080p"?(nextFps===60?5000:3000):quality==="720p"?(nextFps===60?3000:2000):(nextFps===60?3500:2500);
+    if(!source)return;
+    const quality=screenConfigRef.current.quality,bitrateMax=videoBitrate(quality,nextFps),size=videoSize(quality,source.getSettings());
     try{
-      await tuneAgoraSender(videoTrack,quality,nextFps,bitrateMax);
+      // Keep the capture source at 60 even while publishing 30. This makes the
+      // live FPS switch immediate and avoids another permission prompt.
+      await source.applyConstraints({width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}});
+      if(stateRef.current.screenProvider==="agora"){
+        const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
+        if(!videoTrack)throw new Error("Faixa de vídeo indisponível.");
+        await tuneAgoraSender(videoTrack,quality,nextFps,bitrateMax);
+      }
       console.info("LumaCast Agora encoder FPS",{captureFps:source.getSettings().frameRate,encoderFps:nextFps});
-      setError("");
+      const actual=source.getSettings().frameRate;
+      if(nextFps===60&&actual&&actual<50)setError(`O navegador limitou a captura a ${Math.round(actual)} FPS. Para 60 FPS reais, use Chrome ou Edge com aceleração de hardware.`);else setError("");
     }catch(cause){console.warn("Agora live FPS update failed",cause);setError("Não foi possível aplicar a nova taxa de quadros.");}
   },[tuneAgoraSender]);
   const updateScreenQuality=useCallback(async(nextQuality:Quality)=>{
     screenConfigRef.current={...screenConfigRef.current,quality:nextQuality};
     const source=streamRef.current?.getVideoTracks().find(valid);
-    if(!source||stateRef.current.screenProvider!=="agora")return;
-    const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
-    if(!videoTrack)return;
-    const fps=screenConfigRef.current.fps,bitrateMax=nextQuality==="1080p"?(fps===60?5000:3000):nextQuality==="720p"?(fps===60?3000:2000):(fps===60?3500:2500);
+    if(!source)return;
+    const fps=screenConfigRef.current.fps,bitrateMax=videoBitrate(nextQuality,fps),size=videoSize(nextQuality,source.getSettings());
     try{
-      await tuneAgoraSender(videoTrack,nextQuality,fps,bitrateMax);
+      await source.applyConstraints({width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}});
+      if(stateRef.current.screenProvider==="agora"){
+        const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
+        if(!videoTrack)throw new Error("Faixa de vídeo indisponível.");
+        await tuneAgoraSender(videoTrack,nextQuality,fps,bitrateMax);
+      }
       console.info("LumaCast Agora encoder quality",{capture:source.getSettings(),quality:nextQuality,fps});
       setError("");
     }catch(cause){console.warn("Agora live quality update failed",cause);setError("Não foi possível aplicar a nova qualidade.");}
