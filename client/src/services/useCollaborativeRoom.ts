@@ -166,6 +166,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       try{await video.applyConstraints({frameRate:{ideal:fps,max:fps}});}catch(cause){console.warn("Display FPS constraint not applied",cause);}
       const capturedFps=video.getSettings().frameRate;
       if(fps===60&&capturedFps&&capturedFps<50)console.warn(`60 FPS solicitado, mas o navegador entregou ${capturedFps} FPS para a captura.`);
+      try{video.contentHint="motion";}catch{}
       streamRef.current=stream;screenAudioMutedRef.current=false;setMuted(false);showVideo(video);
       video.addEventListener("ended",()=>void stopScreen(),{once:true});
       try{await publishAgora(auth,stream);}
@@ -178,6 +179,30 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       updateState({live:true});connectSocket().emit("broadcast-started",{roomId:roomIdRef.current});
     }finally{startingRef.current=false;}
   },[fallback,publishAgora,showVideo,stopScreen,updateState]);
+  const updateScreenFrameRate=useCallback(async(nextFps:FrameRate)=>{
+    screenConfigRef.current={...screenConfigRef.current,fps:nextFps};
+    const source=streamRef.current?.getVideoTracks().find(valid);
+    if(!source)return;
+    try{
+      await source.applyConstraints({frameRate:{ideal:nextFps,max:nextFps}});
+      try{source.contentHint="motion";}catch{}
+    }catch(cause){console.warn("Display FPS constraint update failed",cause);}
+    if(stateRef.current.screenProvider==="agora"){
+      const videoTrack=screenTracksRef.current.find((track):track is ILocalVideoTrack=>track.trackMediaType==="video");
+      if(videoTrack){
+        const quality=screenConfigRef.current.quality,settings=source.getSettings(),width=settings.width||(quality==="1080p"?1920:quality==="720p"?1280:1280),height=settings.height||(quality==="1080p"?1080:quality==="720p"?720:720),bitrateMax=quality==="1080p"?(nextFps===60?6000:3200):quality==="720p"?(nextFps===60?4500:2200):(nextFps===60?5000:3000);
+        try{
+          if(quality==="1080p"&&nextFps===60)await videoTrack.setEncoderConfiguration("1080p_5");
+          else if(quality==="1080p"&&nextFps===30)await videoTrack.setEncoderConfiguration("1080p_3");
+          else if(quality==="720p"&&nextFps===30)await videoTrack.setEncoderConfiguration("720p_2");
+          else await videoTrack.setEncoderConfiguration({width,height,frameRate:nextFps,bitrateMax});
+        }catch(cause){console.warn("Agora live FPS update failed",cause);}
+      }
+    }
+    const actual=source.getSettings().frameRate;
+    console.info("LumaCast live FPS update",{requestedFps:nextFps,capturedFps:actual,provider:stateRef.current.screenProvider});
+    if(nextFps===60&&actual&&actual<50)setError(`O navegador está entregando ${Math.round(actual)} FPS para a captura, mesmo com 60 FPS selecionado.`);
+  },[]);
   const toggleCamera=useCallback(async()=>{
     try{
       const room=await ensureLivekit();
@@ -322,5 +347,5 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   useEffect(()=>{if(roomState.livekitActive){void ensureLivekit().catch(cause=>{console.error("LiveKit join error",cause);setError("Não foi possível conectar à mídia da sala.");});return;}const timer=setTimeout(()=>{if(!stateRef.current.livekitActive&&!valid(cameraRef.current||undefined)&&!(streamRef.current&&stateRef.current.screenProvider==="livekit")){const room=livekitRef.current;livekitRef.current=null;if(room)void room.disconnect();setCameras([]);livekitAudioRef.current.forEach(element=>element.remove());livekitAudioRef.current.clear();}},3_000);return()=>clearTimeout(timer);},[roomState.livekitActive,ensureLivekit]);
   useEffect(()=>{if(!roomState.live)return;const timer=setInterval(()=>{const client=socketIdRef.current===roomState.activeScreenSharerId?screenClientRef.current:subscriberRef.current;if(client&&roomState.screenProvider==="agora")void readAgoraStats(client,streamRef.current,socketIdRef.current===roomState.activeScreenSharerId?null:roomState.activeScreenUid).then(setStats);},1000);return()=>clearInterval(timer);},[roomState.live,roomState.activeScreenSharerId,roomState.activeScreenUid,roomState.screenProvider]);
   useEffect(()=>()=>{const room=livekitRef.current;if(room)void room.disconnect();livekitAudioRef.current.forEach(element=>element.remove());cameraRef.current?.stop();if(streamRef.current)void stopScreen();},[stopScreen]);
-  return{videoRef,roomId,roomState,ready,status,error,setError,stats,cameras,cameraOn,cameraPreset,setCameraPreset,switching,muted,isScreenSharer:!!roomState.activeScreenSharerId&&roomState.activeScreenSharerId===socketIdRef.current,startScreen,stopScreen,toggleCamera,toggleScreenAudio};
+  return{videoRef,roomId,roomState,ready,status,error,setError,stats,cameras,cameraOn,cameraPreset,setCameraPreset,switching,muted,isScreenSharer:!!roomState.activeScreenSharerId&&roomState.activeScreenSharerId===socketIdRef.current,startScreen,stopScreen,updateScreenFrameRate,toggleCamera,toggleScreenAudio};
 }
