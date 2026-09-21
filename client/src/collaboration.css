@@ -27,3 +27,71 @@
 .viewer-share-options .active{border-color:#8a66ee;color:#fff}
 .provider-switch{position:absolute;inset:auto 20px 20px auto;padding:8px 12px;border-radius:8px;background:#171420dd;color:white;font-size:12px}
 @media(max-width:700px){.collaborative-layout{display:block;padding-bottom:82px}.participants-sidebar,.participants-sidebar.open{position:fixed;bottom:0;left:0;right:0;width:100%;min-height:0;max-height:48vh;border-radius:16px 16px 0 0;overflow:auto;transition:max-height 280ms cubic-bezier(.16,1,.3,1)}.participants-sidebar:not(.open){height:66px;max-height:66px}.participants-heading{position:absolute;top:6px;left:64px;margin:12px}.participants-mini{display:none}.participants-list{padding-top:12px}.camera-card{max-width:280px}.camera-overlay,.camera-overlay.large{position:fixed;right:12px;bottom:78px;width:min(55vw,360px)}.collaborative-controls{flex-wrap:wrap}.viewer-share-options{flex-wrap:wrap}}
+
+/* LumaCast layout refinement: screen-first desktop, readable mobile, compositor-friendly motion */
+.float-card{backdrop-filter:none;-webkit-backdrop-filter:none;background:#171822f7;box-shadow:0 16px 38px #0006;transform:translateZ(0)}
+.float-card.secure{animation:floatDrift 9s ease-in-out -1.1s infinite;will-change:transform}
+.float-card.signal{animation:floatDrift 10s ease-in-out -4s infinite;will-change:transform}
+@keyframes floatDrift{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-6px,0)}}
+
+@media(min-width:721px){
+  .studio-main.collaborative-layout{width:100%;max-width:1920px;padding:16px clamp(16px,2vw,28px);gap:14px;align-items:flex-start}
+  .studio-main.collaborative-layout .studio-stage{flex:1 1 auto}
+  .studio-main.collaborative-layout .studio-side{flex:0 0 clamp(260px,20vw,292px)}
+  .watch-area.collaborative-layout{width:min(1600px,calc(100% - 32px));padding:20px 0 14px;gap:14px;align-items:flex-start}
+  .watch-area.collaborative-layout .watch-main{flex:1 1 auto}
+  .participants-sidebar{width:58px;padding:9px;border-radius:15px}
+  .participants-sidebar.open{width:250px}
+  .participants-mini video{width:38px}
+  .camera-overlay{right:76px}
+}
+@media(min-width:721px) and (max-width:1100px){
+  .studio-main.collaborative-layout{flex-wrap:wrap}
+  .studio-main.collaborative-layout .studio-stage{flex:1 1 calc(100% - 72px)}
+  .studio-main.collaborative-layout .studio-side{order:3;flex:1 0 100%;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .studio-main.collaborative-layout .connection-card{grid-column:1/-1}
+  .watch-area.collaborative-layout{flex-wrap:wrap}
+  .watch-area.collaborative-layout .watch-main{flex:1 1 calc(100% - 72px)}
+}
+
+@media(max-width:720px){
+  html,body,#root{max-width:100%;overflow-x:hidden}
+  .studio-nav,.viewer-nav{height:60px;padding:0 10px;gap:6px}
+  .brand-mark{width:34px;height:34px}
+  .room-head b,.viewer-room b{font-size:11px;letter-spacing:.08em;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+  .nav-status,.viewer-nav-actions{gap:6px}
+  .studio-main.collaborative-layout,.watch-area.collaborative-layout{display:flex;flex-direction:column;width:100%;max-width:none;margin:0;padding:10px;gap:12px}
+  .studio-main.collaborative-layout .studio-stage,.watch-area.collaborative-layout .watch-main{width:100%;min-width:0;order:1}
+  .broadcast-screen,.video-stage{width:100%;aspect-ratio:16/9;max-height:none;margin:0;border-radius:12px}
+  .stage-placeholder>span,.orb{width:48px;height:48px;border-radius:14px}
+  .stage-placeholder h2,.video-empty h2{font-size:15px;margin-top:12px}
+  .stage-placeholder p,.video-empty p{padding:0 14px;font-size:11px;line-height:1.45}
+  .watch-heading{align-items:center;margin:2px 0 10px}
+  .watch-heading h1{font-size:17px}
+  .control-dock,.control-dock.collaborative-controls{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .control-dock button{width:100%;min-width:0;height:44px;padding:0 10px;font-size:11px}
+  .control{width:auto;min-width:0}
+  .control span{display:inline}
+  .go-live,.stop-live{grid-column:1/-1;width:100%;min-width:0}
+  .studio-side{order:2;width:100%;display:grid;grid-template-columns:1fr;gap:10px}
+  .studio-side .connection-card{grid-column:auto}
+  .side-card,.connection-card{padding:14px;border-radius:13px}
+  .viewer-share-options{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .viewer-share-options select{width:100%;min-width:0;height:40px}
+  .viewer-share-options button{width:100%;height:38px}
+  .participants-sidebar,.participants-sidebar.open{position:relative;inset:auto;order:3;width:100%;min-height:0;height:auto;max-height:none;border-radius:14px;padding:9px;overflow:visible}
+  .participants-sidebar:not(.open){height:58px;max-height:58px;overflow:hidden}
+  .participants-toggle{width:38px;height:38px}
+  .participants-heading{position:absolute;top:8px;left:56px;margin:10px 0}
+  .participants-mini{display:flex;position:absolute;right:9px;top:9px;flex-direction:row;gap:5px;max-width:45%;overflow:hidden}
+  .participants-mini video{width:38px;height:38px;aspect-ratio:1;object-fit:cover}
+  .participants-list{display:grid;grid-template-columns:1fr;gap:10px;padding-top:12px}
+  .camera-card{max-width:none}
+  .camera-card video{width:100%;aspect-ratio:16/9}
+  .camera-overlay,.camera-overlay.large{position:fixed;left:10px;right:10px;bottom:10px;width:auto;max-width:none;z-index:50}
+  .camera-overlay.large{top:70px;bottom:10px;aspect-ratio:auto}
+  .camera-overlay.large video{height:100%}
+  .viewer-foot{height:40px;padding:0 10px}
+  .toast-error{width:calc(100% - 20px);bottom:10px}
+  .stats-drawer,.viewer-stats{width:calc(100% - 20px);margin-left:auto;margin-right:auto}
+}
