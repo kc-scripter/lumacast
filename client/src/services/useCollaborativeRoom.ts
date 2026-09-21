@@ -78,6 +78,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
           element.autoplay=true;
           element.style.display="none";
           document.body.append(element);
+          void element.play().catch(()=>undefined);
           livekitAudioRef.current.set(publication.trackSid,element);
         }
       };
@@ -96,8 +97,11 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         livekitRef.current=room;
         if(cameraRef.current&&!valid(cameraRef.current)){cameraRef.current=null;setCameraOn(false);removeCamera(socketIdRef.current);}
         if(valid(cameraRef.current))await room.localParticipant.publishTrack(cameraRef.current!,{source:Track.Source.Camera});
-        if(stateRef.current.screenProvider==="livekit"&&stateRef.current.activeScreenSharerId===socketIdRef.current){
-          for(const track of screenLivekitTracksRef.current.filter(valid))await room.localParticipant.publishTrack(track,{source:track.kind==="video"?Track.Source.ScreenShare:Track.Source.ScreenShareAudio});
+        if(stateRef.current.activeScreenSharerId===socketIdRef.current){
+          for(const track of screenLivekitTracksRef.current.filter(valid)){
+            if(track.kind==="video"&&stateRef.current.screenProvider!=="livekit")continue;
+            await room.localParticipant.publishTrack(track,{source:track.kind==="video"?Track.Source.ScreenShare:Track.Source.ScreenShareAudio});
+          }
         }
         return room;
       }catch(cause){
@@ -109,6 +113,18 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     livekitPromiseRef.current=pending;
     try{return await pending;}finally{if(livekitPromiseRef.current===pending)livekitPromiseRef.current=null;}
   },[clearVideo,putCamera,removeCamera,showVideo]);
+  const publishScreenAudioLivekit=useCallback(async(stream:MediaStream)=>{
+    const audio=stream.getAudioTracks().find(valid);
+    if(!audio)return false;
+    const room=await ensureLivekit();
+    audio.enabled=true;
+    if(!screenLivekitTracksRef.current.includes(audio)){
+      await room.localParticipant.publishTrack(audio,{source:Track.Source.ScreenShareAudio});
+      screenLivekitTracksRef.current=[...screenLivekitTracksRef.current.filter(track=>track.kind!=="audio"),audio];
+    }
+    connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:true});
+    return true;
+  },[ensureLivekit]);
   const fallback=useCallback(async():Promise<boolean>=>{
     if(fallbackPromiseRef.current)return fallbackPromiseRef.current;
     const stream=streamRef.current;
@@ -125,12 +141,11 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
           screenClientRef.current=null;
           try{await agora.unpublish();await agora.leave();}catch(cause){console.error("Agora fallback cleanup error",cause);}
         }
-        const room=await ensureLivekit(true),video=stream.getVideoTracks().find(valid),audio=stream.getAudioTracks().find(valid);
+        const room=await ensureLivekit(true),video=stream.getVideoTracks().find(valid);
         if(streamRef.current!==stream||!video)throw new Error("Tela encerrada.");
         await room.localParticipant.publishTrack(video,{source:Track.Source.ScreenShare});
         if(streamRef.current!==stream){await room.localParticipant.unpublishTrack(video,false);throw new Error("Tela encerrada.");}
-        screenLivekitTracksRef.current=[video];
-        if(audio&&!screenAudioMutedRef.current){await room.localParticipant.publishTrack(audio,{source:Track.Source.ScreenShareAudio});if(streamRef.current!==stream){await room.localParticipant.unpublishTrack(audio,false);throw new Error("Tela encerrada.");}screenLivekitTracksRef.current.push(audio);}
+        screenLivekitTracksRef.current=[...screenLivekitTracksRef.current.filter(track=>track.kind==="audio"&&valid(track)),video];
         return true;
       }catch(cause){console.error("LiveKit screen fallback error",cause);setError("Não foi possível trocar o servidor de transmissão.");return false;}
       finally{setSwitching(false);}
@@ -156,20 +171,20 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       tracks.forEach(track=>track.close());
       stream?.getTracks().forEach(track=>track.stop());
       clearVideo();screenAudioMutedRef.current=false;screenAudioBusyRef.current=false;setMuted(false);setLocalScreenActive(false);
+      connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:valid(cameraRef.current)});
       connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);
       updateState({live:false,activeScreenSharerId:null,activeScreenUid:null,screenProvider:"agora"});
       stoppingRef.current=false;
     }
   },[clearVideo,updateState]);
-  const publishAgora=useCallback(async(auth:AgoraCredentials,stream:MediaStream)=>{const client=AgoraRTC.createClient({mode:"live",codec:"vp8"});screenClientRef.current=client;client.on("connection-state-change",state=>{if(state==="CONNECTED"){if(fallbackTimerRef.current){clearTimeout(fallbackTimerRef.current);fallbackTimerRef.current=null;}const publishable=screenTracksRef.current.filter(track=>track.trackMediaType!=="audio"||!screenAudioMutedRef.current);if(streamRef.current===stream&&publishable.length&&!client.localTracks.length&&!publishingRef.current){publishingRef.current=true;void client.publish(publishable).catch(cause=>console.error("Agora screen republish error",cause)).finally(()=>publishingRef.current=false);}}else if(state==="DISCONNECTED"&&streamRef.current===stream&&stateRef.current.screenProvider==="agora"&&!fallbackTimerRef.current)fallbackTimerRef.current=setTimeout(()=>{if(client.connectionState!=="CONNECTED")void fallback();},9_000);});client.on("token-privilege-will-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token renewal error",cause)));client.on("token-privilege-did-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token expiry error",cause)));await client.setClientRole("host");await client.join(auth.agoraAppId,auth.agoraChannel,auth.agoraToken,auth.agoraUid);
-    const video=stream.getVideoTracks().find(valid),audio=stream.getAudioTracks().find(valid);
+  const publishAgora=useCallback(async(auth:AgoraCredentials,stream:MediaStream)=>{const client=AgoraRTC.createClient({mode:"live",codec:"vp8"});screenClientRef.current=client;client.on("connection-state-change",state=>{if(state==="CONNECTED"){if(fallbackTimerRef.current){clearTimeout(fallbackTimerRef.current);fallbackTimerRef.current=null;}const publishable=screenTracksRef.current;if(streamRef.current===stream&&publishable.length&&!client.localTracks.length&&!publishingRef.current){publishingRef.current=true;void client.publish(publishable).catch(cause=>console.error("Agora screen republish error",cause)).finally(()=>publishingRef.current=false);}}else if(state==="DISCONNECTED"&&streamRef.current===stream&&stateRef.current.screenProvider==="agora"&&!fallbackTimerRef.current)fallbackTimerRef.current=setTimeout(()=>{if(client.connectionState!=="CONNECTED")void fallback();},9_000);});client.on("token-privilege-will-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token renewal error",cause)));client.on("token-privilege-did-expire",()=>void renew(client,true).catch(cause=>console.error("Agora screen token expiry error",cause)));await client.setClientRole("host");await client.join(auth.agoraAppId,auth.agoraChannel,auth.agoraToken,auth.agoraUid);
+    const video=stream.getVideoTracks().find(valid);
     if(!video)throw new Error("A captura não forneceu vídeo ativo.");
     const {quality,fps}=screenConfigRef.current,settings=video.getSettings(),size=videoSize(quality,settings),width=size.width,height=size.height,bitrateMax=videoBitrate(quality,fps);
     const videoAgoraTrack=AgoraRTC.createCustomVideoTrack({mediaStreamTrack:video,width,height,frameRate:fps,bitrateMax,optimizationMode:"motion"});
     await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);
     const tracks:(ILocalVideoTrack|ILocalAudioTrack)[]=[videoAgoraTrack];
-    if(audio)tracks.push(AgoraRTC.createCustomAudioTrack({mediaStreamTrack:audio,encoderConfig:"music_standard"}));
-    console.info("LumaCast capture",{video:video.getSettings(),requestedFps:fps,bitrateMax,hasAudio:!!audio});
+    console.info("LumaCast capture",{video:video.getSettings(),requestedFps:fps,bitrateMax,hasAudio:stream.getAudioTracks().some(valid),audioProvider:"livekit"});
     screenTracksRef.current=tracks;await client.publish(tracks);await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);},[fallback,renew,tuneAgoraSender]);
   const startScreen=useCallback(async(quality:Quality,fps:FrameRate)=>{
     if(startingRef.current||stoppingRef.current||streamRef.current)return;
@@ -199,6 +214,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       try{video.contentHint="motion";}catch{}
       streamRef.current=stream;screenAudioMutedRef.current=false;setMuted(false);setLocalScreenActive(true);showVideo(video);
       video.addEventListener("ended",()=>{if(streamRef.current?.getVideoTracks()[0]===video)void stopScreen();},{once:true});
+      try{await publishScreenAudioLivekit(stream);}catch(cause){console.error("LiveKit screen audio publish error",cause);setError("A tela iniciou, mas não foi possível enviar o áudio pelo LiveKit.");}
       try{await publishAgora(auth,stream);}
       catch(cause){
         console.error("Agora screen publish error",cause);
@@ -208,7 +224,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       if(streamRef.current!==stream||!valid(video))return;
       updateState({live:true});connectSocket().emit("broadcast-started",{roomId:roomIdRef.current});
     }finally{startingRef.current=false;}
-  },[fallback,publishAgora,showVideo,stopScreen,updateState]);
+  },[fallback,publishAgora,publishScreenAudioLivekit,showVideo,stopScreen,updateState]);
   const updateScreenFrameRate=useCallback(async(nextFps:FrameRate)=>{
     screenConfigRef.current={...screenConfigRef.current,fps:nextFps};
     const source=streamRef.current?.getVideoTracks().find(valid);
@@ -261,7 +277,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         putCamera({identity:socketIdRef.current,track,local:true});
         setCameraOn(true);
       }
-      connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:!cameraOn||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});
+      connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:!cameraOn||screenLivekitTracksRef.current.some(track=>track.kind==="audio"&&valid(track))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});
     }catch(cause){console.error("LiveKit camera error",cause);setError("Não foi possível ativar a câmera.");}
   },[cameraOn,cameraPreset,ensureLivekit,putCamera,removeCamera]);
   const toggleScreenAudio=useCallback(async()=>{
@@ -271,31 +287,24 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     const nextMuted=!screenAudioMutedRef.current;
     screenAudioBusyRef.current=true;
     try{
-      if(stateRef.current.screenProvider==="agora"){
-        const client=screenClientRef.current,audioTrack=screenTracksRef.current.find((track):track is ILocalAudioTrack=>track.trackMediaType==="audio");
-        if(!client||!audioTrack)throw new Error("Áudio da transmissão indisponível.");
-        if(nextMuted){await client.unpublish(audioTrack);source.enabled=false;}
-        else{source.enabled=true;await client.publish(audioTrack);}
+      const room=livekitRef.current||await ensureLivekit();
+      if(nextMuted){
+        const published=screenLivekitTracksRef.current.find(track=>track.kind==="audio");
+        if(published){await room.localParticipant.unpublishTrack(published,false);screenLivekitTracksRef.current=screenLivekitTracksRef.current.filter(track=>track!==published);}
+        source.enabled=false;
       }else{
-        const room=livekitRef.current;
-        if(!room)throw new Error("Servidor alternativo indisponível.");
-        if(nextMuted){
-          const published=screenLivekitTracksRef.current.find(track=>track.kind==="audio");
-          if(published){await room.localParticipant.unpublishTrack(published,false);screenLivekitTracksRef.current=screenLivekitTracksRef.current.filter(track=>track!==published);}
-          source.enabled=false;
-        }else{
-          source.enabled=true;
-          await room.localParticipant.publishTrack(source,{source:Track.Source.ScreenShareAudio});
-          if(!screenLivekitTracksRef.current.includes(source))screenLivekitTracksRef.current.push(source);
-        }
+        source.enabled=true;
+        await room.localParticipant.publishTrack(source,{source:Track.Source.ScreenShareAudio});
+        if(!screenLivekitTracksRef.current.includes(source))screenLivekitTracksRef.current.push(source);
       }
       screenAudioMutedRef.current=nextMuted;setMuted(nextMuted);
+      connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:!nextMuted||valid(cameraRef.current)||stateRef.current.screenProvider==="livekit"});
     }catch(cause){
       source.enabled=!screenAudioMutedRef.current;
       console.error("Screen audio toggle error",cause);
       setError("Não foi possível alterar o áudio da transmissão.");
     }finally{screenAudioBusyRef.current=false;}
-  },[]);
+  },[ensureLivekit]);
   useEffect(()=>{
     const socket=connectSocket();
     const apply=(ack:RoomAck|JoinAck)=>{
@@ -309,7 +318,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       if("ownerToken" in ack&&ack.ownerToken)sessionStorage.setItem("lumacast-broadcaster",JSON.stringify({roomId:roomIdRef.current,token:ack.ownerToken}));
       if("participantToken" in ack&&ack.participantToken)sessionStorage.setItem(`lumacast-participant-${roomIdRef.current}`,ack.participantToken);
       setStatus("Conectado");
-      const mediaActive=valid(cameraRef.current)||!!streamRef.current&&stateRef.current.screenProvider==="livekit";
+      const mediaActive=valid(cameraRef.current)||screenLivekitTracksRef.current.some(track=>track.kind==="audio"&&valid(track))||!!streamRef.current&&stateRef.current.screenProvider==="livekit";
       if(mediaActive)socket.emit("livekit-media-active",{roomId:roomIdRef.current,active:true});
       if(livekitRef.current&&livekitRef.current.localParticipant.identity!==socket.id){
         void ensureLivekit(true).catch(cause=>{console.error("LiveKit rejoin error",cause);setError("Não foi possível reconectar a mídia da sala.");});
@@ -385,7 +394,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
       void client.leave().catch(()=>undefined);
     };
   },[credentials?.agoraAppId,credentials?.agoraChannel,credentials?.agoraUid,roomState.live,roomState.screenProvider,roomState.activeScreenUid,roomState.activeScreenSharerId,clearVideo,renew,showVideo]);
-  useEffect(()=>{if(roomState.livekitActive){void ensureLivekit().catch(cause=>{console.error("LiveKit join error",cause);setError("Não foi possível conectar à mídia da sala.");});return;}const timer=setTimeout(()=>{if(!stateRef.current.livekitActive&&!valid(cameraRef.current||undefined)&&!(streamRef.current&&stateRef.current.screenProvider==="livekit")){const room=livekitRef.current;livekitRef.current=null;if(room)void room.disconnect();setCameras([]);livekitAudioRef.current.forEach(element=>element.remove());livekitAudioRef.current.clear();}},3_000);return()=>clearTimeout(timer);},[roomState.livekitActive,ensureLivekit]);
+  useEffect(()=>{if(roomState.livekitActive){void ensureLivekit().catch(cause=>{console.error("LiveKit join error",cause);setError("Não foi possível conectar à mídia da sala.");});return;}const timer=setTimeout(()=>{if(!stateRef.current.livekitActive&&!valid(cameraRef.current||undefined)&&!screenLivekitTracksRef.current.some(track=>valid(track))){const room=livekitRef.current;livekitRef.current=null;if(room)void room.disconnect();setCameras([]);livekitAudioRef.current.forEach(element=>element.remove());livekitAudioRef.current.clear();}},3_000);return()=>clearTimeout(timer);},[roomState.livekitActive,ensureLivekit]);
   useEffect(()=>{if(!roomState.live)return;const timer=setInterval(()=>{const client=socketIdRef.current===roomState.activeScreenSharerId?screenClientRef.current:subscriberRef.current;if(client&&roomState.screenProvider==="agora")void readAgoraStats(client,streamRef.current,socketIdRef.current===roomState.activeScreenSharerId?null:roomState.activeScreenUid).then(setStats);},1000);return()=>clearInterval(timer);},[roomState.live,roomState.activeScreenSharerId,roomState.activeScreenUid,roomState.screenProvider]);
   useEffect(()=>()=>{const room=livekitRef.current;if(room)void room.disconnect();livekitAudioRef.current.forEach(element=>element.remove());cameraRef.current?.stop();if(streamRef.current)void stopScreen();},[stopScreen]);
   return{videoRef,roomId,roomState,ready,status,error,setError,stats,cameras,cameraOn,cameraPreset,setCameraPreset,switching,muted,isScreenSharer:localScreenActive,ownsScreenLock:!!roomState.activeScreenSharerId&&roomState.activeScreenSharerId===socketIdRef.current,startScreen,stopScreen,updateScreenFrameRate,updateScreenQuality,toggleCamera,toggleScreenAudio};
