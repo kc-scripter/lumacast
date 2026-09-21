@@ -1,9 +1,10 @@
 import type { FrameRate, Quality, StreamStats } from "../types";
 
-export function getIceServers(): RTCIceServer[] {
-  const servers: RTCIceServer[] = [{ urls:import.meta.env.VITE_STUN_URL || "stun:stun.l.google.com:19302" }];
-  if (import.meta.env.VITE_TURN_URL) servers.push({ urls:import.meta.env.VITE_TURN_URL, username:import.meta.env.VITE_TURN_USERNAME, credential:import.meta.env.VITE_TURN_CREDENTIAL });
-  return servers;
+const fallbackIceServers:RTCIceServer[]=[{urls:"stun:stun.l.google.com:19302"}];
+let iceServersPromise:Promise<RTCIceServer[]>|null=null;
+export function getIceServers(): Promise<RTCIceServer[]> {
+  if(!iceServersPromise)iceServersPromise=fetch("/api/ice-servers").then(async response=>{if(!response.ok)throw new Error(`ICE server request returned ${response.status}`);const body=await response.json() as {iceServers?:unknown};return Array.isArray(body.iceServers)&&body.iceServers.length?body.iceServers as RTCIceServer[]:fallbackIceServers;}).catch(error=>{console.warn("TURN unavailable; using STUN fallback",error);return fallbackIceServers;});
+  return iceServersPromise;
 }
 
 export function displayConstraints(quality:Quality, frameRate:FrameRate): DisplayMediaStreamOptions {
