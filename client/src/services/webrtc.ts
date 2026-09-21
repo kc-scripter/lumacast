@@ -1,14 +1,16 @@
 import type { IAgoraRTCClient, UID } from "agora-rtc-sdk-ng";
 import type { FrameRate, Quality, StreamStats } from "../types";
 
-type ExtendedDisplayMediaOptions=DisplayMediaStreamOptions&{systemAudio?:"include"|"exclude";windowAudio?:"exclude"|"window"|"system"};
+type ExtendedDisplayMediaOptions=DisplayMediaStreamOptions&{systemAudio?:"include"|"exclude";windowAudio?:"exclude"|"window"|"system";surfaceSwitching?:"include"|"exclude";selfBrowserSurface?:"include"|"exclude"};
 export function displayConstraints(quality:Quality,frameRate:FrameRate):DisplayMediaStreamOptions{
   const height=quality==="1080p"?1080:quality==="720p"?720:undefined,width=quality==="1080p"?1920:quality==="720p"?1280:undefined;
   const options:ExtendedDisplayMediaOptions={
     video:{frameRate:{ideal:frameRate,max:frameRate},...(width?{width:{ideal:width},height:{ideal:height}}:{})},
     audio:true,
     systemAudio:"include",
-    windowAudio:"system"
+    windowAudio:"system",
+    surfaceSwitching:"include",
+    selfBrowserSurface:"exclude"
   };
   return options;
 }
