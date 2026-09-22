@@ -521,3 +521,437 @@ summary:focus-visible{
     flex-wrap:wrap;
   }
 }
+
+
+/* How it works v3 — more useful launch information without turning the page into docs. */
+.how-v3-hero-points{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-top:26px;
+  max-width:690px;
+}
+.how-v3-hero-points>span{
+  min-width:0;
+  padding:12px 13px;
+  border:1px solid #2b2e3d;
+  border-radius:12px;
+  background:#10121a;
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  column-gap:8px;
+  align-items:center;
+}
+.how-v3-hero-points svg{
+  width:17px;
+  height:17px;
+  grid-row:1/3;
+  color:#a98eff;
+}
+.how-v3-hero-points b{
+  min-width:0;
+  color:#e7e5ef;
+  font:700 11px Manrope;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.how-v3-hero-points small{
+  min-width:0;
+  margin-top:2px;
+  color:#717687;
+  font-size:8px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.how-v3-media-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+.how-v3-media-grid article{
+  min-width:0;
+  min-height:220px;
+  padding:20px;
+  border:1px solid #2d3040;
+  border-radius:16px;
+  background:linear-gradient(145deg,#11131c,#0e1018);
+  display:flex;
+  flex-direction:column;
+  gap:17px;
+}
+.how-v3-media-grid article>span{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  background:#201936;
+  color:#ad91ff;
+  display:grid;
+  place-items:center;
+}
+.how-v3-media-grid article>span svg{width:19px;height:19px}
+.how-v3-media-grid article>div{min-width:0}
+.how-v3-media-grid small{
+  display:block;
+  color:#767b8d;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+.how-v3-media-grid b{
+  display:block;
+  margin-top:7px;
+  color:#efedf5;
+  font:700 15px Manrope;
+  letter-spacing:-.02em;
+}
+.how-v3-media-grid p{
+  margin:10px 0 0;
+  color:#8f94a5;
+  font-size:12px;
+  line-height:1.62;
+}
+
+.how-v3-recovery-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.how-v3-recovery-grid article{
+  min-width:0;
+  min-height:210px;
+  padding:20px;
+  border:1px solid #2d3040;
+  border-radius:16px;
+  background:#10121a;
+  position:relative;
+  overflow:hidden;
+}
+.how-v3-recovery-grid article:after{
+  content:"";
+  position:absolute;
+  width:130px;
+  height:130px;
+  right:-55px;
+  bottom:-68px;
+  border-radius:50%;
+  background:#6e4ff20b;
+}
+.how-v3-recovery-grid article>span{
+  width:39px;
+  height:39px;
+  margin-bottom:17px;
+  border:1px solid #3c3157;
+  border-radius:11px;
+  background:#1b1629;
+  color:#aa8cff;
+  display:grid;
+  place-items:center;
+}
+.how-v3-recovery-grid article>span svg{width:18px}
+.how-v3-recovery-number{
+  position:absolute;
+  top:19px;
+  right:20px;
+  color:#3e4050;
+  font:800 11px Manrope;
+  letter-spacing:.12em;
+}
+.how-v3-recovery-grid b{
+  display:block;
+  color:#e7e5ee;
+  font:700 14px Manrope;
+}
+.how-v3-recovery-grid p{
+  margin:9px 0 0;
+  color:#8f94a5;
+  font-size:12px;
+  line-height:1.64;
+}
+
+@media(hover:hover){
+  .how-v3-media-grid article,
+  .how-v3-recovery-grid article{
+    transition:transform .2s ease,border-color .2s ease,background-color .2s ease;
+  }
+  .how-v3-media-grid article:hover,
+  .how-v3-recovery-grid article:hover{
+    transform:translateY(-3px);
+    border-color:#44385c;
+    background:#12141e;
+  }
+}
+
+@media(max-width:1120px){
+  .how-v3-media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .how-v3-media-grid article{min-height:190px}
+}
+
+@media(max-width:760px){
+  .how-v3-hero-points{
+    grid-template-columns:1fr;
+    gap:7px;
+    margin-top:20px;
+  }
+  .how-v3-hero-points>span{
+    min-height:56px;
+    padding:10px 12px;
+  }
+  .how-v3-hero-points b,.how-v3-hero-points small{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+  }
+
+  .how-v3-media-grid,
+  .how-v3-recovery-grid{
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+  .how-v3-media-grid article,
+  .how-v3-recovery-grid article{
+    min-height:0;
+    padding:16px;
+  }
+  .how-v3-media-grid article{
+    display:grid;
+    grid-template-columns:40px minmax(0,1fr);
+    gap:12px;
+    align-items:start;
+  }
+  .how-v3-media-grid article>span{grid-row:1}
+  .how-v3-media-grid article>div{grid-column:2}
+}
+
+/* Dedicated phone layout: simplify the diagrams instead of squeezing desktop UI. */
+@media(max-width:600px){
+  .how-page.how-v2{overflow-x:hidden}
+  .how-v2-nav{
+    position:relative;
+    min-width:0;
+  }
+  .how-v2-nav .brand{min-width:0}
+  .how-v2-nav-actions{flex:none}
+  .how-v2 .how-back{white-space:nowrap}
+
+  .how-v2-hero{
+    box-sizing:border-box;
+    overflow:visible;
+  }
+  .how-v2-hero-copy,
+  .how-v2-live-card,
+  .how-v2-tech-copy,
+  .how-v2-routing{min-width:0}
+  .how-v2-hero h1{
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+  .how-v2-hero-actions{
+    width:100%;
+    gap:12px;
+  }
+  .how-v2-hero-actions>span{
+    width:100%;
+    line-height:1.45;
+  }
+
+  .how-v2-live-card{
+    border-radius:16px;
+  }
+  .how-v2-live-head{
+    height:52px;
+    min-width:0;
+    gap:8px;
+  }
+  .how-v2-live-head>div{min-width:0}
+  .how-v2-live-head>div span{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .how-v2-live-head strong{
+    flex:none;
+    font-size:9px;
+  }
+  .how-v2-live-stage{
+    min-height:0;
+    padding:22px 14px;
+    gap:0;
+  }
+  .how-v2-live-source,
+  .how-v2-live-viewers{
+    width:100%;
+    max-width:330px;
+    min-height:74px;
+    padding:12px;
+  }
+  .how-v2-live-core{
+    width:94px;
+    height:94px;
+    border-radius:23px;
+  }
+  .how-v2-live-route{
+    height:26px;
+  }
+  .how-v2-live-foot{
+    min-height:0;
+    padding:12px 14px;
+    align-items:flex-start;
+    flex-direction:column;
+    gap:8px;
+  }
+  .how-v2-live-foot span{white-space:normal}
+
+  .how-v2-section{
+    box-sizing:border-box;
+    overflow:visible;
+  }
+  .how-v2-section-heading{
+    max-width:100%;
+  }
+  .how-v2-section-heading h2{
+    max-width:100%;
+    overflow-wrap:normal;
+  }
+  .how-v2-section-heading>p{
+    line-height:1.55;
+  }
+
+  .how-v2-step-grid article{
+    min-height:0;
+    padding:17px;
+  }
+
+  .how-v2-tech{
+    display:block;
+  }
+  .how-v2-tech-list{
+    gap:8px;
+  }
+  .how-v2-tech-list article{
+    min-width:0;
+    padding:14px;
+    align-items:flex-start;
+  }
+  .how-v2-tech-list article>span{
+    flex:none;
+  }
+
+  .how-v2-routing{
+    margin-top:26px;
+    padding:12px;
+    border-radius:15px;
+  }
+  .how-v2-routing-head{
+    min-width:0;
+    gap:10px;
+  }
+  .how-v2-routing-head>span{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .how-v2-route-row{
+    grid-template-columns:1fr;
+    gap:6px;
+    margin-top:14px;
+  }
+  .how-v2-route-source,
+  .how-v2-provider,
+  .how-v2-destination{
+    width:100%;
+    min-height:56px;
+  }
+  .how-v2-wire{
+    width:2px;
+    height:18px;
+    margin:0 auto;
+    background:#4b3d69;
+  }
+  .how-v2-wire:after,
+  .how-v2-wire .packet{display:none}
+  .how-v2-fallback,
+  .how-v2-state-line{
+    min-width:0;
+    padding:12px;
+  }
+  .how-v2-fallback>div,
+  .how-v2-state-line span{min-width:0}
+  .how-v2-fallback small,
+  .how-v2-state-line span{
+    overflow-wrap:anywhere;
+  }
+
+  .how-v2-fact-grid article{
+    min-width:0;
+    padding:14px;
+    align-items:flex-start;
+  }
+
+  .how-v2-faq-list details{min-width:0}
+  .how-v2-faq-list summary{
+    min-height:58px;
+    gap:12px;
+    font-size:12px;
+    line-height:1.4;
+  }
+  .how-v2-faq-list summary svg{flex:none}
+  .how-v2-faq-list details p{
+    padding-right:0;
+    font-size:12px;
+    line-height:1.65;
+  }
+
+  .how-v2-cta{
+    min-width:0;
+    padding:21px 17px;
+    gap:18px;
+  }
+  .how-v2-cta h2{
+    font-size:22px;
+    line-height:1.18;
+  }
+  .how-v2-cta p{line-height:1.5}
+
+  .how-v2-footer{
+    min-width:0;
+    justify-content:space-between;
+  }
+  .how-v2-footer button{
+    min-width:0;
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:380px){
+  .how-v2-nav .brand>span:last-child{display:none}
+  .how-v2-nav .brand{width:40px}
+  .how-v2 .how-back{
+    width:40px;
+    padding:0;
+    font-size:0;
+    justify-content:center;
+  }
+  .how-v2-hero{
+    padding-left:14px;
+    padding-right:14px;
+  }
+  .how-v2-hero h1{font-size:36px}
+  .how-v2-section{
+    padding-left:14px;
+    padding-right:14px;
+  }
+  .how-v2-cta{
+    width:calc(100% - 28px);
+    margin-left:14px;
+    margin-right:14px;
+  }
+  .how-v2-footer{
+    padding-left:14px;
+    padding-right:14px;
+  }
+}
