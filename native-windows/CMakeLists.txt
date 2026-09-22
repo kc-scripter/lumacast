@@ -183,3 +183,12 @@ if(MSVC)
 endif()
 target_link_libraries(LuniraAgoraRoundtrip PRIVATE winhttp)
 lunira_link_agora(LuniraAgoraRoundtrip "${LUNIRA_AGORA_ROOT}")
+
+add_custom_command(
+  TARGET LuniraAgoraRoundtrip
+  POST_BUILD
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+          "$<TARGET_FILE:LuniraAgoraRoundtrip>"
+          "$<TARGET_FILE_DIR:LuniraAgoraRoundtrip>/LuniraAgoraPublisher.exe"
+  VERBATIM
+)
