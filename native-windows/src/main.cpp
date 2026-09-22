@@ -796,6 +796,7 @@ private:
     }
 
     void DrawSettings(float rail, float top, float width, float height) {
+        (void)height;
         const float left = rail + 34;
         const float right = width - 34;
 
