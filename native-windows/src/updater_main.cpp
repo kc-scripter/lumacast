@@ -1,6 +1,4 @@
 #include <windows.h>
-#include <shellapi.h>
-
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -294,11 +292,7 @@ int ApplyUpdate(
 
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
-    int argc = 0;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (!argv) return 2;
-
+int wmain(int argc, wchar_t** argv) {
     int result = 2;
 
     if (argc == 2 && std::wstring_view(argv[1]) == L"--self-test") {
@@ -322,6 +316,5 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         }
     }
 
-    LocalFree(argv);
     return result;
 }

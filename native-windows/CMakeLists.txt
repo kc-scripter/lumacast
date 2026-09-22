@@ -83,7 +83,7 @@ target_link_libraries(LuniraScreen PRIVATE
   bcrypt
 )
 
-add_executable(LuniraUpdater WIN32
+add_executable(LuniraUpdater
   src/updater_main.cpp
 )
 
@@ -105,7 +105,6 @@ if(MSVC)
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-target_link_libraries(LuniraUpdater PRIVATE shell32)
 
 
 add_executable(LuniraSignalingSmoke
