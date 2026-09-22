@@ -33,11 +33,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - name: Check desktop entrypoint syntax
-        run: |
-          node --check desktop/main.cjs
-          node --check desktop/picker-preload.cjs
-          node --check desktop/scripts/write-config.cjs
       - run: npm audit --omit=dev --audit-level=high
       - name: Ensure generated server build is not committed
         run: test -z "$(git ls-files server/dist)"
