@@ -33,6 +33,7 @@ struct ScreenSource {
 enum class AgoraEventType {
     Connected,
     Disconnected,
+    ConnectionState,
     ScreenFrame,
     CaptureEnded,
     TokenExpiring,
@@ -45,6 +46,8 @@ struct AgoraEvent {
     int height = 0;
     std::vector<std::uint8_t> bgra;
     std::wstring error;
+    int code = 0;
+    int detail = 0;
 };
 
 class AgoraScreenClient final : private agora::rtc::IRtcEngineEventHandler,
@@ -75,6 +78,7 @@ private:
     static std::wstring Utf8ToWide(std::string_view value);
 
     void onJoinChannelSuccess(const char*, agora::rtc::uid_t, int) override;
+    void onError(int err, const char* msg) override;
     void onConnectionStateChanged(agora::rtc::CONNECTION_STATE_TYPE state,
                                   agora::rtc::CONNECTION_CHANGED_REASON_TYPE reason) override;
     void onLocalVideoStateChanged(agora::rtc::VIDEO_SOURCE_TYPE source,
