@@ -189,6 +189,9 @@ jobs:
           @(
             "agora_rtc_sdk.dll",
             "libaosl.dll",
+            "libagora-ffmpeg.dll",
+            "libagora-soundtouch.dll",
+            "libagora-fdkaac.dll",
             "libagora_screen_capture_extension.dll",
             "libagora-wgc.dll",
             "libagora_video_encoder_extension.dll",
