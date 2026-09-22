@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (!socket) {
     const configured = import.meta.env.VITE_SIGNALING_URL?.trim();
-    socket = io(configured || undefined, { autoConnect:false, reconnection:true, reconnectionAttempts:8, reconnectionDelay:800, timeout:8000 });
+    socket = io(configured || undefined, { autoConnect:false, reconnection:true, reconnectionAttempts:Infinity, reconnectionDelay:800, reconnectionDelayMax:5000, randomizationFactor:0.3, timeout:8000 });
   }
   return socket;
 }
