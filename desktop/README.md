@@ -1,61 +1,45 @@
 # Lunira Screen para Windows
 
-O cliente Windows usa **Microsoft Edge WebView2**, em vez de empacotar um Chromium inteiro com Electron.
+O cliente Windows usa **WinForms + Microsoft Edge WebView2**. Ele continua sendo apenas outro cliente das mesmas salas da versão web: mesmo Socket.IO, Agora e LiveKit.
 
-Isso mantém o app compatível com a versão web — mesmas salas, mesmo Socket.IO, Agora e LiveKit — mas reduz drasticamente o tamanho do instalador.
+## O que mudou nesta versão
 
-## URL usada pelo app
+A implementação anterior em Electron era pesada porque carregava um Chromium inteiro. A primeira tentativa em WPF/WebView2 ficou leve, mas podia encerrar antes de exibir qualquer erro e não garantia a presença do WebView2 Runtime.
 
-Por padrão:
+A implementação atual corrige os dois pontos:
 
-```text
-https://lumacast-live-kc.onrender.com/
-```
+- sem Electron;
+- sem XAML no startup;
+- entrada WinForms protegida por tratamento global de exceções;
+- verificação explícita do WebView2 Runtime;
+- instalador inclui o **Evergreen Bootstrapper oficial da Microsoft** e instala o Runtime automaticamente quando necessário;
+- validação dos assemblies e do `WebView2Loader.dll` antes de gerar o instalador;
+- URL padrão real: `https://lumacast-live-kc.onrender.com/`;
+- tela de loading/erro com retry em vez de janela preta ou encerramento silencioso;
+- a imagem fornecida do Lunira Screen é a fonte do ícone do executável e do instalador.
 
-A URL pode ser substituída no build pela variável `LUNIRA_WEB_URL`, ou em desenvolvimento por:
+## Build
 
-```powershell
-LuniraScreen.exe --app-url=http://localhost:5173
-```
+Requisitos do ambiente de build:
 
-Se a página não carregar, o aplicativo mostra um erro com **Tentar novamente** e **Abrir no navegador** em vez de ficar em uma tela preta.
-
-## Captura de tela
-
-O WebView2 usa Chromium/Edge e suporta `getDisplayMedia()`. O seletor de compartilhamento é o do próprio WebView2/Windows. Câmera e microfone são permitidos somente para a origem configurada do Lunira Screen.
-
-## Build local
-
-Requisitos:
-
-- Windows 10/11 x64
-- .NET Framework 4.8 targeting pack
-- Inno Setup 6
-- Microsoft Edge WebView2 Runtime
+- Windows;
+- .NET SDK 8 para compilar o projeto `net48`;
+- .NET Framework 4.8 targeting pack;
+- Inno Setup 6.
 
 ```powershell
 cd desktop
 .\scripts\build.ps1 -Version 1.0.0 -WebUrl "https://lumacast-live-kc.onrender.com/"
 ```
 
-O instalador sai em:
+O script baixa o bootstrapper oficial do WebView2, gera o ícone, verifica os arquivos obrigatórios do runtime e cria:
 
 ```text
 desktop/release/Lunira-Screen-1.0.0-x64.exe
 ```
 
-## GitHub Actions
+## Compatibilidade web
 
-O PR executa um build real em `windows-latest` e publica o instalador como artifact.
+Uma sala criada no aplicativo pode ser acessada pelo navegador usando o mesmo código, e o contrário também funciona. Não existe backend separado para o app.
 
-Em releases, a tag define a versão do app. Exemplo:
-
-```text
-v1.2.0 -> Lunira-Screen-1.2.0-x64.exe
-```
-
-A variável opcional de repositório `LUNIRA_WEB_URL` pode apontar o app para um domínio novo sem alterar o código.
-
-## Peso
-
-O WebView2 Runtime não é incluído dentro do instalador. Windows 11 e instalações modernas do Edge normalmente já possuem o runtime. Por isso o pacote fica muito menor que a versão Electron, que precisava levar Chromium junto.
+O compartilhamento continua sendo iniciado pelo `navigator.mediaDevices.getDisplayMedia()` do frontend, usando o motor Chromium do WebView2.
