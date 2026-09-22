@@ -18,7 +18,23 @@ const corsOptions:CorsOptions={
   methods:["GET","POST"]
 };
 
+const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS||0);
+const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:0;
+
+const runtimeIssues=()=>{
+  const issues:string[]=[];
+  if(!(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL))issues.push("CLIENT_ORIGIN/PUBLIC_URL");
+  if(!/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_ID||""))issues.push("AGORA_APP_ID");
+  if(!/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_CERTIFICATE||""))issues.push("AGORA_APP_CERTIFICATE");
+  const livekitUrl=process.env.LIVEKIT_URL?.trim();
+  if(!livekitUrl||!/^wss?:\/\//i.test(livekitUrl))issues.push("LIVEKIT_URL");
+  if(!process.env.LIVEKIT_API_KEY?.trim())issues.push("LIVEKIT_API_KEY");
+  if(!process.env.LIVEKIT_API_SECRET?.trim())issues.push("LIVEKIT_API_SECRET");
+  return issues;
+};
+
 const app=express();
+if(proxyHops>0)app.set("trust proxy",proxyHops);
 app.disable("x-powered-by");
 app.use((_req,res,next)=>{
   res.setHeader("X-Content-Type-Options","nosniff");
@@ -30,7 +46,11 @@ app.use((_req,res,next)=>{
 });
 app.use(cors(corsOptions));
 app.use(rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",legacyHeaders:false}));
-app.get("/api/health",(_req,res)=>res.json({ok:true,service:"lumacast-signaling"}));
+app.get("/api/health",(_req,res)=>{
+  const issues=runtimeIssues();
+  res.setHeader("Cache-Control","no-store");
+  res.status(issues.length?503:200).json({ok:issues.length===0,service:"lumacast-signaling",issues});
+});
 
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
@@ -43,6 +63,13 @@ const io=new Server(httpServer,{
 const rooms=await registerSignaling(io);
 
 const here=dirname(fileURLToPath(import.meta.url)),clientDist=join(here,"../../dist");
-app.use(express.static(clientDist,{index:"index.html"}));
-app.get(/.*/,(_req,res)=>res.sendFile(join(clientDist,"index.html")));
-httpServer.listen(port,()=>console.log(`LumaCast signaling on http://localhost:${port} · ${rooms.count()} active rooms`));
+app.use(express.static(clientDist,{
+  index:"index.html",
+  setHeaders(res,path){if(path.includes("/assets/"))res.setHeader("Cache-Control","public, max-age=31536000, immutable");}
+}));
+app.get(/.*/,(_req,res)=>{res.setHeader("Cache-Control","no-cache");res.sendFile(join(clientDist,"index.html"));});
+httpServer.listen(port,()=>{
+  const issues=runtimeIssues();
+  if(issues.length)console.warn(`LumaCast started with incomplete RTC config: ${issues.join(", ")}`);
+  console.log(`LumaCast signaling on http://localhost:${port} · ${rooms.count()} active rooms`);
+});
