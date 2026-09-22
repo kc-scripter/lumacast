@@ -1,0 +1,39 @@
+cmake_minimum_required(VERSION 3.24)
+project(LuniraScreenNative LANGUAGES CXX)
+
+add_executable(LuniraScreen WIN32
+  src/main.cpp
+)
+
+target_compile_features(LuniraScreen PRIVATE cxx_std_20)
+target_compile_definitions(LuniraScreen PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+)
+
+if(MSVC)
+  target_compile_options(LuniraScreen PRIVATE
+    /W4
+    /permissive-
+    /EHsc
+    /utf-8
+    $<$<CONFIG:Release>:/O2>
+    $<$<CONFIG:Release>:/GL>
+    $<$<CONFIG:Release>:/Gy>
+  )
+  target_link_options(LuniraScreen PRIVATE
+    $<$<CONFIG:Release>:/LTCG>
+    $<$<CONFIG:Release>:/OPT:REF>
+    $<$<CONFIG:Release>:/OPT:ICF>
+  )
+  set_property(TARGET LuniraScreen PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+target_link_libraries(LuniraScreen PRIVATE
+  d2d1
+  dwrite
+  dwmapi
+)
