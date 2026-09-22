@@ -64,6 +64,20 @@ jobs:
             throw "O cliente nativo não conseguiu conectar ao mesmo LiveKit usado pela versão web."
           }
 
+      - name: Native camera frame roundtrip
+        shell: pwsh
+        run: |
+          $exe = "native-windows/build/Release/LuniraCameraRoundtrip.exe"
+          & $exe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Primeira tentativa de vídeo falhou; repetindo após alguns segundos..."
+            Start-Sleep -Seconds 6
+            & $exe
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "O receptor usado pelo app não recebeu um frame de câmera LiveKit de ponta a ponta."
+          }
+
       - name: Report LiveKit runtime size
         shell: pwsh
         run: |
@@ -77,10 +91,20 @@ jobs:
           }
           Write-Host "LiveKit runtime total: $([math]::Round($total / 1MB, 2)) MB"
 
+      - name: Stage runnable preview
+        shell: pwsh
+        run: |
+          $source = "native-windows/build/Release"
+          $stage = "native-windows/package"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "$source/LuniraScreen.exe" $stage
+          Copy-Item "$source/livekit.dll" $stage
+          Copy-Item "$source/livekit_ffi.dll" $stage
+
       - name: Upload native preview
         uses: actions/upload-artifact@v4
         with:
           name: Lunira-Screen-Native-UI
-          path: native-windows/build/Release/LuniraScreen.exe
+          path: native-windows/package/
           if-no-files-found: error
           retention-days: 7
