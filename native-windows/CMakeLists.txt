@@ -41,6 +41,74 @@ configure_file(
   @ONLY
 )
 
+
+# Experimental WebView2 shell. This keeps the proven native media build intact
+# while moving the visual shell to a declarative HTML/CSS UI.
+set(LUNIRA_WEBVIEW2_VERSION "1.0.4191.47" CACHE STRING "WebView2 SDK version")
+set(LUNIRA_WEBVIEW2_DIR "${CMAKE_BINARY_DIR}/_deps/webview2-${LUNIRA_WEBVIEW2_VERSION}")
+set(LUNIRA_WEBVIEW2_NUPKG "${CMAKE_BINARY_DIR}/_deps/Microsoft.Web.WebView2.${LUNIRA_WEBVIEW2_VERSION}.nupkg")
+
+if(NOT EXISTS "${LUNIRA_WEBVIEW2_DIR}/build/native/include/WebView2.h")
+  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/_deps")
+  if(NOT EXISTS "${LUNIRA_WEBVIEW2_NUPKG}")
+    file(
+      DOWNLOAD
+      "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${LUNIRA_WEBVIEW2_VERSION}"
+      "${LUNIRA_WEBVIEW2_NUPKG}"
+      SHOW_PROGRESS
+      STATUS LUNIRA_WEBVIEW2_DOWNLOAD_STATUS
+      TLS_VERIFY ON
+    )
+    list(GET LUNIRA_WEBVIEW2_DOWNLOAD_STATUS 0 LUNIRA_WEBVIEW2_DOWNLOAD_CODE)
+    if(NOT LUNIRA_WEBVIEW2_DOWNLOAD_CODE EQUAL 0)
+      list(GET LUNIRA_WEBVIEW2_DOWNLOAD_STATUS 1 LUNIRA_WEBVIEW2_DOWNLOAD_MESSAGE)
+      message(FATAL_ERROR "Failed to download WebView2 SDK: ${LUNIRA_WEBVIEW2_DOWNLOAD_MESSAGE}")
+    endif()
+  endif()
+
+  file(
+    ARCHIVE_EXTRACT
+    INPUT "${LUNIRA_WEBVIEW2_NUPKG}"
+    DESTINATION "${LUNIRA_WEBVIEW2_DIR}"
+  )
+endif()
+
+set(LUNIRA_WEBVIEW2_INCLUDE "${LUNIRA_WEBVIEW2_DIR}/build/native/include")
+set(LUNIRA_WEBVIEW2_STATIC_LIB "${LUNIRA_WEBVIEW2_DIR}/build/native/x64/WebView2LoaderStatic.lib")
+if(NOT EXISTS "${LUNIRA_WEBVIEW2_STATIC_LIB}")
+  message(FATAL_ERROR "WebView2 static loader library not found: ${LUNIRA_WEBVIEW2_STATIC_LIB}")
+endif()
+
+add_executable(LuniraScreenWebUI WIN32
+  src/webview_shell.cpp
+  "${LUNIRA_GENERATED_DIR}/resources.rc"
+)
+
+target_compile_features(LuniraScreenWebUI PRIVATE cxx_std_20)
+target_compile_definitions(LuniraScreenWebUI PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+)
+target_include_directories(LuniraScreenWebUI PRIVATE "${LUNIRA_WEBVIEW2_INCLUDE}")
+target_link_libraries(LuniraScreenWebUI PRIVATE
+  "${LUNIRA_WEBVIEW2_STATIC_LIB}"
+  dwmapi
+  ole32
+  shell32
+)
+
+if(MSVC)
+  target_compile_options(LuniraScreenWebUI PRIVATE /W4 /permissive- /EHsc /utf-8)
+  target_link_options(LuniraScreenWebUI PRIVATE
+    $<$<CONFIG:Release>:/OPT:REF>
+    $<$<CONFIG:Release>:/OPT:ICF>
+  )
+  set_property(TARGET LuniraScreenWebUI PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 add_executable(LuniraScreen WIN32
   src/main.cpp
   src/ui_layout.cpp

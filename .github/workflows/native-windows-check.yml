@@ -192,6 +192,7 @@ jobs:
           $stage = "native-windows/package"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "$source/LuniraScreen.exe" $stage
+          Copy-Item "$source/LuniraScreenWebUI.exe" "$stage/LuniraScreen-WebUI.exe"
           Copy-Item "$source/LuniraUpdater.exe" $stage
           Copy-Item "$source/livekit.dll" $stage
           Copy-Item "$source/livekit_ffi.dll" $stage
