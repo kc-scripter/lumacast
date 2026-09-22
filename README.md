@@ -122,3 +122,32 @@ npm run test:security
 npm run test:load -- --rooms 3 --users 30
 npm run release:check
 ```
+
+
+## Aplicativo Windows
+
+O repositório também possui um cliente desktop em `desktop/`, baseado em Electron/Chromium.
+
+Ele usa **as mesmas salas e o mesmo backend da versão web**. Uma sala criada no aplicativo pode ser acessada no navegador pelo mesmo código, e uma sala criada no navegador pode ser acessada pelo aplicativo.
+
+No Windows, o aplicativo intercepta `getDisplayMedia()`, apresenta um seletor próprio de tela/janela e usa o suporte de loopback do Electron para áudio do sistema. O vídeo continua seguindo o pipeline RTC existente do Lunira Screen.
+
+Para testar localmente:
+
+```powershell
+npm run dev
+cd desktop
+npm install
+npm start
+```
+
+Para gerar o instalador:
+
+```powershell
+cd desktop
+npm install
+$env:LUNIRA_WEB_URL="https://seu-dominio.com"
+npm run dist
+```
+
+O instalador é gerado em `desktop/release/`. Consulte `desktop/README.md` para detalhes.
