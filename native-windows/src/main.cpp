@@ -2210,7 +2210,7 @@ private:
             copied_ = true;
             if (OpenClipboard(hwnd_)) {
                 EmptyClipboard();
-                const std::wstring invite = L"https://lunira-screen.onrender.com/?room=" + roomCode_;
+                const std::wstring invite = L"https://lunirascreen.mooo.com/?room=" + roomCode_;
                 const size_t bytes = (invite.size() + 1) * sizeof(wchar_t);
                 HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, bytes);
                 if (memory) {
