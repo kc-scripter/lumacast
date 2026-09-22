@@ -8,16 +8,15 @@
 namespace lunira {
 namespace {
 
-void EnsureAgoraLogDirectory() {
+std::string AgoraLogFilePath() {
     wchar_t localAppData[MAX_PATH]{};
     const DWORD localLength = GetEnvironmentVariableW(
         L"LOCALAPPDATA", localAppData, MAX_PATH);
-    if (localLength == 0 || localLength >= MAX_PATH) return;
+    if (localLength == 0 || localLength >= MAX_PATH) return {};
 
     wchar_t exePath[MAX_PATH]{};
-    const DWORD exeLength = GetModuleFileNameW(
-        nullptr, exePath, MAX_PATH);
-    if (exeLength == 0 || exeLength >= MAX_PATH) return;
+    const DWORD exeLength = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    if (exeLength == 0 || exeLength >= MAX_PATH) return {};
 
     std::wstring exeName(exePath, exeLength);
     const size_t slash = exeName.find_last_of(L"\\/");
@@ -32,6 +31,20 @@ void EnsureAgoraLogDirectory() {
 
     std::wstring processDir = agoraRoot + L"\\" + exeName;
     CreateDirectoryW(processDir.c_str(), nullptr);
+
+    std::wstring file = processDir + L"\\rtc-" +
+        std::to_wstring(GetCurrentProcessId()) + L".log";
+
+    const int bytes = WideCharToMultiByte(
+        CP_UTF8, WC_ERR_INVALID_CHARS, file.data(), static_cast<int>(file.size()),
+        nullptr, 0, nullptr, nullptr);
+    if (bytes <= 0) return {};
+
+    std::string utf8(static_cast<size_t>(bytes), '\0');
+    WideCharToMultiByte(
+        CP_UTF8, WC_ERR_INVALID_CHARS, file.data(), static_cast<int>(file.size()),
+        utf8.data(), bytes, nullptr, nullptr);
+    return utf8;
 }
 
 } // namespace
@@ -83,7 +96,7 @@ bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool pu
     const std::string channel = WideToUtf8(credentials.channel);
     const std::string token = WideToUtf8(credentials.token);
 
-    EnsureAgoraLogDirectory();
+    const std::string agoraLogPath = AgoraLogFilePath();
     engine_ = createAgoraRtcEngine();
     if (!engine_) {
         Notify({AgoraEventType::Error, 0, 0, {}, L"Não foi possível criar o motor Agora."});
@@ -94,6 +107,9 @@ bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool pu
     context.appId = appId.c_str();
     context.eventHandler = this;
     context.channelProfile = agora::CHANNEL_PROFILE_LIVE_BROADCASTING;
+    if (!agoraLogPath.empty()) {
+        context.logConfig.filePath = agoraLogPath.c_str();
+    }
     if (engine_->initialize(context) != 0) {
         Notify({AgoraEventType::Error, 0, 0, {}, L"A inicialização do Agora falhou."});
         Stop();
