@@ -32,6 +32,7 @@ add_executable(LuniraScreen WIN32
   src/main.cpp
   src/socket_io_client.cpp
   src/livekit_media_client.cpp
+  src/camera_capture.cpp
   "${LUNIRA_GENERATED_DIR}/resources.rc"
 )
 
@@ -67,6 +68,11 @@ target_link_libraries(LuniraScreen PRIVATE
   dwrite
   dwmapi
   winhttp
+  mf
+  mfplat
+  mfreadwrite
+  mfuuid
+  ole32
 )
 
 
