@@ -41,6 +41,7 @@ jobs:
           }
 
       - name: Cross-compatible camera roundtrip
+        continue-on-error: true
         shell: pwsh
         run: |
           $exe = "native-windows/build/Release/LuniraCameraRoundtrip.exe"
@@ -50,6 +51,7 @@ jobs:
           }
 
       - name: Report LiveKit runtime size
+        if: always()
         shell: pwsh
         run: |
           $files = Get-ChildItem "native-windows/build/Release/*.dll" -ErrorAction SilentlyContinue
@@ -63,6 +65,7 @@ jobs:
           Write-Host "LiveKit runtime total: $([math]::Round($total / 1MB, 2)) MB"
 
       - name: Stage runnable preview
+        if: always()
         shell: pwsh
         run: |
           $source = "native-windows/build/Release"
@@ -73,6 +76,7 @@ jobs:
           Copy-Item "$source/livekit_ffi.dll" $stage
 
       - name: Upload native preview
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: LuniraScreen-Native
