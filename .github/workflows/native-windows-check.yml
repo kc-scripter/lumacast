@@ -131,7 +131,7 @@ jobs:
           }
 
           Write-Host "=== Direct loader probe ==="
-          & "$release/LuniraAgoraRoundtrip.exe"
+          & "$release/LuniraAgoraRoundtrip.exe" --loader-probe
           $code = [int32]$LASTEXITCODE
           $hex = [BitConverter]::ToUInt32([BitConverter]::GetBytes($code), 0)
           Write-Host ("AGORA_ROUNDTRIP_EXIT decimal={0} hex=0x{1:X8}" -f $code, $hex)
