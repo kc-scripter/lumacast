@@ -420,18 +420,26 @@ private:
     }
 
     void DrawTopRight(float width) {
-        const float x = width - 324.0f;
+        const float x = width - 444.0f;
 
-        Pill(Rect(x, 19, x + 120, 49), L"●  PRIVADA", violetPanelBrush_.Get(), violet2Brush_.Get());
+        Pill(Rect(x, 19, x + 110, 49), L"●  PRIVADA", violetPanelBrush_.Get(), violet2Brush_.Get());
 
-        const auto connected = D2D1::RoundedRect(Rect(x + 132, 19, x + 246, 49), 15, 15);
+        const auto people = D2D1::RoundedRect(Rect(x + 120, 19, x + 212, 49), 15, 15);
+        renderTarget_->FillRoundedRectangle(people, panel2Brush_.Get());
+        renderTarget_->DrawRoundedRectangle(people, borderBrush_.Get(), 1.0f);
+        const std::wstring peopleText =
+            std::to_wstring(roomState_.participants.size()) + L" na sala";
+        CenterText(peopleText, Rect(x + 128, 24, x + 204, 45),
+                   tinyBold_.Get(), mutedBrush_.Get());
+
+        const auto connected = D2D1::RoundedRect(Rect(x + 222, 19, x + 336, 49), 15, 15);
         renderTarget_->FillRoundedRectangle(connected, panel2Brush_.Get());
         renderTarget_->DrawRoundedRectangle(connected, borderBrush_.Get(), 1.0f);
         renderTarget_->FillEllipse(
-            D2D1::Ellipse(D2D1::Point2F(x + 148, 34), 4, 4),
+            D2D1::Ellipse(D2D1::Point2F(x + 238, 34), 4, 4),
             networkConnected_ ? greenBrush_.Get() : amberBrush_.Get());
         Text(networkConnected_ ? L"Conectado" : L"Offline",
-             Rect(x + 160, 24, x + 233, 45),
+             Rect(x + 250, 24, x + 323, 45),
              bodyStrong_.Get(), mutedBrush_.Get());
 
         const auto avatar = D2D1::Ellipse(D2D1::Point2F(width - 38, 34), 17, 17);
@@ -697,7 +705,11 @@ private:
         renderTarget_->FillRoundedRectangle(icon, violetPanelBrush_.Get());
         DrawMonitor(rect.left + 26, rect.top + 25, violet2Brush_.Get());
 
-        Text(sharing_ ? displayName_.empty() ? L"Você" : std::wstring_view(displayName_) : L"Tela da sala",
+        const std::wstring sharerName = roomState_.activeScreenSharerName.empty()
+            ? (displayName_.empty() ? L"Participante" : displayName_)
+            : roomState_.activeScreenSharerName;
+
+        Text(sharing_ ? std::wstring_view(sharerName) : std::wstring_view(L"Tela da sala"),
              Rect(rect.left + 64, rect.top + 13, rect.left + 250, rect.top + 36),
              strong_.Get(),
              textBrush_.Get());
@@ -727,15 +739,22 @@ private:
         renderTarget_->DrawRoundedRectangle(screen, borderSoftBrush_.Get(), 1.0f);
 
         if (sharing_) {
-            // Lightweight visual placeholder for a real incoming screen.
-            for (int i = 0; i < 7; ++i) {
-                const float y = rect.top + 28 + i * 24.0f;
-                const float length = (i % 3 == 0) ? 0.62f : (i % 3 == 1 ? 0.44f : 0.72f);
-                Fill(Rect(rect.left + 30, y, rect.left + 30 + (rect.right - rect.left - 60) * length, y + 9),
-                     i == 0 ? violetPanelBrush_.Get() : panel2Brush_.Get());
-            }
-            Text(L"Prévia da transmissão", Rect(rect.left + 30, rect.bottom - 54, rect.right - 30, rect.bottom - 28),
-                 bodyStrong_.Get(), mutedBrush_.Get());
+            const float cx = (rect.left + rect.right) * 0.5f;
+            const float cy = (rect.top + rect.bottom) * 0.5f - 22.0f;
+            const auto icon = D2D1::RoundedRect(Rect(cx - 30, cy - 30, cx + 30, cy + 30), 16, 16);
+            renderTarget_->FillRoundedRectangle(icon, violetPanelBrush_.Get());
+            DrawMonitor(cx - 10, cy - 8, violet2Brush_.Get());
+
+            const std::wstring sharer = roomState_.activeScreenSharerName.empty()
+                ? L"Participante"
+                : roomState_.activeScreenSharerName;
+            CenterText(L"Transmissão ativa",
+                       Rect(rect.left + 40, cy + 44, rect.right - 40, cy + 70),
+                       heading_.Get(), textBrush_.Get());
+            const std::wstring detail = sharer + L" está compartilhando · vídeo na próxima etapa";
+            CenterText(detail,
+                       Rect(rect.left + 40, cy + 76, rect.right - 40, cy + 100),
+                       body_.Get(), mutedBrush_.Get());
             return;
         }
 
@@ -760,9 +779,16 @@ private:
         renderTarget_->FillEllipse(
             D2D1::Ellipse(D2D1::Point2F(rect.left + 18, rect.top + 24), 4, 4),
             greenBrush_.Get());
-        Text(displayName_.empty() ? L"Você" : std::wstring_view(displayName_), Rect(rect.left + 30, rect.top + 8, rect.left + 110, rect.top + 28),
+
+        const std::wstring sharer = roomState_.activeScreenSharerName.empty()
+            ? (displayName_.empty() ? L"Participante" : displayName_)
+            : roomState_.activeScreenSharerName;
+        Text(sharer, Rect(rect.left + 30, rect.top + 8, rect.left + 160, rect.top + 28),
              bodyStrong_.Get(), textBrush_.Get());
-        Text(L"Compartilhando via Agora", Rect(rect.left + 30, rect.top + 27, rect.left + 200, rect.top + 44),
+
+        const std::wstring provider = roomState_.screenProvider == L"livekit" ? L"LiveKit" : L"Agora";
+        const std::wstring providerLine = L"Compartilhando via " + provider;
+        Text(providerLine, Rect(rect.left + 30, rect.top + 27, rect.left + 220, rect.top + 44),
              tiny_.Get(), mutedBrush_.Get());
 
         const auto badge = D2D1::RoundedRect(
@@ -785,25 +811,57 @@ private:
 
         Text(L"Câmeras", Rect(rect.left + 16, rect.top + 10, rect.left + 90, rect.top + 31),
              bodyStrong_.Get(), textBrush_.Get());
-        Text(L"3 ativas", Rect(rect.left + 84, rect.top + 11, rect.left + 150, rect.top + 31),
+
+        const std::wstring dockStatus = roomState_.participants.empty()
+            ? L"aguardando sala"
+            : std::to_wstring(roomState_.participants.size()) + L" pessoa(s)";
+        Text(dockStatus, Rect(rect.left + 84, rect.top + 11, rect.left + 180, rect.top + 31),
              tiny_.Get(), mutedBrush_.Get());
+
         Text(camerasOpen_ ? L"⌄" : L"⌃", Rect(rect.right - 34, rect.top + 9, rect.right - 14, rect.top + 31),
              strong_.Get(), mutedBrush_.Get());
 
         if (!camerasOpen_) return;
 
+        if (roomState_.participants.empty()) {
+            CenterText(L"As câmeras reais serão conectadas na próxima etapa.",
+                       Rect(rect.left + 20, rect.top + 72, rect.right - 20, rect.bottom - 22),
+                       body_.Get(), mutedBrush_.Get());
+            return;
+        }
+
+        const size_t count = std::min<size_t>(3, roomState_.participants.size());
         const float gap = 10.0f;
         const float tileTop = rect.top + 48;
         const float tileBottom = rect.bottom - 10;
-        const float available = rect.right - rect.left - 32 - gap * 2;
-        const float tileW = available / 3.0f;
+        const float available = rect.right - rect.left - 32 - gap * static_cast<float>(count - 1);
+        const float tileW = available / static_cast<float>(count);
 
-        DrawCameraTile(11, Rect(rect.left + 16, tileTop, rect.left + 16 + tileW, tileBottom),
-                       displayName_.empty() ? L"Você" : std::wstring_view(displayName_), L"VOCÊ", 0x2A2040, L"K");
-        DrawCameraTile(12, Rect(rect.left + 16 + tileW + gap, tileTop, rect.left + 16 + tileW * 2 + gap, tileBottom),
-                       L"Pedro", L"", 0x172A39, L"P");
-        DrawCameraTile(13, Rect(rect.left + 16 + tileW * 2 + gap * 2, tileTop, rect.right - 16, tileBottom),
-                       L"Ana", L"", 0x2B1B32, L"A");
+        static constexpr std::array<unsigned, 3> backgrounds{ 0x2A2040, 0x172A39, 0x2B1B32 };
+
+        for (size_t i = 0; i < count; ++i) {
+            const auto& participant = roomState_.participants[i];
+            const float left = rect.left + 16 + static_cast<float>(i) * (tileW + gap);
+            const D2D1_RECT_F tile = Rect(left, tileTop, left + tileW, tileBottom);
+            const std::wstring initial = participant.displayName.empty()
+                ? L"?"
+                : participant.displayName.substr(0, 1);
+            const bool self = participant.displayName == displayName_;
+
+            DrawCameraTile(
+                11 + static_cast<int>(i),
+                tile,
+                participant.displayName,
+                self ? std::wstring_view(L"VOCÊ") : std::wstring_view{},
+                backgrounds[i],
+                initial);
+        }
+
+        if (roomState_.participants.size() > 3) {
+            const std::wstring more = L"+" + std::to_wstring(roomState_.participants.size() - 3) + L" pessoa(s)";
+            Text(more, Rect(rect.right - 130, rect.top + 10, rect.right - 42, rect.top + 31),
+                 tinyBold_.Get(), violet2Brush_.Get());
+        }
     }
 
     void DrawCameraTile(int hitId, const D2D1_RECT_F& rect, std::wstring_view name,
@@ -912,6 +970,13 @@ private:
     }
 
     void DrawCameraOverlay(float width, float height) {
+        if (selectedCamera_ < 0 ||
+            static_cast<size_t>(selectedCamera_) >= roomState_.participants.size()) {
+            selectedCamera_ = -1;
+            return;
+        }
+
+        const auto& participant = roomState_.participants[static_cast<size_t>(selectedCamera_)];
         const bool large = cameraOverlayLarge_;
         const float overlayW = large ? 560.0f : 390.0f;
         const float overlayH = large ? 330.0f : 236.0f;
@@ -934,20 +999,26 @@ private:
         const auto videoRr = D2D1::RoundedRect(video, 10, 10);
         renderTarget_->FillRoundedRectangle(videoRr, violetPanelBrush_.Get());
 
-        static constexpr std::array<std::wstring_view, 3> initials{ L"K", L"P", L"A" };
-        static constexpr std::array<std::wstring_view, 3> names{ L"Kauã · VOCÊ", L"Pedro", L"Ana" };
-        const int index = std::clamp(selectedCamera_, 0, 2);
+        const std::wstring initial = participant.displayName.empty()
+            ? L"?"
+            : participant.displayName.substr(0, 1);
 
         const float cx = (video.left + video.right) * 0.5f;
         const float cy = (video.top + video.bottom) * 0.5f;
         renderTarget_->FillEllipse(
             D2D1::Ellipse(D2D1::Point2F(cx, cy), large ? 38.0f : 30.0f, large ? 38.0f : 30.0f),
             violetBrush_.Get());
-        CenterText(initials[static_cast<size_t>(index)],
+        CenterText(initial,
                    Rect(cx - 34, cy - 34, cx + 34, cy + 34),
                    title_.Get(), textBrush_.Get());
 
-        Text(names[static_cast<size_t>(index)],
+        CenterText(L"Câmera será conectada na próxima etapa",
+                   Rect(video.left + 20, cy + 52, video.right - 20, cy + 76),
+                   tiny_.Get(), mutedBrush_.Get());
+
+        const std::wstring label = participant.displayName +
+            (participant.displayName == displayName_ ? L" · VOCÊ" : L"");
+        Text(label,
              Rect(rect.left + 14, rect.bottom - 34, rect.right - 100, rect.bottom - 10),
              bodyStrong_.Get(), textBrush_.Get());
 
