@@ -138,9 +138,10 @@ int main() {
     };
 
     auto create = createRoom();
-    if (create && !create->ok &&
-        create->error.find(L"Muitas tentativas") != std::wstring::npos) {
-        std::cout << "create-room rate limited; waiting for server window...\n";
+    if (create && !create->ok) {
+        std::cerr << "create-room first rejection: "
+                  << WideToUtf8(create->error) << "\n";
+        std::cout << "waiting 65s before one controlled retry...\n";
         std::this_thread::sleep_for(65s);
         create = createRoom();
     }
@@ -148,7 +149,7 @@ int main() {
     if (!create || !create->ok || create->roomId.size() != 8) {
         std::cerr << "create-room failed";
         if (create && !create->error.empty()) {
-            std::cerr << " (server rejected request)";
+            std::cerr << ": " << WideToUtf8(create->error);
         }
         std::cerr << "\n";
         ownerSignal.Stop();
