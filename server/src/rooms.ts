@@ -70,7 +70,7 @@ export class RoomStore{
   persist(room:Room){if(this.persistence){const snapshot=this.snapshot(room);this.queue(room.id,()=>this.persistence!.save(snapshot));}}
   newId(){let id="";do{const bytes=randomBytes(8);id=Array.from(bytes,b=>this.alphabet[b%this.alphabet.length]).join("");}while(this.rooms.has(id));return id;}
   create(id:string,ownerId:string,ownerName:string,ownerUid:number){const ownerToken=newSecret();const room:Room={id,ownerId,ownerName,ownerUid,ownerToken,ownerTokenHash:hashSecret(ownerToken),ownerLivekitActive:false,participants:new Map(),activeScreenSharerId:null,activeScreenUid:null,screenProvider:"agora",live:false};this.rooms.set(id,room);this.persist(room);return room;}
-  nameFor(room:Room,name:string,except?:string){const taken=[room.ownerId===except?"":room.ownerName,...[...room.participants.values()].filter(p=>p.socketId!==except).map(p=>p.displayName)].map(value=>value.toLocaleLowerCase());let result=name,index=2;while(taken.includes(result.toLocaleLowerCase()))result=`${name} (${index++})`;return result;}
+  nameFor(room:Room,name:string,except?:string){const taken=[room.ownerId===except?"":room.ownerName,...[...room.participants.values()].filter(p=>p.socketId!==except).map(p=>p.displayName)].map(value=>value.toLocaleLowerCase());let result=name,index=2;while(taken.includes(result.toLocaleLowerCase())){const suffix=` (${index++})`;result=`${name.slice(0,Math.max(1,20-suffix.length))}${suffix}`;}return result;}
   get(id:string){return this.rooms.get(id);}
   findByOwner(id:string){return [...this.rooms.values()].find(room=>room.ownerId===id);}
   findByParticipant(id:string){return [...this.rooms.values()].find(room=>room.participants.has(id));}
