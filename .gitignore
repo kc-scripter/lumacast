@@ -50,6 +50,9 @@ next-env.d.ts
 /server/dist/
 
 # Windows desktop build artifacts
-/desktop/node_modules/
 /desktop/release/
-/desktop/config.json
+
+# lightweight Windows build artifacts
+/desktop/bin/
+/desktop/obj/
+/desktop/Assets/Lunira.ico
