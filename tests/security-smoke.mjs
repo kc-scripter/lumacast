@@ -28,8 +28,8 @@ assert.equal(JSON.stringify(saved).includes(ownerToken),false);
 
 const participantToken=newSecret();
 room.participants.set("participant",{socketId:"participant",displayName:"Security Guest",agoraUid:456,token:participantToken,tokenHash:hashSecret(participantToken),livekitActive:false});
-const longName="ABCDEFGHIJKLMNOPQRST";
-room.participants.set("long-name",{socketId:"long-name",displayName:longName,agoraUid:457,token:newSecret(),tokenHash:hashSecret(newSecret()),livekitActive:false});
+const longName="ABCDEFGHIJKLMNOPQRST",longToken=newSecret();
+room.participants.set("long-name",{socketId:"long-name",displayName:longName,agoraUid:457,token:longToken,tokenHash:hashSecret(longToken),livekitActive:false});
 const deduplicated=store.nameFor(room,longName);
 assert.ok(deduplicated.length<=20);
 assert.notEqual(deduplicated,longName);
