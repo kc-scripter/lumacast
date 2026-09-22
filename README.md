@@ -126,28 +126,25 @@ npm run release:check
 
 ## Aplicativo Windows
 
-O repositório também possui um cliente desktop em `desktop/`, baseado em Electron/Chromium.
+O cliente Windows fica em `desktop/` e usa **Microsoft Edge WebView2** para manter o mesmo frontend e o mesmo protocolo da versão web sem empacotar um Chromium inteiro.
 
-Ele usa **as mesmas salas e o mesmo backend da versão web**. Uma sala criada no aplicativo pode ser acessada no navegador pelo mesmo código, e uma sala criada no navegador pode ser acessada pelo aplicativo.
+Salas criadas no aplicativo e no navegador são as mesmas: Socket.IO, Agora e LiveKit continuam usando o backend público do Lunira Screen.
 
-No Windows, o aplicativo intercepta `getDisplayMedia()`, apresenta um seletor próprio de tela/janela e usa o suporte de loopback do Electron para áudio do sistema. O vídeo continua seguindo o pipeline RTC existente do Lunira Screen.
+Por padrão, o build atual aponta para:
 
-Para testar localmente:
-
-```powershell
-npm run dev
-cd desktop
-npm install
-npm start
+```text
+https://lumacast-live-kc.onrender.com/
 ```
 
-Para gerar o instalador:
+O app possui tela de carregamento e tela de erro com retry; falhas de rede não ficam mais presas em uma janela preta.
+
+Para gerar o instalador no Windows:
 
 ```powershell
 cd desktop
-npm install
-$env:LUNIRA_WEB_URL="https://seu-dominio.com"
-npm run dist
+.\scripts\build.ps1 -Version 1.0.0 -WebUrl "https://lumacast-live-kc.onrender.com/"
 ```
 
-O instalador é gerado em `desktop/release/`. Consulte `desktop/README.md` para detalhes.
+O instalador é gerado em `desktop/release/`. O workflow **Windows Desktop Check** também faz um build real em `windows-latest` e publica o `.exe` como artifact do PR.
+
+Consulte `desktop/README.md` para detalhes.
