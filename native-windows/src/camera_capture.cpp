@@ -40,7 +40,9 @@ double ScoreMode(UINT32 width, UINT32 height, UINT32 fpsNum, UINT32 fpsDen) {
     const double pixels = static_cast<double>(width) * static_cast<double>(height);
     const double sizePenalty = std::abs(std::log(std::max(1.0, pixels) / targetPixels)) * 800.0;
     const double oversizePenalty = pixels > 1920.0 * 1080.0 ? 1200.0 : 0.0;
-    const double fpsScore = std::min(fps, 60.0) * 25.0;
+    const double fpsScore = fps >= 40.0
+        ? 1200.0 - std::abs(fps - 40.0) * 8.0
+        : fps * 24.0;
     return fpsScore - sizePenalty - oversizePenalty;
 }
 
@@ -246,6 +248,8 @@ void CameraCapture::Run() {
     const size_t rowBytes = static_cast<size_t>(best.width) * 4u;
     const size_t frameBytes = rowBytes * static_cast<size_t>(best.height);
 
+    ULONGLONG lastDeliveredMs = 0;
+
     while (!stop_.load()) {
         DWORD streamIndex = 0;
         DWORD flags = 0;
@@ -272,10 +276,16 @@ void CameraCapture::Run() {
         hr = sample->ConvertToContiguousBuffer(buffer.GetAddressOf());
         if (FAILED(hr) || !buffer) continue;
 
+        const ULONGLONG nowMs = GetTickCount64();
+        if (lastDeliveredMs != 0 && nowMs - lastDeliveredMs < 24) {
+            continue;
+        }
+
         CapturedCameraFrame frame;
         frame.width = static_cast<int>(best.width);
         frame.height = static_cast<int>(best.height);
         frame.bgra.resize(frameBytes);
+        bool copied = false;
 
         ComPtr<IMF2DBuffer> buffer2d;
         if (SUCCEEDED(buffer.As(&buffer2d)) && buffer2d) {
@@ -291,6 +301,7 @@ void CameraCapture::Run() {
                             sourceRow,
                             rowBytes);
                     }
+                    copied = true;
                 }
                 buffer2d->Unlock2D();
             }
@@ -302,9 +313,13 @@ void CameraCapture::Run() {
                 bytes &&
                 currentLength >= frameBytes) {
                 std::memcpy(frame.bgra.data(), bytes, frameBytes);
+                copied = true;
                 buffer->Unlock();
             }
         }
+
+        if (!copied) continue;
+        lastDeliveredMs = nowMs;
 
         for (size_t offset = 3; offset < frame.bgra.size(); offset += 4) {
             frame.bgra[offset] = 255;
