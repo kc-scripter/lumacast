@@ -41,7 +41,6 @@ jobs:
           }
 
       - name: Cross-compatible camera roundtrip
-        continue-on-error: true
         shell: pwsh
         run: |
           $exe = "native-windows/build/Release/LuniraCameraRoundtrip.exe"
