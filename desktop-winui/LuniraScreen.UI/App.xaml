@@ -1,0 +1,22 @@
+<Application
+    x:Class="LuniraScreen.UI.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:LuniraScreen.UI">
+    <Application.Resources>
+        <ResourceDictionary>
+            <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            <Color x:Key="AccentColor">#A78BFA</Color>
+            <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#1B191F"/>
+            <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#24212A"/>
+            <SolidColorBrush x:Key="StrokeBrush" Color="#38333F"/>
+            <SolidColorBrush x:Key="MutedBrush" Color="#A19AA9"/>
+            <Style x:Key="AppButton" TargetType="Button"><Setter Property="Background" Value="#26222E"/><Setter Property="Foreground" Value="#F2EFF7"/><Setter Property="BorderBrush" Value="#3D3747"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="8"/><Setter Property="Padding" Value="14,10"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Transitions"><Setter.Value><TransitionCollection><EntranceThemeTransition/></TransitionCollection></Setter.Value></Setter><Style.Resources><Style TargetType="ContentPresenter"><Setter Property="CornerRadius" Value="8"/></Style></Style.Resources></Style>
+            <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource AppButton}"><Setter Property="Background" Value="#8364DE"/><Setter Property="BorderBrush" Value="#A68BFF"/></Style>
+            <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource AppButton}"><Setter Property="Width" Value="40"/><Setter Property="Height" Value="40"/><Setter Property="Padding" Value="0"/></Style>
+            <Style x:Key="TextBoxStyle" TargetType="TextBox"><Setter Property="Background" Value="#151319"/><Setter Property="BorderBrush" Value="#3C3742"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="12,9"/><Setter Property="Foreground" Value="#F1EDF5"/></Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
+

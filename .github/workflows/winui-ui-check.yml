@@ -1,0 +1,41 @@
+name: WinUI Desktop UI
+
+on:
+  pull_request:
+    paths:
+      - "desktop-winui/**"
+      - ".github/workflows/winui-ui-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build WinUI Release
+        shell: pwsh
+        run: |
+          msbuild desktop-winui/LuniraScreen.UI.sln /restore /m /p:Configuration=Release /p:Platform=x64
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "desktop-winui/bin/Release/x64/LuniraScreen-WinUI.exe"
+          if (-not (Test-Path $exe)) { throw "WinUI executable was not produced." }
+          Write-Host "WinUI EXE: $((Get-Item $exe).Length) bytes"
+
+      - name: Upload WinUI preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuniraScreen-WinUI
+          path: desktop-winui/bin/Release/x64/
+          if-no-files-found: error
+          retention-days: 7
