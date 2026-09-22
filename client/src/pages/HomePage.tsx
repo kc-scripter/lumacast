@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Logo } from "../components/Logo";
 import { NameDialog } from "../components/NameDialog";
 import { navigate } from "../services/navigation";
+import { safeSessionRemove,safeSessionSet } from "../services/browser";
 
 const normalizeRoomCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"").slice(0,8);
 
@@ -83,13 +84,13 @@ export function HomePage(){
   };
 
   const continueWithName=(name:string)=>{
-    sessionStorage.setItem("lumacast-display-name",name);
+    safeSessionSet("lumacast-display-name",name);
     if(intent==="broadcast"){
-      sessionStorage.removeItem("lumacast-broadcaster");
+      safeSessionRemove("lumacast-broadcaster");
       navigate("/broadcast");
       return;
     }
-    sessionStorage.removeItem(`lumacast-participant-${code}`);
+    safeSessionRemove(`lumacast-participant-${code}`);
     navigate(`/watch/${code}`);
   };
 
