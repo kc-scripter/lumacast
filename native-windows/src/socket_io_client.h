@@ -86,7 +86,7 @@ private:
 
     bool HttpGet(std::wstring_view path, std::string& body, DWORD& statusCode);
     bool HttpPost(std::wstring_view path, std::string_view body, DWORD& statusCode);
-    std::wstring PollingPath(bool includeSession) const;
+    std::wstring PollingPath(bool includeSession);
 
     bool SendText(std::string_view text);
     void HandlePayload(std::string_view payload);
