@@ -23,6 +23,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build desktop UI
+        shell: pwsh
+        run: |
+          npm ci
+          npm run build:desktop
+
       - name: Configure
         shell: pwsh
         run: cmake -S native-windows -B native-windows/build -A x64
@@ -193,6 +205,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "$source/LuniraScreen.exe" $stage
           Copy-Item "$source/LuniraScreenWebUI.exe" "$stage/LuniraScreen-WebUI.exe"
+          Copy-Item "$source/desktop-ui" "$stage/desktop-ui" -Recurse
           Copy-Item "$source/LuniraUpdater.exe" $stage
           Copy-Item "$source/livekit.dll" $stage
           Copy-Item "$source/livekit_ffi.dll" $stage

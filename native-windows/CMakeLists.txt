@@ -81,6 +81,7 @@ endif()
 
 add_executable(LuniraScreenWebUI WIN32
   src/webview_shell.cpp
+  src/updater.cpp
   "${LUNIRA_GENERATED_DIR}/resources.rc"
 )
 
@@ -90,6 +91,7 @@ target_compile_definitions(LuniraScreenWebUI PRIVATE
   _UNICODE
   WIN32_LEAN_AND_MEAN
   NOMINMAX
+  LUNIRA_APP_VERSION="${LUNIRA_VERSION}"
 )
 target_include_directories(LuniraScreenWebUI PRIVATE "${LUNIRA_WEBVIEW2_INCLUDE}")
 target_link_libraries(LuniraScreenWebUI PRIVATE
@@ -97,6 +99,19 @@ target_link_libraries(LuniraScreenWebUI PRIVATE
   dwmapi
   ole32
   shell32
+  shlwapi
+  winhttp
+  bcrypt
+)
+
+add_custom_command(
+  TARGET LuniraScreenWebUI
+  POST_BUILD
+  COMMAND "${CMAKE_COMMAND}" -E rm -rf "$<TARGET_FILE_DIR:LuniraScreenWebUI>/desktop-ui"
+  COMMAND "${CMAKE_COMMAND}" -E copy_directory
+          "${CMAKE_CURRENT_SOURCE_DIR}/../desktop-ui/dist"
+          "$<TARGET_FILE_DIR:LuniraScreenWebUI>/desktop-ui"
+  VERBATIM
 )
 
 if(MSVC)

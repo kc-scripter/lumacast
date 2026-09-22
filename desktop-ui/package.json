@@ -1,0 +1,7 @@
+{
+  "name":"lunirascreen-desktop-ui",
+  "private":true,
+  "version":"0.1.0",
+  "type":"module",
+  "scripts":{"dev":"vite --config vite.config.ts","build":"vite build --config vite.config.ts"}
+}
