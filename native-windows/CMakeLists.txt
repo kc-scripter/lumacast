@@ -39,3 +39,25 @@ target_link_libraries(LuniraScreen PRIVATE
   dwmapi
   winhttp
 )
+
+
+add_executable(LuniraSignalingSmoke
+  tests/signaling_smoke.cpp
+  src/socket_io_client.cpp
+)
+
+target_compile_features(LuniraSignalingSmoke PRIVATE cxx_std_20)
+target_compile_definitions(LuniraSignalingSmoke PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+)
+
+if(MSVC)
+  target_compile_options(LuniraSignalingSmoke PRIVATE /W4 /permissive- /EHsc /utf-8)
+  set_property(TARGET LuniraSignalingSmoke PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+target_link_libraries(LuniraSignalingSmoke PRIVATE winhttp)
