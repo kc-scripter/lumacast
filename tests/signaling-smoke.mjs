@@ -1,17 +1,40 @@
 import { io } from "socket.io-client";
 import assert from "node:assert/strict";
-const url="http://localhost:3001";
-const once=(socket,event,timeout=3000)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error(`Timeout: ${event}`)),timeout);socket.once(event,data=>{clearTimeout(timer);resolve(data);});});
-const ack=(socket,event,data)=>new Promise(resolve=>data===undefined?socket.emit(event,resolve):socket.emit(event,data,resolve));
-const connect=()=>new Promise(resolve=>{const socket=io(url,{forceNew:true,transports:["websocket"]});socket.once("connect",()=>resolve(socket));});
-const broadcaster=await connect();
-const created=await ack(broadcaster,"create-room");assert.equal(created.ok,true);assert.match(created.roomId,/^[A-Z2-9]{8}$/);assert.ok(created.broadcasterToken);
+
+const url=process.env.TEST_SIGNALING_URL||"http://localhost:3001";
+const once=(socket,event,timeout=4000)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error(`Timeout: ${event}`)),timeout);socket.once(event,data=>{clearTimeout(timer);resolve(data);});});
+const ack=(socket,event,data)=>new Promise((resolve,reject)=>socket.timeout(5000).emit(event,data,(error,result)=>error?reject(error):resolve(result)));
+const connect=()=>new Promise((resolve,reject)=>{const socket=io(url,{forceNew:true,transports:["websocket"],reconnection:false});socket.once("connect",()=>resolve(socket));socket.once("connect_error",reject);});
+
+const host=await connect();
+const created=await ack(host,"create-room",{displayName:"Smoke Host"});
+assert.equal(created.ok,true);assert.match(created.roomId,/^[A-Z2-9]{8}$/);assert.ok(created.ownerToken);assert.ok(created.agoraToken);
+
 const viewer1=await connect(),viewer2=await connect();
-const joined1=once(broadcaster,"viewer-joined");assert.equal((await ack(viewer1,"join-room",{roomId:created.roomId})).ok,true);const event1=await joined1;assert.equal(event1.viewerId,viewer1.id);assert.equal(event1.count,1);
-const joined2=once(broadcaster,"viewer-joined");assert.equal((await ack(viewer2,"join-room",{roomId:created.roomId})).ok,true);const event2=await joined2;assert.equal(event2.viewerId,viewer2.id);assert.equal(event2.count,2);
-const offer1=once(viewer1,"offer");broadcaster.emit("offer",{roomId:created.roomId,viewerId:viewer1.id,sdp:{type:"offer",sdp:"viewer-one"}});assert.equal((await offer1).sdp.sdp,"viewer-one");
-const answer1=once(broadcaster,"answer");viewer1.emit("answer",{roomId:created.roomId,viewerId:viewer1.id,sdp:{type:"answer",sdp:"answer-one"}});assert.equal((await answer1).viewerId,viewer1.id);
-const live1=once(viewer1,"broadcast-started"),live2=once(viewer2,"broadcast-started");broadcaster.emit("broadcast-started",{roomId:created.roomId});await Promise.all([live1,live2]);
-const left=once(broadcaster,"viewer-left");viewer1.disconnect();assert.equal((await left).count,1);
-const ended=once(viewer2,"broadcast-ended");broadcaster.emit("broadcast-ended",{roomId:created.roomId});await ended;
-broadcaster.disconnect();viewer2.disconnect();console.log(JSON.stringify({ok:true,roomId:created.roomId,multiViewer:true,targetedOffer:true,answerRouting:true,disconnectCleanup:true}));
+const state1=once(host,"room-state");
+const joined1=await ack(viewer1,"join-room",{roomId:created.roomId,displayName:"Smoke Viewer 1"});
+assert.equal(joined1.ok,true);assert.ok(joined1.participantToken);assert.equal((await state1).count,1);
+
+const state2=once(host,"room-state");
+const joined2=await ack(viewer2,"join-room",{roomId:created.roomId,displayName:"Smoke Viewer 2"});
+assert.equal(joined2.ok,true);assert.equal((await state2).count,2);
+
+const lock=await ack(viewer1,"request-screen-share",{roomId:created.roomId});
+assert.equal(lock.ok,true);assert.equal(lock.activeScreenSharerId,viewer1.id);
+
+const started=once(host,"broadcast-started");
+viewer1.emit("broadcast-started",{roomId:created.roomId});
+await started;
+
+const ended=once(viewer2,"broadcast-ended");
+assert.equal((await ack(viewer1,"release-screen-share",{roomId:created.roomId})).ok,true);
+await ended;
+
+const reconnectToken=joined1.participantToken;
+viewer1.disconnect();
+const viewer1b=await connect();
+const rejoined=await ack(viewer1b,"join-room",{roomId:created.roomId,participantToken:reconnectToken,displayName:"Ignored Name"});
+assert.equal(rejoined.ok,true);assert.equal(rejoined.displayName,"Smoke Viewer 1");
+
+host.disconnect();viewer1b.disconnect();viewer2.disconnect();
+console.log(JSON.stringify({ok:true,roomId:created.roomId,joins:true,screenLock:true,broadcastLifecycle:true,participantReconnect:true}));

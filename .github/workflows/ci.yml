@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PORT: "3001"
+      CLIENT_ORIGIN: "http://localhost:5173"
+      PUBLIC_URL: "http://localhost:5173"
+      VITE_SIGNALING_URL: "http://localhost:3001"
+      AGORA_APP_ID: "11111111111111111111111111111111"
+      AGORA_APP_CERTIFICATE: "22222222222222222222222222222222"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Signaling smoke test
+        run: |
+          node server/dist/server.js > /tmp/lumacast-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true; cat /tmp/lumacast-server.log' EXIT
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:3001/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:3001/api/health
+          npm run test:signal
+          npm run test:load -- --rooms 2 --users 12
