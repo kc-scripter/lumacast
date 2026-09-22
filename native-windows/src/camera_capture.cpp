@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <mfapi.h>
+#include <mferror.h>
 #include <mfidl.h>
 #include <mfreadwrite.h>
 #include <wrl/client.h>
@@ -22,6 +23,8 @@ using Microsoft::WRL::ComPtr;
 
 namespace lunira {
 namespace {
+
+constexpr DWORD kVideoStream = static_cast<DWORD>(MF_SOURCE_READER_FIRST_VIDEO_STREAM);
 
 struct NativeMode {
     ComPtr<IMFMediaType> type;
@@ -171,7 +174,7 @@ void CameraCapture::Run() {
     for (DWORD index = 0;; ++index) {
         ComPtr<IMFMediaType> candidate;
         hr = reader->GetNativeMediaType(
-            MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+            kVideoStream,
             index,
             candidate.GetAddressOf());
         if (hr == MF_E_NO_MORE_TYPES) break;
@@ -212,7 +215,7 @@ void CameraCapture::Run() {
     }
 
     hr = reader->SetCurrentMediaType(
-        MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+        kVideoStream,
         nullptr,
         best.type.Get());
 
@@ -230,7 +233,7 @@ void CameraCapture::Run() {
         MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
     if (SUCCEEDED(hr)) {
         hr = reader->SetCurrentMediaType(
-            MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+            kVideoStream,
             nullptr,
             outputType.Get());
     }
@@ -257,7 +260,7 @@ void CameraCapture::Run() {
         ComPtr<IMFSample> sample;
 
         hr = reader->ReadSample(
-            MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+            kVideoStream,
             0,
             &streamIndex,
             &flags,
