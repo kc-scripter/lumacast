@@ -1,0 +1,45 @@
+name: Native Windows UI
+
+on:
+  pull_request:
+    paths:
+      - "native-windows/**"
+      - ".github/workflows/native-windows-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S native-windows -B native-windows/build -A x64
+
+      - name: Build Release
+        shell: pwsh
+        run: cmake --build native-windows/build --config Release --parallel
+
+      - name: Report executable size
+        shell: pwsh
+        run: |
+          $exe = Get-Item "native-windows/build/Release/LuniraScreen.exe"
+          Write-Host "LuniraScreen.exe: $([math]::Round($exe.Length / 1KB, 1)) KB"
+          if ($exe.Length -gt 5MB) {
+            throw "UI shell ficou maior que 5 MB; revisar dependências."
+          }
+
+      - name: Upload native preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lunira-Screen-Native-UI
+          path: native-windows/build/Release/LuniraScreen.exe
+          if-no-files-found: error
+          retention-days: 7
