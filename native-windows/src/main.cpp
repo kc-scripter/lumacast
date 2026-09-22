@@ -8,6 +8,8 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cwctype>
+#include <random>
 #include <array>
 #include <string>
 #include <string_view>
@@ -122,7 +124,8 @@ public:
     }
 
 private:
-    enum class Page { Room, Settings };
+    enum class Page { Home, Room, Settings };
+    enum class Field { None, Name, Code };
 
     struct Hit {
         int id = -1;
@@ -192,7 +195,25 @@ private:
         case WM_LBUTTONUP:
             Click(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
+        case WM_CHAR:
+            HandleChar(static_cast<wchar_t>(wParam));
+            return 0;
+        case WM_KEYDOWN:
+            if ((GetKeyState(VK_CONTROL) & 0x8000) != 0 && (wParam == 'V' || wParam == 'v')) {
+                PasteFromClipboard();
+                return 0;
+            }
+            if (wParam == VK_ESCAPE && page_ == Page::Home) {
+                focusedField_ = Field::None;
+                InvalidateRect(hwnd_, nullptr, FALSE);
+                return 0;
+            }
+            break;
         case WM_SETCURSOR:
+            if (LOWORD(lParam) == HTCLIENT && (hover_ == 20 || hover_ == 22)) {
+                SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
+                return TRUE;
+            }
             if (LOWORD(lParam) == HTCLIENT && hover_ >= 0) {
                 SetCursor(LoadCursorW(nullptr, IDC_HAND));
                 return TRUE;
@@ -261,6 +282,8 @@ private:
         MakeText(14.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD, strong_);
         MakeText(16.0f, DWRITE_FONT_WEIGHT_BOLD, heading_);
         MakeText(20.0f, DWRITE_FONT_WEIGHT_BOLD, title_);
+        MakeText(34.0f, DWRITE_FONT_WEIGHT_BOLD, heroTitle_);
+        MakeText(15.0f, DWRITE_FONT_WEIGHT_REGULAR, heroBody_);
 
         return true;
     }
@@ -342,8 +365,14 @@ private:
         Line(0, top, width, top, borderSoftBrush_.Get(), 1.0f);
 
         DrawBrand();
-        DrawTopRight(width);
 
+        if (page_ == Page::Home) {
+            DrawHomeTopRight(width);
+            DrawHome(top, width, height);
+            return;
+        }
+
+        DrawTopRight(width);
         Fill(Rect(0, top, rail, height), panelBrush_.Get());
         Line(rail, top, rail, height, borderSoftBrush_.Get(), 1.0f);
         DrawRail(top, rail, height);
@@ -359,6 +388,7 @@ private:
     }
 
     void DrawBrand() {
+        AddHit(16, Rect(14, 10, 150, 58));
         const auto mark = D2D1::RoundedRect(Rect(18, 15, 56, 53), 11, 11);
         renderTarget_->FillRoundedRectangle(mark, violetBrush_.Get());
 
@@ -388,18 +418,31 @@ private:
         renderTarget_->DrawRoundedRectangle(connected, borderBrush_.Get(), 1.0f);
         renderTarget_->FillEllipse(
             D2D1::Ellipse(D2D1::Point2F(x + 148, 34), 4, 4),
-            greenBrush_.Get());
-        Text(L"Conectado", Rect(x + 160, 24, x + 233, 45), bodyStrong_.Get(), mutedBrush_.Get());
+            amberBrush_.Get());
+        Text(L"Modo local", Rect(x + 160, 24, x + 233, 45), bodyStrong_.Get(), mutedBrush_.Get());
 
         const auto avatar = D2D1::Ellipse(D2D1::Point2F(width - 38, 34), 17, 17);
         renderTarget_->FillEllipse(avatar, violetPanelBrush_.Get());
         renderTarget_->DrawEllipse(avatar, violetBrush_.Get(), 1.0f);
-        CenterText(L"K", Rect(width - 55, 17, width - 21, 51), strong_.Get(), violet2Brush_.Get());
+        std::wstring initial = displayName_.empty() ? L"?" : displayName_.substr(0, 1);
+        CenterText(initial, Rect(width - 55, 17, width - 21, 51), strong_.Get(), violet2Brush_.Get());
+    }
+
+    void DrawHomeTopRight(float width) {
+        const auto badge = D2D1::RoundedRect(Rect(width - 176, 19, width - 24, 49), 15, 15);
+        renderTarget_->FillRoundedRectangle(badge, panel2Brush_.Get());
+        renderTarget_->DrawRoundedRectangle(badge, borderBrush_.Get(), 1.0f);
+        renderTarget_->FillEllipse(
+            D2D1::Ellipse(D2D1::Point2F(width - 158, 34), 4, 4),
+            greenBrush_.Get());
+        CenterText(L"APP WINDOWS · NATIVO", Rect(width - 148, 24, width - 34, 45),
+                   tinyBold_.Get(), mutedBrush_.Get());
     }
 
     void DrawRail(float top, float rail, float height) {
-        DrawRailButton(0, Rect(10, top + 18, rail - 10, top + 78), L"Sala", page_ == Page::Room, 0);
-        DrawRailButton(1, Rect(10, top + 88, rail - 10, top + 148), L"Ajustes", page_ == Page::Settings, 1);
+        DrawRailButton(16, Rect(10, top + 18, rail - 10, top + 78), L"Início", false, 2);
+        DrawRailButton(0, Rect(10, top + 88, rail - 10, top + 148), L"Sala", page_ == Page::Room, 0);
+        DrawRailButton(1, Rect(10, top + 158, rail - 10, top + 218), L"Ajustes", page_ == Page::Settings, 1);
 
         Text(L"NATIVE", Rect(14, height - 42, rail - 10, height - 22), tinyBold_.Get(), dimBrush_.Get());
     }
@@ -422,7 +465,7 @@ private:
             const auto screen = D2D1::RoundedRect(Rect(cx - 10, cy - 7, cx + 10, cy + 7), 2, 2);
             renderTarget_->DrawRoundedRectangle(screen, active ? violet2Brush_.Get() : mutedBrush_.Get(), 1.7f);
             Line(cx - 4, cy + 11, cx + 4, cy + 11, active ? violet2Brush_.Get() : mutedBrush_.Get(), 1.5f);
-        } else {
+        } else if (icon == 1) {
             renderTarget_->DrawEllipse(
                 D2D1::Ellipse(D2D1::Point2F(cx, cy), 7, 7),
                 active ? violet2Brush_.Get() : mutedBrush_.Get(),
@@ -430,10 +473,147 @@ private:
             renderTarget_->FillEllipse(
                 D2D1::Ellipse(D2D1::Point2F(cx, cy), 2.3f, 2.3f),
                 active ? violet2Brush_.Get() : mutedBrush_.Get());
+        } else {
+            ID2D1Brush* brush = active ? violet2Brush_.Get() : mutedBrush_.Get();
+            Line(cx - 9, cy, cx, cy - 8, brush, 1.7f);
+            Line(cx, cy - 8, cx + 9, cy, brush, 1.7f);
+            Line(cx - 7, cy - 1, cx - 7, cy + 8, brush, 1.7f);
+            Line(cx + 7, cy - 1, cx + 7, cy + 8, brush, 1.7f);
+            Line(cx - 7, cy + 8, cx + 7, cy + 8, brush, 1.7f);
         }
 
         CenterText(label, Rect(rect.left, rect.top + 37, rect.right, rect.bottom - 5), tinyBold_.Get(),
                    active ? violet2Brush_.Get() : mutedBrush_.Get());
+    }
+
+    void DrawHome(float top, float width, float height) {
+        const float contentTop = top + 48.0f;
+        const float left = 84.0f;
+        const float right = width - 84.0f;
+        const float split = std::clamp(width * 0.53f, 650.0f, right - 460.0f);
+
+        Text(L"LUNIRA SCREEN PARA WINDOWS", Rect(left, contentTop, split - 30, contentTop + 24),
+             tinyBold_.Get(), violet2Brush_.Get());
+
+        Text(L"Sua sala privada,\nagora no Windows.",
+             Rect(left, contentTop + 46, split - 30, contentTop + 145),
+             heroTitle_.Get(), textBrush_.Get());
+
+        Text(L"Crie uma sala ou entre com um código. Nada de salas públicas,\ncontas ou microfone. Só transmissão, câmeras e quem você convidar.",
+             Rect(left, contentTop + 164, split - 40, contentTop + 224),
+             heroBody_.Get(), mutedBrush_.Get());
+
+        DrawFeaturePill(Rect(left, contentTop + 256, left + 150, contentTop + 290), L"60 FPS");
+        DrawFeaturePill(Rect(left + 160, contentTop + 256, left + 344, contentTop + 290), L"Câmeras integradas");
+        DrawFeaturePill(Rect(left, contentTop + 300, left + 184, contentTop + 334), L"Compatível com web");
+
+        const D2D1_RECT_F preview = Rect(left, contentTop + 382, split - 44, std::min(height - 52.0f, contentTop + 610));
+        const auto previewCard = D2D1::RoundedRect(preview, 16, 16);
+        renderTarget_->FillRoundedRectangle(previewCard, panelBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(previewCard, borderBrush_.Get(), 1.0f);
+
+        const D2D1_RECT_F miniStage = Rect(preview.left + 14, preview.top + 14, preview.right - 14, preview.bottom - 58);
+        const auto mini = D2D1::RoundedRect(miniStage, 10, 10);
+        renderTarget_->FillRoundedRectangle(mini, stageBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(mini, borderSoftBrush_.Get(), 1.0f);
+
+        const float mcx = (miniStage.left + miniStage.right) * 0.5f;
+        const float mcy = (miniStage.top + miniStage.bottom) * 0.5f;
+        DrawMonitor(mcx - 10, mcy - 9, violet2Brush_.Get());
+        CenterText(L"Pronto para compartilhar",
+                   Rect(miniStage.left + 20, mcy + 20, miniStage.right - 20, mcy + 42),
+                   bodyStrong_.Get(), mutedBrush_.Get());
+
+        for (int i = 0; i < 3; ++i) {
+            const float x = preview.left + 18.0f + i * 56.0f;
+            const auto avatar = D2D1::Ellipse(D2D1::Point2F(x + 15, preview.bottom - 28), 14, 14);
+            renderTarget_->FillEllipse(avatar, i == 0 ? violetBrush_.Get() : violetPanelBrush_.Get());
+            const wchar_t* label = i == 0 ? L"V" : (i == 1 ? L"P" : L"A");
+            CenterText(label, Rect(x + 1, preview.bottom - 42, x + 29, preview.bottom - 14),
+                       tinyBold_.Get(), textBrush_.Get());
+        }
+        Text(L"Câmeras ficam junto da transmissão",
+             Rect(preview.left + 194, preview.bottom - 39, preview.right - 16, preview.bottom - 17),
+             tiny_.Get(), mutedBrush_.Get());
+
+        const D2D1_RECT_F card = Rect(split + 24, contentTop + 12, right, std::min(height - 48.0f, contentTop + 596));
+        const auto cardRr = D2D1::RoundedRect(card, 18, 18);
+        renderTarget_->FillRoundedRectangle(cardRr, panelBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(cardRr, borderBrush_.Get(), 1.0f);
+
+        Text(L"Entrar no Lunira", Rect(card.left + 28, card.top + 26, card.right - 28, card.top + 56),
+             heading_.Get(), textBrush_.Get());
+        Text(L"Todas as salas são privadas.", Rect(card.left + 28, card.top + 60, card.right - 28, card.top + 83),
+             body_.Get(), mutedBrush_.Get());
+
+        Text(L"SEU NOME", Rect(card.left + 28, card.top + 110, card.right - 28, card.top + 128),
+             tinyBold_.Get(), dimBrush_.Get());
+        DrawInput(20, Rect(card.left + 28, card.top + 134, card.right - 28, card.top + 180),
+                  displayName_, L"Como você quer aparecer", focusedField_ == Field::Name, false);
+
+        const D2D1_RECT_F create = Rect(card.left + 28, card.top + 198, card.right - 28, card.top + 246);
+        AddHit(21, create);
+        PrimaryButton(create, L"Criar sala privada", false, hover_ == 21);
+
+        Line(card.left + 28, card.top + 278, card.left + 158, card.top + 278, borderSoftBrush_.Get(), 1.0f);
+        CenterText(L"OU ENTRE COM UM CÓDIGO",
+                   Rect(card.left + 162, card.top + 267, card.right - 162, card.top + 289),
+                   tinyBold_.Get(), dimBrush_.Get());
+        Line(card.right - 158, card.top + 278, card.right - 28, card.top + 278, borderSoftBrush_.Get(), 1.0f);
+
+        Text(L"CÓDIGO DA SALA", Rect(card.left + 28, card.top + 316, card.right - 28, card.top + 334),
+             tinyBold_.Get(), dimBrush_.Get());
+        DrawInput(22, Rect(card.left + 28, card.top + 340, card.right - 28, card.top + 386),
+                  roomCodeInput_, L"ABCD2345", focusedField_ == Field::Code, true);
+
+        const D2D1_RECT_F join = Rect(card.left + 28, card.top + 404, card.right - 28, card.top + 450);
+        AddHit(23, join);
+        Button(join, L"Entrar na sala", false, hover_ == 23);
+
+        if (!homeError_.empty()) {
+            Text(homeError_, Rect(card.left + 28, card.top + 468, card.right - 28, card.top + 494),
+                 tiny_.Get(), redBrush_.Get());
+        } else {
+            Text(L"Sem lista pública. Só entra quem tiver o código.",
+                 Rect(card.left + 28, card.top + 468, card.right - 28, card.top + 494),
+                 tiny_.Get(), dimBrush_.Get());
+        }
+    }
+
+    void DrawFeaturePill(const D2D1_RECT_F& rect, std::wstring_view label) {
+        const auto rr = D2D1::RoundedRect(rect, 17, 17);
+        renderTarget_->FillRoundedRectangle(rr, panel2Brush_.Get());
+        renderTarget_->DrawRoundedRectangle(rr, borderSoftBrush_.Get(), 1.0f);
+        renderTarget_->FillEllipse(
+            D2D1::Ellipse(D2D1::Point2F(rect.left + 16, (rect.top + rect.bottom) * 0.5f), 3.5f, 3.5f),
+            greenBrush_.Get());
+        CenterText(label, Rect(rect.left + 26, rect.top + 6, rect.right - 10, rect.bottom - 5),
+                   tinyBold_.Get(), mutedBrush_.Get());
+    }
+
+    void DrawInput(int hitId, const D2D1_RECT_F& rect, const std::wstring& value,
+                   std::wstring_view placeholder, bool focused, bool code) {
+        AddHit(hitId, rect);
+        const auto rr = D2D1::RoundedRect(rect, 10, 10);
+        renderTarget_->FillRoundedRectangle(rr, stageBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(
+            rr,
+            focused ? violetBrush_.Get() : (hover_ == hitId ? mutedBrush_.Get() : borderBrush_.Get()),
+            focused ? 1.6f : 1.0f);
+
+        if (value.empty()) {
+            Text(placeholder, Rect(rect.left + 14, rect.top + 11, rect.right - 14, rect.bottom - 8),
+                 body_.Get(), dimBrush_.Get());
+        } else {
+            Text(value, Rect(rect.left + 14, rect.top + 11, rect.right - 14, rect.bottom - 8),
+                 code ? bodyStrong_.Get() : body_.Get(), textBrush_.Get());
+        }
+
+        if (focused) {
+            const float caretX = std::min(rect.right - 14.0f,
+                rect.left + 15.0f + static_cast<float>(value.size()) * (code ? 8.5f : 7.2f));
+            Line(caretX, rect.top + 12, caretX, rect.bottom - 12, violet2Brush_.Get(), 1.3f);
+        }
     }
 
     void DrawRoom(float rail, float top, float width, float height) {
@@ -500,7 +680,7 @@ private:
         renderTarget_->FillRoundedRectangle(icon, violetPanelBrush_.Get());
         DrawMonitor(rect.left + 26, rect.top + 25, violet2Brush_.Get());
 
-        Text(sharing_ ? L"Kauã" : L"Tela da sala",
+        Text(sharing_ ? displayName_.empty() ? L"Você" : std::wstring_view(displayName_) : L"Tela da sala",
              Rect(rect.left + 64, rect.top + 13, rect.left + 250, rect.top + 36),
              strong_.Get(),
              textBrush_.Get());
@@ -563,7 +743,7 @@ private:
         renderTarget_->FillEllipse(
             D2D1::Ellipse(D2D1::Point2F(rect.left + 18, rect.top + 24), 4, 4),
             greenBrush_.Get());
-        Text(L"Kauã", Rect(rect.left + 30, rect.top + 8, rect.left + 110, rect.top + 28),
+        Text(displayName_.empty() ? L"Você" : std::wstring_view(displayName_), Rect(rect.left + 30, rect.top + 8, rect.left + 110, rect.top + 28),
              bodyStrong_.Get(), textBrush_.Get());
         Text(L"Compartilhando via Agora", Rect(rect.left + 30, rect.top + 27, rect.left + 200, rect.top + 44),
              tiny_.Get(), mutedBrush_.Get());
@@ -602,7 +782,7 @@ private:
         const float tileW = available / 3.0f;
 
         DrawCameraTile(11, Rect(rect.left + 16, tileTop, rect.left + 16 + tileW, tileBottom),
-                       L"Kauã", L"VOCÊ", 0x2A2040, L"K");
+                       displayName_.empty() ? L"Você" : std::wstring_view(displayName_), L"VOCÊ", 0x2A2040, L"K");
         DrawCameraTile(12, Rect(rect.left + 16 + tileW + gap, tileTop, rect.left + 16 + tileW * 2 + gap, tileBottom),
                        L"Pedro", L"", 0x172A39, L"P");
         DrawCameraTile(13, Rect(rect.left + 16 + tileW * 2 + gap * 2, tileTop, rect.right - 16, tileBottom),
@@ -671,7 +851,7 @@ private:
         const auto codeRr = D2D1::RoundedRect(code, 9, 9);
         renderTarget_->FillRoundedRectangle(codeRr, stageBrush_.Get());
         renderTarget_->DrawRoundedRectangle(codeRr, borderBrush_.Get(), 1.0f);
-        Text(L"LUNA72PX", Rect(code.left + 14, code.top + 11, code.right - 54, code.bottom - 8),
+        Text(roomCode_.empty() ? L"—" : std::wstring_view(roomCode_), Rect(code.left + 14, code.top + 11, code.right - 54, code.bottom - 8),
              strong_.Get(), textBrush_.Get());
 
         const D2D1_RECT_F copy = Rect(code.right - 42, code.top + 5, code.right - 5, code.bottom - 5);
@@ -964,15 +1144,156 @@ private:
         }
     }
 
+    void HandleChar(wchar_t ch) {
+        if (page_ != Page::Home || focusedField_ == Field::None) return;
+
+        if (ch == L'\t') {
+            focusedField_ = focusedField_ == Field::Name ? Field::Code : Field::Name;
+            homeError_.clear();
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
+        }
+
+        if (ch == L'\r') {
+            if (focusedField_ == Field::Code) JoinLocalRoom();
+            else CreateLocalRoom();
+            return;
+        }
+
+        std::wstring* target = focusedField_ == Field::Name ? &displayName_ : &roomCodeInput_;
+        if (ch == L'\b') {
+            if (!target->empty()) target->pop_back();
+            homeError_.clear();
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
+        }
+
+        if (focusedField_ == Field::Name) {
+            if (ch >= 32 && ch != 127 && displayName_.size() < 24) {
+                displayName_.push_back(ch);
+                homeError_.clear();
+                InvalidateRect(hwnd_, nullptr, FALSE);
+            }
+            return;
+        }
+
+        wchar_t upper = static_cast<wchar_t>(std::towupper(ch));
+        const bool validLetter = upper >= L'A' && upper <= L'Z';
+        const bool validDigit = upper >= L'2' && upper <= L'9';
+        if ((validLetter || validDigit) && roomCodeInput_.size() < 8) {
+            roomCodeInput_.push_back(upper);
+            homeError_.clear();
+            InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+    }
+
+    void PasteFromClipboard() {
+        if (page_ != Page::Home || focusedField_ == Field::None) return;
+        if (!OpenClipboard(hwnd_)) return;
+
+        HANDLE data = GetClipboardData(CF_UNICODETEXT);
+        if (data) {
+            const auto* text = static_cast<const wchar_t*>(GlobalLock(data));
+            if (text) {
+                if (focusedField_ == Field::Name) {
+                    for (const wchar_t* p = text; *p && displayName_.size() < 24; ++p) {
+                        if (*p >= 32 && *p != 127 && *p != L'\r' && *p != L'\n') displayName_.push_back(*p);
+                    }
+                } else {
+                    for (const wchar_t* p = text; *p && roomCodeInput_.size() < 8; ++p) {
+                        wchar_t upper = static_cast<wchar_t>(std::towupper(*p));
+                        if ((upper >= L'A' && upper <= L'Z') || (upper >= L'2' && upper <= L'9')) {
+                            roomCodeInput_.push_back(upper);
+                        }
+                    }
+                }
+                GlobalUnlock(data);
+            }
+        }
+        CloseClipboard();
+        homeError_.clear();
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+
+    bool HasValidName() {
+        return std::any_of(displayName_.begin(), displayName_.end(), [](wchar_t ch) {
+            return !std::iswspace(ch);
+        });
+    }
+
+    void CreateLocalRoom() {
+        if (!HasValidName()) {
+            homeError_ = L"Digite seu nome antes de criar a sala.";
+            focusedField_ = Field::Name;
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
+        }
+
+        static constexpr wchar_t alphabet[] = L"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        std::random_device rd;
+        std::mt19937 generator(rd());
+        std::uniform_int_distribution<size_t> distribution(0, (sizeof(alphabet) / sizeof(wchar_t)) - 2);
+
+        roomCode_.clear();
+        for (int i = 0; i < 8; ++i) roomCode_.push_back(alphabet[distribution(generator)]);
+        roomCodeInput_ = roomCode_;
+        homeError_.clear();
+        focusedField_ = Field::None;
+        page_ = Page::Room;
+    }
+
+    void JoinLocalRoom() {
+        if (!HasValidName()) {
+            homeError_ = L"Digite seu nome antes de entrar.";
+            focusedField_ = Field::Name;
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
+        }
+
+        if (roomCodeInput_.size() != 8) {
+            homeError_ = L"O código da sala precisa ter 8 caracteres.";
+            focusedField_ = Field::Code;
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
+        }
+
+        roomCode_ = roomCodeInput_;
+        homeError_.clear();
+        focusedField_ = Field::None;
+        page_ = Page::Room;
+    }
+
     void Click(int px, int py) {
         const int id = HitTest(ToDip(px), ToDip(py));
 
         switch (id) {
         case 0:
             page_ = Page::Room;
+            focusedField_ = Field::None;
             break;
         case 1:
             page_ = Page::Settings;
+            focusedField_ = Field::None;
+            break;
+        case 16:
+            page_ = Page::Home;
+            focusedField_ = Field::None;
+            selectedCamera_ = -1;
+            focused_ = false;
+            break;
+        case 20:
+            focusedField_ = Field::Name;
+            homeError_.clear();
+            break;
+        case 21:
+            CreateLocalRoom();
+            break;
+        case 22:
+            focusedField_ = Field::Code;
+            homeError_.clear();
+            break;
+        case 23:
+            JoinLocalRoom();
             break;
         case 2:
             focused_ = !focused_;
@@ -981,13 +1302,13 @@ private:
             copied_ = true;
             if (OpenClipboard(hwnd_)) {
                 EmptyClipboard();
-                const wchar_t code[] = L"https://lumacast-live-kc.onrender.com/?room=LUNA72PX";
-                const size_t bytes = sizeof(code);
+                const std::wstring invite = L"https://lumacast-live-kc.onrender.com/?room=" + roomCode_;
+                const size_t bytes = (invite.size() + 1) * sizeof(wchar_t);
                 HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, bytes);
                 if (memory) {
                     void* target = GlobalLock(memory);
                     if (target) {
-                        memcpy(target, code, bytes);
+                        memcpy(target, invite.c_str(), bytes);
                         GlobalUnlock(memory);
                         SetClipboardData(CF_UNICODETEXT, memory);
                         memory = nullptr;
@@ -1043,7 +1364,12 @@ private:
     UINT dpi_ = 96;
 
     Theme theme_{};
-    Page page_ = Page::Room;
+    Page page_ = Page::Home;
+    Field focusedField_ = Field::Name;
+    std::wstring displayName_;
+    std::wstring roomCodeInput_;
+    std::wstring roomCode_;
+    std::wstring homeError_;
 
     bool sharing_ = false;
     bool cameraOn_ = true;
@@ -1088,6 +1414,8 @@ private:
     ComPtr<IDWriteTextFormat> strong_;
     ComPtr<IDWriteTextFormat> heading_;
     ComPtr<IDWriteTextFormat> title_;
+    ComPtr<IDWriteTextFormat> heroTitle_;
+    ComPtr<IDWriteTextFormat> heroBody_;
 };
 
 } // namespace
