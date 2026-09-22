@@ -6,6 +6,35 @@
 #include <cstring>
 
 namespace lunira {
+namespace {
+
+void EnsureAgoraLogDirectory() {
+    wchar_t localAppData[MAX_PATH]{};
+    const DWORD localLength = GetEnvironmentVariableW(
+        L"LOCALAPPDATA", localAppData, static_cast<DWORD>(std::size(localAppData)));
+    if (localLength == 0 || localLength >= std::size(localAppData)) return;
+
+    wchar_t exePath[MAX_PATH]{};
+    const DWORD exeLength = GetModuleFileNameW(
+        nullptr, exePath, static_cast<DWORD>(std::size(exePath)));
+    if (exeLength == 0 || exeLength >= std::size(exePath)) return;
+
+    std::wstring exeName(exePath, exeLength);
+    const size_t slash = exeName.find_last_of(L"\\/");
+    if (slash != std::wstring::npos) exeName.erase(0, slash + 1);
+    const size_t dot = exeName.find_last_of(L'.');
+    if (dot != std::wstring::npos) exeName.resize(dot);
+    if (exeName.empty()) exeName = L"LuniraScreen";
+
+    std::wstring agoraRoot(localAppData, localLength);
+    agoraRoot += L"\\Agora";
+    CreateDirectoryW(agoraRoot.c_str(), nullptr);
+
+    std::wstring processDir = agoraRoot + L"\\" + exeName;
+    CreateDirectoryW(processDir.c_str(), nullptr);
+}
+
+} // namespace
 
 AgoraScreenClient::AgoraScreenClient() = default;
 AgoraScreenClient::~AgoraScreenClient() { Stop(); }
@@ -54,6 +83,7 @@ bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool pu
     const std::string channel = WideToUtf8(credentials.channel);
     const std::string token = WideToUtf8(credentials.token);
 
+    EnsureAgoraLogDirectory();
     engine_ = createAgoraRtcEngine();
     if (!engine_) {
         Notify({AgoraEventType::Error, 0, 0, {}, L"Não foi possível criar o motor Agora."});
