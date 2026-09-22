@@ -48,3 +48,8 @@ next-env.d.ts
 
 # generated server build
 /server/dist/
+
+# Windows desktop build artifacts
+/desktop/node_modules/
+/desktop/release/
+/desktop/config.json
