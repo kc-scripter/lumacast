@@ -1,0 +1,492 @@
+/* Final release finish
+   Compact How It Works and add subtle room motion/details without changing layout. */
+
+/* ----------------------------- */
+/* Compact How It Works          */
+/* ----------------------------- */
+.how-v2-nav{
+  height:88px;
+}
+.how-v2-hero{
+  min-height:560px;
+  padding-top:54px;
+  padding-bottom:60px;
+  gap:clamp(38px,4.6vw,72px);
+}
+.how-v2-hero h1{
+  margin-top:17px;
+  margin-bottom:16px;
+}
+.how-v2-hero-copy>p{
+  line-height:1.62;
+}
+.how-v3-hero-points{
+  margin-top:20px;
+}
+.how-v2-hero-actions{
+  margin-top:23px;
+}
+.how-v2-live-card{
+  min-height:360px;
+}
+.how-v2-live-head{
+  height:52px;
+}
+.how-v2-live-stage{
+  min-height:246px;
+  padding-top:24px;
+  padding-bottom:24px;
+}
+.how-v2-live-source,
+.how-v2-live-viewers{
+  min-height:98px;
+}
+.how-v2-live-core{
+  width:108px;
+  height:108px;
+  border-radius:26px;
+}
+.how-v2-live-foot{
+  min-height:54px;
+  padding-top:9px;
+  padding-bottom:9px;
+}
+
+.how-v2-section{
+  padding-top:36px;
+  padding-bottom:42px;
+}
+.how-v2-section-heading{
+  margin-bottom:18px;
+}
+.how-v2-section-heading h2{
+  margin-top:6px;
+}
+.how-v2-step-grid,
+.how-v3-media-grid,
+.how-v3-recovery-grid{
+  gap:10px;
+}
+.how-v2-step-grid article{
+  min-height:168px;
+  padding:16px;
+}
+.how-v2-step-top{
+  margin-bottom:14px;
+}
+.how-v2-step-grid h3{
+  margin-top:14px;
+  margin-bottom:6px;
+}
+.how-v2-step-grid p{
+  line-height:1.5;
+}
+
+.how-v3-media-grid article{
+  min-height:168px;
+  padding:16px;
+  gap:13px;
+}
+.how-v3-media-grid article>span{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+}
+.how-v3-media-grid article>span svg{
+  width:17px;
+  height:17px;
+}
+.how-v3-media-grid b{
+  margin-top:5px;
+  font-size:14px;
+}
+.how-v3-media-grid p{
+  margin-top:7px;
+  line-height:1.52;
+}
+
+.how-v2-tech{
+  padding-top:38px;
+  padding-bottom:40px;
+}
+.how-v2-tech-lede{
+  margin-bottom:18px;
+}
+.how-v2-tech-list{
+  gap:8px;
+}
+.how-v2-tech-list article{
+  padding-top:12px;
+  padding-bottom:12px;
+}
+.how-v2-routing{
+  padding:16px;
+}
+.how-v2-route-row{
+  margin-top:12px;
+}
+.how-v2-fallback,
+.how-v2-state-line{
+  margin-top:10px;
+}
+
+.how-v3-recovery-grid article{
+  min-height:168px;
+  padding:16px;
+}
+.how-v3-recovery-grid article>span{
+  margin-bottom:13px;
+}
+.how-v3-recovery-grid p{
+  line-height:1.54;
+}
+
+.how-v2-fact-grid{
+  gap:10px;
+}
+.how-v2-fact-grid article{
+  padding:15px;
+}
+.how-v2-faq-list details{
+  padding-top:2px;
+  padding-bottom:2px;
+}
+.how-v2-faq-list summary{
+  min-height:52px;
+}
+.how-v2-faq-list details p{
+  margin-top:0;
+  padding-bottom:13px;
+}
+.how-v2-cta{
+  margin-top:8px;
+  margin-bottom:36px;
+  padding:23px 27px;
+}
+.how-v2-footer{
+  min-height:54px;
+}
+
+/* ----------------------------- */
+/* Room visual finish            */
+/* ----------------------------- */
+.studio-shell,
+.viewer-shell{
+  background:
+    radial-gradient(circle at 18% 0%,#2117441a 0,transparent 28%),
+    radial-gradient(circle at 88% 70%,#26144f13 0,transparent 30%),
+    #0b0c12;
+}
+
+.studio-nav,
+.viewer-nav{
+  position:relative;
+  overflow:hidden;
+}
+.studio-nav::after,
+.viewer-nav::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:0;
+  width:min(620px,58vw);
+  height:1px;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg,transparent,#795fff55,transparent);
+  opacity:.65;
+}
+
+.room-stage{
+  animation:roomFinishIn .46s .03s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes roomFinishIn{
+  from{opacity:0;transform:translateY(8px) scale(.995)}
+  to{opacity:1;transform:none}
+}
+
+.broadcast-screen,
+.video-stage{
+  transition:
+    border-color .28s ease,
+    box-shadow .28s ease,
+    background .28s ease,
+    transform .28s cubic-bezier(.2,.8,.2,1);
+}
+.broadcast-screen.has-video,
+.video-stage.has-video{
+  box-shadow:
+    inset 0 0 110px #0003,
+    0 20px 64px #00042,
+    0 0 0 1px #7657ff12;
+}
+.broadcast-screen.has-video video,
+.video-stage.has-video video{
+  animation:roomVideoReveal .34s ease both;
+}
+@keyframes roomVideoReveal{
+  from{opacity:.72;transform:scale(1.006)}
+  to{opacity:1;transform:scale(1)}
+}
+
+.stage-placeholder>span,
+.video-empty>.orb{
+  position:relative;
+}
+.stage-placeholder>span::after,
+.video-empty>.orb::after{
+  content:"";
+  position:absolute;
+  inset:-7px;
+  border:1px solid #9b82ff20;
+  border-radius:inherit;
+  animation:roomIdleRing 3.6s ease-in-out infinite;
+}
+@keyframes roomIdleRing{
+  0%,100%{opacity:.25;transform:scale(.96)}
+  50%{opacity:.68;transform:scale(1.06)}
+}
+
+.live-corner{
+  box-shadow:0 8px 24px #2d0e1b55;
+}
+.live-corner::after{
+  content:"";
+  width:4px;
+  height:4px;
+  margin-left:1px;
+  border-radius:50%;
+  background:#ff7695;
+  opacity:.28;
+  animation:roomLiveEcho 1.7s ease-out infinite;
+}
+@keyframes roomLiveEcho{
+  0%{opacity:.48;transform:scale(.8)}
+  60%{opacity:0;transform:scale(2.2)}
+  100%{opacity:0;transform:scale(2.2)}
+}
+
+.side-card,
+.connection-card,
+.people-sidebar,
+.camera-dock,
+.stats-drawer{
+  position:relative;
+}
+.side-card,
+.connection-card,
+.people-sidebar,
+.camera-dock{
+  background-image:linear-gradient(145deg,#ffffff025,transparent 42%);
+}
+.side-card::after,
+.connection-card::after,
+.people-sidebar::after,
+.camera-dock::after{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  inset:0;
+  border-radius:inherit;
+  box-shadow:inset 0 1px #ffffff08;
+  opacity:.8;
+}
+
+.side-card{
+  animation:roomCardIn .42s cubic-bezier(.16,1,.3,1) both;
+}
+.studio-side>.side-card:nth-child(1){animation-delay:.06s}
+.studio-side>.side-card:nth-child(2){animation-delay:.11s}
+.studio-side>.side-card:nth-child(3){animation-delay:.16s}
+@keyframes roomCardIn{
+  from{opacity:0;transform:translateY(9px)}
+  to{opacity:1;transform:none}
+}
+
+.card-title>span{
+  box-shadow:inset 0 1px #ffffff0b;
+}
+.card-title>span svg{
+  transition:transform .22s cubic-bezier(.2,.8,.2,1);
+}
+.share-code{
+  position:relative;
+}
+.share-code::after{
+  content:"";
+  position:absolute;
+  left:10%;
+  right:10%;
+  bottom:-1px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#8f74ff45,transparent);
+  opacity:.55;
+}
+
+.control-dock button,
+.viewer-share-options button,
+.viewer-share-options select{
+  box-shadow:inset 0 1px #ffffff08;
+}
+.control.active,
+.viewer-share-options .active{
+  box-shadow:0 0 0 1px #7557ff22,0 8px 24px #5d3fe718;
+}
+.go-live{
+  background-size:150% 100%;
+  animation:roomPrimaryIdle 4.8s ease-in-out infinite;
+}
+@keyframes roomPrimaryIdle{
+  0%,100%{background-position:0% 50%;box-shadow:0 10px 30px #5a3de637}
+  50%{background-position:100% 50%;box-shadow:0 12px 34px #5a3de64a}
+}
+
+.person-row{
+  transition:border-color .2s ease,background-color .2s ease,transform .2s cubic-bezier(.2,.8,.2,1);
+  animation:roomPersonIn .28s ease both;
+}
+@keyframes roomPersonIn{
+  from{opacity:0;transform:translateX(-5px)}
+  to{opacity:1;transform:none}
+}
+.person-row>i{
+  animation:roomPresence 2.4s ease-out infinite;
+}
+@keyframes roomPresence{
+  0%,100%{box-shadow:0 0 0 4px #49e6a116}
+  50%{box-shadow:0 0 0 6px #49e6a108}
+}
+
+.camera-dock-card{
+  transition:
+    transform .2s cubic-bezier(.2,.8,.2,1),
+    border-color .2s ease,
+    box-shadow .2s ease;
+  animation:roomCameraIn .34s ease both;
+}
+@keyframes roomCameraIn{
+  from{opacity:0;transform:translateY(6px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+.camera-dock-card video{
+  transition:filter .22s ease,transform .28s cubic-bezier(.2,.8,.2,1);
+}
+.camera-expand-hint{
+  backdrop-filter:blur(8px);
+}
+.camera-overlay{
+  animation:roomCameraOverlayIn .3s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes roomCameraOverlayIn{
+  from{opacity:0;transform:translateY(8px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+
+.provider-switch{
+  border:1px solid #6956a955;
+  box-shadow:0 12px 36px #0005;
+  backdrop-filter:blur(12px);
+  animation:roomProviderIn .24s ease both;
+}
+@keyframes roomProviderIn{
+  from{opacity:0;transform:translateY(5px)}
+  to{opacity:1;transform:none}
+}
+
+.stat{
+  transition:
+    transform .2s cubic-bezier(.2,.8,.2,1),
+    border-color .2s ease,
+    background-color .2s ease;
+}
+.stats-grid .stat{
+  animation:roomStatIn .28s ease both;
+}
+.stats-grid .stat:nth-child(2){animation-delay:.035s}
+.stats-grid .stat:nth-child(3){animation-delay:.07s}
+.stats-grid .stat:nth-child(4){animation-delay:.105s}
+@keyframes roomStatIn{
+  from{opacity:0;transform:translateY(5px)}
+  to{opacity:1;transform:none}
+}
+
+@media(hover:hover){
+  .side-card:hover .card-title>span svg,
+  .connection-card:hover .card-title>span svg{
+    transform:scale(1.08) rotate(-3deg);
+  }
+  .person-row:hover{
+    transform:translateX(2px);
+    border-color:#373a4c;
+    background:#101119;
+  }
+  .camera-dock-card:hover{
+    box-shadow:0 12px 28px #0005,0 0 0 1px #7557ff18;
+  }
+  .camera-dock-card:hover video{
+    transform:scale(1.015);
+    filter:saturate(1.05);
+  }
+  .control-dock button:not(:disabled):hover svg,
+  .viewer-share-options button:not(:disabled):hover svg{
+    transform:translateY(-1px) scale(1.06);
+  }
+}
+
+/* Keep the compact pass compact on phones too, without changing structure. */
+@media(max-width:760px){
+  .how-v2-nav{height:64px}
+  .how-v2-hero{
+    padding-top:30px;
+    padding-bottom:34px;
+    gap:22px;
+  }
+  .how-v2-hero h1{
+    margin-top:14px;
+    margin-bottom:13px;
+  }
+  .how-v3-hero-points{margin-top:16px}
+  .how-v2-hero-actions{margin-top:18px}
+  .how-v2-live-card{min-height:0}
+  .how-v2-live-stage{padding-top:18px;padding-bottom:18px}
+  .how-v2-section{
+    padding-top:32px;
+    padding-bottom:34px;
+  }
+  .how-v2-section-heading{margin-bottom:16px}
+  .how-v3-media-grid article,
+  .how-v3-recovery-grid article,
+  .how-v2-step-grid article{
+    padding:14px;
+  }
+  .how-v2-cta{
+    margin-bottom:28px;
+    padding:18px 16px;
+  }
+
+  .room-stage,
+  .side-card,
+  .connection-card,
+  .person-row,
+  .camera-dock-card{
+    animation-duration:.28s;
+  }
+}
+
+/* Accessibility/performance: motion is decorative only. */
+@media(prefers-reduced-motion:reduce){
+  .room-stage,
+  .broadcast-screen.has-video video,
+  .stage-placeholder>span::after,
+  .video-empty>.orb::after,
+  .live-corner::after,
+  .side-card,
+  .go-live,
+  .person-row,
+  .person-row>i,
+  .camera-dock-card,
+  .camera-overlay,
+  .provider-switch,
+  .stats-grid .stat{
+    animation:none!important;
+  }
+}
