@@ -25,7 +25,7 @@ function StudioPreview(){
       <div className="landing-preview-chrome" aria-hidden="true"><i/><i/><i/></div>
       <div className="landing-preview-appbar">
         <div className="landing-preview-brand"><span><MonitorPlay/></span><b>Luma<span>Cast</span></b></div>
-        <div className="landing-preview-room"><small>SALA</small><strong>RV7SZ533</strong></div>
+        <div className="landing-preview-room"><small>SALA</small><strong>00000000</strong></div>
         <div className="landing-preview-statuses">
           <span className="preview-ready"><i/>PRONTO</span>
           <span className="preview-online"><i/>Conectado</span>
@@ -44,7 +44,7 @@ function StudioPreview(){
 
         <div className="landing-preview-card preview-invite">
           <div className="preview-card-title"><span><Eye/></span><div><b>Convide espectadores</b><small>Compartilhe este link</small></div></div>
-          <div className="preview-code"><strong>RV7SZ533</strong><span><Clipboard/></span></div>
+          <div className="preview-code"><strong>00000000</strong><span><Clipboard/></span></div>
           <p>O código também pode ser digitado na página inicial.</p>
         </div>
 
