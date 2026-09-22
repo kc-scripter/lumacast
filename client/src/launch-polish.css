@@ -331,3 +331,193 @@ summary:focus-visible{
     transition-duration:.001ms!important;
   }
 }
+
+
+/* Android/mobile landing repair: keep navigation visible and remove conflicting legacy sizing. */
+@media(max-width:600px){
+  .home-shell{
+    min-height:100dvh;
+    overflow-x:hidden;
+    overflow-y:auto;
+    padding-left:16px;
+    padding-right:16px;
+  }
+  .home-nav{
+    width:100%;
+    height:68px;
+    gap:10px;
+  }
+  .home-nav .brand{
+    min-width:0;
+    flex:none;
+  }
+  .home-nav-links{
+    margin-left:auto;
+    gap:8px;
+    min-width:0;
+  }
+  .home-nav-links>a{
+    display:inline-flex!important;
+    align-items:center;
+    justify-content:center;
+    min-height:36px;
+    padding:0 10px;
+    border:1px solid #343047;
+    border-radius:10px;
+    background:#11131b;
+    color:#d6d0eb;
+    font-size:11px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .home-nav .secure-note{display:none}
+  .home-content{
+    width:100%;
+    max-width:none;
+    min-height:0;
+    padding:34px 0 20px;
+    justify-content:flex-start;
+  }
+  .home-content .eyebrow{
+    line-height:1.45;
+    letter-spacing:.13em;
+  }
+  .home-content h1{
+    max-width:100%;
+    margin:17px 0 16px;
+    font-size:clamp(38px,11.2vw,50px);
+    line-height:1.02;
+    letter-spacing:-.05em;
+  }
+  .home-content .lede{
+    margin-bottom:24px;
+    font-size:14px;
+    line-height:1.58;
+  }
+  .home-action-stack{max-width:none}
+  .home-primary-action,.home-viewer-toggle{
+    min-height:78px;
+    padding:14px;
+    gap:12px;
+  }
+  .home-action-icon{
+    width:38px;
+    height:38px;
+  }
+  .home-action-icon svg{
+    width:22px;
+    height:22px;
+  }
+  .home-action-copy strong{font-size:15px}
+  .home-action-copy small{
+    max-width:none;
+    margin-top:3px;
+    font-size:10px;
+    line-height:1.35;
+  }
+  .home-action-arrow{width:19px;height:19px}
+  .home-viewer-form{
+    margin-left:14px;
+    margin-right:14px;
+  }
+  .home-viewer-action.expanded .home-viewer-form{margin-bottom:14px}
+  .home-viewer-action .room-code-error{
+    margin-left:14px!important;
+    margin-right:14px!important;
+  }
+  .home-content .benefit-row{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    margin-top:20px;
+  }
+  .home-content .benefit-row span{
+    border:0;
+    padding:0!important;
+  }
+  .home-shell>footer{
+    width:100%;
+    margin-top:24px;
+    padding:16px 0 calc(20px + env(safe-area-inset-bottom));
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .home-shell>footer span{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-left:auto;
+  }
+}
+
+/* Very narrow Android devices: keep the header useful instead of hiding "Como funciona". */
+@media(max-width:390px){
+  .home-nav .brand>span:last-child{display:none}
+  .home-nav .brand{width:40px}
+  .home-nav-links>a{
+    min-height:34px;
+    padding:0 9px;
+    font-size:10px;
+  }
+  .home-content{padding-top:28px}
+  .home-content h1{font-size:37px}
+  .home-primary-action,.home-viewer-toggle{min-height:74px}
+  .home-shell>footer{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .home-shell>footer span{margin-left:0}
+}
+
+/* How-it-works mobile hardening. */
+@media(max-width:600px){
+  .how-page.how-v2{
+    width:100%;
+    min-height:100dvh;
+    overflow-x:hidden;
+  }
+  .how-v2-nav{
+    width:100%;
+    height:68px;
+    padding:0 16px;
+  }
+  .how-v2-nav-actions{gap:6px}
+  .how-v2-secure{display:none}
+  .how-v2 .how-back{
+    width:auto;
+    min-width:40px;
+    padding:0 10px;
+    font-size:10px;
+  }
+  .how-v2 .how-back svg{margin:0}
+  .how-v2-hero{
+    width:100%;
+    padding:38px 16px 48px;
+    gap:30px;
+  }
+  .how-v2-hero h1{
+    margin-top:17px;
+    font-size:clamp(38px,10.8vw,48px);
+  }
+  .how-v2-hero-copy>p{
+    font-size:14px;
+    line-height:1.6;
+  }
+  .how-v2-section{padding:48px 16px}
+  .how-v2-live-card,.how-v2-routing{width:100%}
+  .how-v2-live-head{padding:0 14px}
+  .how-v2-live-source,.how-v2-live-viewers{width:100%}
+  .how-v2-section-heading h2{font-size:28px}
+  .how-v2-cta{
+    width:calc(100% - 32px);
+    margin:8px 16px 40px;
+  }
+  .how-v2-footer{
+    height:auto;
+    min-height:58px;
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    gap:10px;
+    flex-wrap:wrap;
+  }
+}
