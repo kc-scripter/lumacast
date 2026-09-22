@@ -28,20 +28,65 @@ const steps=[
   {
     number:"02",
     icon:<Link2/>,
-    title:"Convide quem quiser",
-    text:"Envie o link ou o código. Cada pessoa entra pelo navegador, escolhe um nome e aparece na lista da sala.",
+    title:"Envie o código ou link",
+    text:"Quem recebe entra pelo navegador, escolhe um nome e aparece na lista da sala.",
   },
   {
     number:"03",
     icon:<MonitorPlay/>,
     title:"Escolha o que compartilhar",
-    text:"Qualquer participante pode transmitir uma aba, janela ou monitor. Só uma tela fica ativa por vez.",
+    text:"Selecione uma aba, janela ou monitor. O navegador mostra exatamente quais fontes estão disponíveis.",
   },
   {
     number:"04",
     icon:<Cast/>,
-    title:"Todo mundo recebe ao vivo",
-    text:"A sala sincroniza automaticamente o estado da transmissão e entrega a mídia pelos servidores RTC.",
+    title:"A sala acompanha automaticamente",
+    text:"Participantes recebem o estado da transmissão e a mídia sem precisar atualizar a página.",
+  },
+];
+
+const mediaDetails=[
+  {
+    icon:<MonitorPlay/>,
+    title:"Tela",
+    value:"Até 1080p · 60 FPS",
+    text:"O vídeo da tela usa Agora como rota principal. A taxa real depende da fonte capturada, navegador, computador e rede.",
+  },
+  {
+    icon:<Video/>,
+    title:"Câmera",
+    value:"720p40 ou 480p60",
+    text:"A câmera usa LiveKit e pode trocar de preset enquanto está ligada. A webcam ainda pode limitar resolução ou FPS.",
+  },
+  {
+    icon:<Volume2/>,
+    title:"Áudio da tela",
+    value:"Quando a fonte oferece",
+    text:"O LumaCast solicita áudio junto da captura, mas o navegador e o tipo de fonte precisam fornecer essa trilha.",
+  },
+  {
+    icon:<Zap/>,
+    title:"Qualidade automática",
+    value:"Só em condição extrema",
+    text:"O modo automático evita reduzir por picos rápidos e só reage quando a conexão do transmissor fica realmente ruim por vários segundos.",
+  },
+];
+
+const recoveryDetails=[
+  {
+    icon:<Signal/>,
+    title:"Oscilações curtas",
+    text:"Picos rápidos de latência não devem reduzir a qualidade imediatamente. O LumaCast tenta preservar o perfil escolhido.",
+  },
+  {
+    icon:<RefreshCw/>,
+    title:"Falha da rota principal",
+    text:"Se o vídeo da tela perder a rota principal durante a sessão, ele pode migrar para o LiveKit sem criar outra sala.",
+  },
+  {
+    icon:<Users/>,
+    title:"Reconexão da sala",
+    text:"O dono pode recuperar a sala por cerca de 30 segundos. Participantes e a tela ativa têm uma janela menor, de cerca de 10 segundos.",
   },
 ];
 
@@ -59,7 +104,14 @@ export function HowItWorksPage(){
       <div className="how-v2-hero-copy">
         <div className="how-v2-eyebrow"><Sparkles/> COMO FUNCIONA</div>
         <h1>Você compartilha.<br/><em>O LumaCast cuida do resto.</em></h1>
-        <p>Crie uma sala, mande o código e comece quando quiser. Por trás da interface, o LumaCast separa tela, áudio, câmeras e estado da sala para manter tudo sincronizado em tempo real.</p>
+        <p>Crie uma sala, mande o código e comece quando quiser. Tela, áudio, câmeras e presença são tratados separadamente para que uma parte possa se recuperar sem derrubar o resto da sessão.</p>
+
+        <div className="how-v3-hero-points" aria-label="Resumo do LumaCast">
+          <span><MonitorPlay/><b>Até 1080p60</b><small>compartilhamento de tela</small></span>
+          <span><Video/><b>Câmera flexível</b><small>720p40 ou 480p60</small></span>
+          <span><RefreshCw/><b>Recuperação</b><small>reconexão e fallback</small></span>
+        </div>
+
         <div className="how-v2-hero-actions">
           <button type="button" className="how-v2-primary" onClick={()=>navigate("/")}><MonitorPlay/>Criar uma sala<ArrowRight/></button>
           <span><ShieldCheck/>Sem instalação e sem cadastro</span>
@@ -69,7 +121,7 @@ export function HowItWorksPage(){
       <div className="how-v2-live-card" aria-label="Fluxo visual de uma sessão LumaCast">
         <div className="how-v2-live-head">
           <div><i/><span>SESSÃO AO VIVO</span></div>
-          <strong>RV7SZ533</strong>
+          <strong>00000000</strong>
         </div>
         <div className="how-v2-live-stage">
           <div className="how-v2-live-source">
@@ -110,19 +162,38 @@ export function HowItWorksPage(){
       </div>
     </section>
 
+    <section className="how-v2-section how-v3-media">
+      <div className="how-v2-section-heading">
+        <div><span>02</span><small>MÍDIA E QUALIDADE</small></div>
+        <h2>Cada tipo de mídia tem um trabalho diferente.</h2>
+        <p>Os presets são limites solicitados pelo LumaCast. O resultado real também depende do hardware, do navegador e da conexão.</p>
+      </div>
+
+      <div className="how-v3-media-grid">
+        {mediaDetails.map(item=><article key={item.title}>
+          <span>{item.icon}</span>
+          <div>
+            <small>{item.title}</small>
+            <b>{item.value}</b>
+            <p>{item.text}</p>
+          </div>
+        </article>)}
+      </div>
+    </section>
+
     <section className="how-v2-section how-v2-tech">
       <div className="how-v2-tech-copy">
         <div className="how-v2-section-heading compact">
-          <div><span>02</span><small>POR BAIXO DA INTERFACE</small></div>
+          <div><span>03</span><small>POR BAIXO DA INTERFACE</small></div>
           <h2>A mídia não percorre um único caminho.</h2>
         </div>
-        <p className="how-v2-tech-lede">O LumaCast usa serviços diferentes para cada parte da chamada. Isso permite tratar compartilhamento de tela, câmera, áudio e presença de forma independente.</p>
+        <p className="how-v2-tech-lede">Separar as rotas permite que tela, câmera, áudio e presença continuem independentes. Se uma rota tiver problema, o restante da sala não precisa ser reconstruído.</p>
 
         <div className="how-v2-tech-list">
-          <article><span><MonitorPlay/></span><div><b>Vídeo da tela → Agora</b><p>O compartilhamento de tela usa o SFU do Agora como rota principal, com ajuste de resolução, bitrate e 30 ou 60 FPS.</p></div></article>
-          <article><span><Video/></span><div><b>Câmeras e áudio → LiveKit</b><p>As câmeras dos participantes e o áudio capturado da tela são publicados pelo LiveKit quando estão ativos.</p></div></article>
-          <article><span><RefreshCw/></span><div><b>Fallback automático</b><p>Se a conexão de vídeo com o Agora cair durante a transmissão, o LumaCast pode mover o vídeo da tela para o LiveKit sem criar outra sala.</p></div></article>
-          <article><span><Signal/></span><div><b>Estado da sala → Socket.IO</b><p>Presença, contador, quem está compartilhando, troca de provedor e reconexões são sincronizados separadamente da mídia.</p></div></article>
+          <article><span><MonitorPlay/></span><div><b>Vídeo da tela → Agora</b><p>É a rota principal da tela, com controle de resolução, bitrate e 30 ou 60 FPS.</p></div></article>
+          <article><span><Video/></span><div><b>Câmeras e áudio → LiveKit</b><p>Câmeras dos participantes e áudio capturado da tela são publicados pelo LiveKit quando estão ativos.</p></div></article>
+          <article><span><RefreshCw/></span><div><b>Fallback da tela → LiveKit</b><p>Se a rota principal falhar durante a transmissão, o vídeo da tela pode migrar sem criar uma nova sala.</p></div></article>
+          <article><span><Signal/></span><div><b>Estado da sala → Socket.IO</b><p>Presença, contador, quem transmite e reconexões são sincronizados separadamente da mídia.</p></div></article>
         </div>
       </div>
 
@@ -159,43 +230,68 @@ export function HowItWorksPage(){
       </div>
     </section>
 
+    <section className="how-v2-section how-v3-recovery">
+      <div className="how-v2-section-heading">
+        <div><span>04</span><small>QUANDO A REDE OSCILA</small></div>
+        <h2>O LumaCast tenta recuperar antes de desistir.</h2>
+        <p>Nem toda oscilação precisa virar uma interrupção visível para a sala.</p>
+      </div>
+
+      <div className="how-v3-recovery-grid">
+        {recoveryDetails.map((item,index)=><article key={item.title}>
+          <div className="how-v3-recovery-number">0{index+1}</div>
+          <span>{item.icon}</span>
+          <b>{item.title}</b>
+          <p>{item.text}</p>
+        </article>)}
+      </div>
+    </section>
+
     <section className="how-v2-section how-v2-facts">
       <div className="how-v2-section-heading">
-        <div><span>03</span><small>COMPORTAMENTO REAL</small></div>
-        <h2>Alguns detalhes que fazem diferença.</h2>
+        <div><span>05</span><small>COMPORTAMENTO REAL</small></div>
+        <h2>Limites que vale conhecer antes de começar.</h2>
       </div>
       <div className="how-v2-fact-grid">
-        <article><span><Users/></span><div><b>Uma tela por vez</b><p>Qualquer membro da sala pode pedir para compartilhar, mas existe um bloqueio para impedir duas transmissões de tela simultâneas.</p></div></article>
-        <article><span><RefreshCw/></span><div><b>Reconexão com tolerância</b><p>O dono pode recuperar a sala por cerca de 30 segundos após uma queda. Participantes e a tela ativa têm uma janela menor, de cerca de 10 segundos.</p></div></article>
-        <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas são temporárias e usam credenciais RTC de curta duração. O LumaCast não grava a transmissão nem armazena o vídeo da sessão.</p></div></article>
+        <article><span><Users/></span><div><b>Uma tela por vez</b><p>Qualquer membro pode pedir para compartilhar, mas existe um bloqueio para impedir duas telas simultâneas na mesma sala.</p></div></article>
+        <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas usam credenciais temporárias de RTC. O LumaCast não grava nem armazena o conteúdo da transmissão.</p></div></article>
+        <article><span><Video/></span><div><b>Hardware ainda importa</b><p>Solicitar 480p60 ou 720p40 não faz uma webcam ultrapassar o FPS ou a resolução que ela realmente suporta.</p></div></article>
       </div>
     </section>
 
     <section className="how-v2-section how-v2-faq" aria-labelledby="faq-title">
       <div className="how-v2-section-heading compact">
-        <div><span>04</span><small>DÚVIDAS RÁPIDAS</small></div>
+        <div><span>06</span><small>DÚVIDAS RÁPIDAS</small></div>
         <h2 id="faq-title">O que vale saber antes de começar.</h2>
       </div>
       <div className="how-v2-faq-list">
         <details>
           <summary>Todo mundo pode compartilhar a própria tela?<ArrowRight/></summary>
-          <p>Sim. O dono e os participantes podem iniciar um compartilhamento, desde que outra pessoa não esteja transmitindo naquele momento.</p>
+          <p>Sim. Dono e participantes podem iniciar um compartilhamento, desde que outra pessoa não esteja transmitindo naquele momento.</p>
         </details>
         <details>
           <summary>O LumaCast é conexão direta entre os computadores?<ArrowRight/></summary>
-          <p>Não. A mídia passa por SFUs: o vídeo da tela usa Agora como rota principal, enquanto câmeras e áudio usam LiveKit. Isso evita multiplicar o upload do transmissor para cada espectador.</p>
+          <p>Não. A mídia passa por SFUs. A tela usa Agora como rota principal; câmeras e áudio colaborativo usam LiveKit. Assim o transmissor não precisa enviar uma cópia separada para cada espectador.</p>
         </details>
         <details>
-          <summary>60 FPS é garantido em qualquer navegador?<ArrowRight/></summary>
-          <p>Não. O LumaCast solicita até 60 FPS, mas a taxa real depende do navegador, da fonte capturada, do monitor, do computador, da rede e do dispositivo de quem assiste.</p>
+          <summary>60 FPS é garantido em qualquer dispositivo?<ArrowRight/></summary>
+          <p>Não. O LumaCast solicita o perfil escolhido, mas navegador, fonte capturada, monitor, webcam, hardware e rede podem entregar menos.</p>
+        </details>
+        <details>
+          <summary>Posso mudar a qualidade da câmera sem desligá-la?<ArrowRight/></summary>
+          <p>Sim. O LumaCast tenta trocar entre 720p40 e 480p60 mantendo a câmera ativa. Se o navegador exigir, a faixa é recriada automaticamente por trás da interface.</p>
         </details>
         <details>
           <summary>O áudio da tela sempre funciona?<ArrowRight/></summary>
-          <p>O LumaCast solicita áudio junto com a captura, mas o navegador e o tipo de fonte escolhida precisam oferecer essa trilha. O suporte varia entre navegadores e sistemas.</p>
+          <p>Não. O navegador e a fonte escolhida precisam disponibilizar áudio. O suporte muda conforme navegador, sistema e tipo de captura.</p>
+        </details>
+        <details>
+          <summary>Dá para compartilhar a tela pelo celular?<ArrowRight/></summary>
+          <p>Depende do navegador e do sistema. Assistir à sala funciona normalmente em navegadores compatíveis; a opção de compartilhar tela só aparece quando o próprio navegador oferece captura de tela.</p>
         </details>
         <details>
           <summary>O LumaCast grava ou salva a transmissão?<ArrowRight/></summary>
-          <p>Não. A aplicação distribui a mídia em tempo real e as salas são temporárias; o conteúdo da transmissão não é gravado pelo LumaCast.</p>
+          <p>Não. A aplicação distribui a mídia em tempo real; o conteúdo da transmissão não é gravado pelo LumaCast.</p>
         </details>
       </div>
     </section>
