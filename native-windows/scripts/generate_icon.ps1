@@ -41,5 +41,5 @@ finally {
 }
 
 if (-not (Test-Path $OutputIco) -or (Get-Item $OutputIco).Length -lt 1000) {
-  throw "Falha ao gerar o ícone do Lunira Screen."
+  throw "Falha ao gerar o ícone do LuniraScreen."
 }
