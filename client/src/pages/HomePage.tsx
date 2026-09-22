@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import { Logo } from "../components/Logo";
 import { NameDialog } from "../components/NameDialog";
+import { navigate } from "../services/navigation";
 
 const normalizeRoomCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"").slice(0,8);
 
@@ -85,18 +86,18 @@ export function HomePage(){
     sessionStorage.setItem("lumacast-display-name",name);
     if(intent==="broadcast"){
       sessionStorage.removeItem("lumacast-broadcaster");
-      location.assign("/broadcast");
+      navigate("/broadcast");
       return;
     }
     sessionStorage.removeItem(`lumacast-participant-${code}`);
-    location.assign(`/watch/${code}`);
+    navigate(`/watch/${code}`);
   };
 
   return <main className="home-shell">
     <header className="home-nav">
       <Logo/>
       <nav className="home-nav-links" aria-label="Navegação principal">
-        <a href="/como-funciona">Como funciona</a>
+        <a href="/como-funciona" onClick={event=>{event.preventDefault();navigate("/como-funciona");}}>Como funciona</a>
         <div className="secure-note"><LockKeyhole/>Conexão protegida</div>
       </nav>
     </header>
@@ -147,7 +148,7 @@ export function HomePage(){
 
     <footer>
       © {new Date().getFullYear()} LumaCast
-      <span>Privacidade <i>·</i> Termos <i>·</i> <button type="button" className="footer-link" onClick={()=>location.assign("/como-funciona")}>Como funciona</button></span>
+      <span>Privacidade <i>·</i> Termos <i>·</i> <button type="button" className="footer-link" onClick={()=>navigate("/como-funciona")}>Como funciona</button></span>
     </footer>
 
     {intent&&<NameDialog eyebrow={intent==="broadcast"?"Como quer ser chamado?":`Entrar na sala ${code}`} submitLabel={intent==="broadcast"?"Criar sala":"Entrar na sala"} onSubmit={continueWithName} onCancel={()=>setIntent(null)}/>}
