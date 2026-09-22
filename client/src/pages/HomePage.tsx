@@ -26,7 +26,7 @@ export function HomePage(){
   };
 
   return <main className="home-shell">
-    <header className="home-nav"><Logo/><div className="secure-note"><LockKeyhole/>Conexão protegida</div></header>
+    <header className="home-nav"><Logo/><nav className="home-nav-links" aria-label="Navegação principal"><a href="/como-funciona">Como funciona</a><div className="secure-note"><LockKeyhole/>Conexão protegida</div></nav></header>
     <section className="home-content">
       <div className="eyebrow"><span/> COMPARTILHAMENTO EM TEMPO REAL</div>
       <h1>Sua tela, ao vivo.<br/><em>Sem complicação.</em></h1>

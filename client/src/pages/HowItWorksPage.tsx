@@ -11,10 +11,10 @@ export function HowItWorksPage(){
     <section className="how-hero">
       <div className="how-hero-copy">
         <div className="how-page-eyebrow"><Sparkles/> SIMPLES DO INÍCIO AO FIM</div>
-        <h1>Compartilhar sua tela leva <em>poucos segundos.</em></h1>
+        <h1>Da sua tela<br/>para <em>todo mundo.</em></h1>
         <p>Crie uma sala, escolha o que quer mostrar e envie o link. Quem recebe entra direto pelo navegador, sem instalar aplicativo.</p>
         <div className="how-hero-actions">
-          <button className="how-primary" onClick={()=>location.assign("/broadcast")}><MonitorPlay/>Começar a transmitir<ArrowRight/></button>
+          <button className="how-primary" onClick={()=>location.assign("/")}><MonitorPlay/>Criar minha sala<ArrowRight/></button>
           <span><LockKeyhole/>Sala temporária e acesso por código</span>
         </div>
       </div>
@@ -48,8 +48,10 @@ export function HowItWorksPage(){
 
     <section className="how-bottom-cta">
       <div><small>PRONTO PARA TESTAR?</small><h2>Crie uma sala e compartilhe agora.</h2><p>Você escolhe o que será capturado antes de qualquer transmissão começar.</p></div>
-      <button onClick={()=>location.assign("/broadcast")}>Transmitir tela <ArrowRight/></button>
+      <button onClick={()=>location.assign("/")}>Começar agora <ArrowRight/></button>
     </section>
+
+    <section className="how-faq" aria-labelledby="faq-title"><h2 id="faq-title">Antes de começar</h2><details><summary>Preciso instalar alguma coisa?</summary><p>Não. Abra o LumaCast em um navegador moderno, escolha seu nome e crie uma sala.</p></details><details><summary>O que as outras pessoas conseguem ver?</summary><p>Apenas a aba, janela ou tela selecionada no aviso do navegador.</p></details><details><summary>Posso compartilhar áudio e câmera?</summary><p>Você pode ativar sua câmera na sala. O áudio da tela depende do navegador e da fonte escolhida.</p></details><details><summary>A transmissão sempre chega a 60 FPS?</summary><p>A taxa real depende da captura, do computador, da rede e do dispositivo de quem assiste.</p></details></section>
 
     <footer className="how-footer">© {new Date().getFullYear()} LumaCast <button type="button" onClick={()=>location.assign("/")}>Voltar ao início</button></footer>
   </main>;
