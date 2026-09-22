@@ -19,6 +19,11 @@ jobs:
       VITE_SIGNALING_URL: "http://localhost:3001"
       AGORA_APP_ID: "11111111111111111111111111111111"
       AGORA_APP_CERTIFICATE: "22222222222222222222222222222222"
+      LIVEKIT_URL: "wss://example.invalid"
+      LIVEKIT_API_KEY: "ci-key"
+      LIVEKIT_API_SECRET: "ci-secret"
+      TRUST_PROXY_HOPS: "0"
+      MAX_ROOM_PARTICIPANTS: "50"
 
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +34,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm audit --omit=dev --audit-level=high
+      - name: Ensure generated server build is not committed
+        run: test -z "$(git ls-files server/dist)"
       - run: npm run build
       - name: Signaling smoke test
         run: |
