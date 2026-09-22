@@ -197,6 +197,27 @@ int FindInt(std::string_view json, std::string_view key, int fallback = 0) {
     return result.ec == std::errc{} ? parsed : fallback;
 }
 
+std::uint32_t FindUInt32(
+    std::string_view json,
+    std::string_view key,
+    std::uint32_t fallback = 0) {
+    const size_t value = FindValue(json, key);
+    if (value == std::string_view::npos || value >= json.size()) return fallback;
+
+    size_t end = value;
+    if (json[end] == '+') ++end;
+    const size_t digits = end;
+    while (end < json.size() && json[end] >= '0' && json[end] <= '9') ++end;
+    if (end == digits) return fallback;
+
+    std::uint32_t parsed = fallback;
+    const auto result = std::from_chars(
+        json.data() + digits,
+        json.data() + end,
+        parsed);
+    return result.ec == std::errc{} ? parsed : fallback;
+}
+
 std::vector<Participant> FindParticipants(std::string_view json) {
     std::vector<Participant> participants;
     const size_t value = FindValue(json, "participants");
@@ -278,7 +299,7 @@ SocketEvent ParseAck(int ackId, std::string_view json) {
     event.agoraAppId = FindString(json, "agoraAppId");
     event.agoraChannel = FindString(json, "agoraChannel");
     event.agoraToken = FindString(json, "agoraToken");
-    event.agoraUid = FindInt(json, "agoraUid");
+    event.agoraUid = FindUInt32(json, "agoraUid");
     event.livekitUrl = FindString(json, "livekitUrl");
     event.livekitToken = FindString(json, "livekitToken");
     event.error = FindString(json, "error");
