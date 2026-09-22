@@ -19,6 +19,7 @@ struct Participant {
 
 struct RoomSnapshot {
     bool live = false;
+    bool livekitActive = false;
     int count = 0;
     std::wstring activeScreenSharerId;
     std::wstring activeScreenSharerName;
@@ -52,6 +53,7 @@ struct SocketEvent {
     int agoraUid = 0;
     std::wstring livekitUrl;
     std::wstring livekitToken;
+    std::wstring socketId;
     std::wstring error;
     RoomSnapshot room;
 };
