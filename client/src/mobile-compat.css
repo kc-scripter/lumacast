@@ -55,7 +55,10 @@ img,video,canvas{
 
 @media(max-width:760px){
   html{scrollbar-gutter:auto}
-  html,body{overflow-x:clip}
+  html,body{overflow-x:hidden}
+  @supports(overflow:clip){
+    html,body{overflow-x:clip}
+  }
 
   *,*::before,*::after{box-sizing:border-box}
 
@@ -153,7 +156,7 @@ img,video,canvas{
   }
   .camera-overlay.large{
     top:max(68px,var(--lc-safe-top));
-    max-height:calc(100dvh - max(88px,var(--lc-safe-top)) - max(10px,var(--lc-safe-bottom)));
+    max-height:calc(100vh - max(88px,var(--lc-safe-top)) - max(10px,var(--lc-safe-bottom)));
   }
 
   .stats-drawer,
@@ -162,7 +165,17 @@ img,video,canvas{
     right:max(10px,var(--lc-safe-right));
     bottom:max(10px,var(--lc-safe-bottom));
     width:auto;
-    max-height:min(70dvh,calc(100dvh - 24px - var(--lc-safe-top) - var(--lc-safe-bottom)));
+    max-height:min(70vh,calc(100vh - 24px - var(--lc-safe-top) - var(--lc-safe-bottom)));
+  }
+
+  @supports(height:100dvh){
+    .camera-overlay.large{
+      max-height:calc(100dvh - max(88px,var(--lc-safe-top)) - max(10px,var(--lc-safe-bottom)));
+    }
+    .stats-drawer,
+    .viewer-stats{
+      max-height:min(70dvh,calc(100dvh - 24px - var(--lc-safe-top) - var(--lc-safe-bottom)));
+    }
   }
 
   .toast-error{
@@ -295,6 +308,11 @@ img,video,canvas{
   }
   .name-modal form{
     margin:auto;
-    max-height:calc(100dvh - var(--lc-safe-top) - var(--lc-safe-bottom) - 16px);
+    max-height:calc(100vh - var(--lc-safe-top) - var(--lc-safe-bottom) - 16px);
+  }
+  @supports(height:100dvh){
+    .name-modal form{
+      max-height:calc(100dvh - var(--lc-safe-top) - var(--lc-safe-bottom) - 16px);
+    }
   }
 }
