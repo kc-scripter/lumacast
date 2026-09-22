@@ -85,6 +85,20 @@ public:
         wc.lpfnWndProc = &AppWindow::StaticWndProc;
         wc.hInstance = instance_;
         wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        wc.hIcon = static_cast<HICON>(LoadImageW(
+            instance_,
+            MAKEINTRESOURCEW(101),
+            IMAGE_ICON,
+            0,
+            0,
+            LR_DEFAULTSIZE));
+        wc.hIconSm = static_cast<HICON>(LoadImageW(
+            instance_,
+            MAKEINTRESOURCEW(101),
+            IMAGE_ICON,
+            16,
+            16,
+            LR_DEFAULTCOLOR));
         wc.lpszClassName = kWindowClass;
         wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
 
