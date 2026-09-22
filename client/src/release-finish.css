@@ -216,7 +216,7 @@
 .video-stage.has-video{
   box-shadow:
     inset 0 0 110px #0003,
-    0 20px 64px #00042,
+    0 20px 64px #00000042,
     0 0 0 1px #7657ff12;
 }
 .broadcast-screen.has-video video,
