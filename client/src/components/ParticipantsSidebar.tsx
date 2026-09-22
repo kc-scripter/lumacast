@@ -1,30 +1,25 @@
-import { useEffect,useMemo,useRef,useState,type PointerEvent as ReactPointerEvent } from "react";
+import { memo,useEffect,useMemo,useRef,useState,type PointerEvent as ReactPointerEvent } from "react";
 import { ChevronDown,ChevronUp,Maximize2,Minimize2,PanelRightClose,PanelRightOpen,Users,X } from "lucide-react";
 import type { RoomParticipant } from "../types";
+import { OptimizedVideoTile } from "./OptimizedVideo";
 
 type Camera={identity:string;track:MediaStreamTrack;local:boolean};
 type Point={x:number;y:number};
 type DragState={pointerId:number;startX:number;startY:number;originX:number;originY:number};
 
-function CameraVideo({track}:{track:MediaStreamTrack}){
-  const ref=useRef<HTMLVideoElement>(null);
-  useEffect(()=>{
-    if(ref.current){ref.current.srcObject=new MediaStream([track]);void ref.current.play().catch(()=>undefined);}
-    return()=>{if(ref.current)ref.current.srcObject=null;};
-  },[track]);
-  return <video ref={ref} autoPlay playsInline muted/>;
-}
+const sameParticipants=(a:RoomParticipant[],b:RoomParticipant[])=>a===b||(a.length===b.length&&a.every((person,index)=>person.id===b[index]?.id&&person.displayName===b[index]?.displayName));
+const sameCameras=(a:Camera[],b:Camera[])=>a===b||(a.length===b.length&&a.every((camera,index)=>camera.identity===b[index]?.identity&&camera.track===b[index]?.track&&camera.local===b[index]?.local));
 
-export function ParticipantsSidebar({participants}:{participants:RoomParticipant[]}){
+export const ParticipantsSidebar=memo(function ParticipantsSidebar({participants}:{participants:RoomParticipant[]}){
   const [open,setOpen]=useState(()=>typeof window==="undefined"||window.innerWidth>720);
   return <aside className={"people-sidebar "+(open?"open":"")}>
     <button className="people-toggle" onClick={()=>setOpen(value=>!value)} aria-label={open?"Recolher pessoas":"Expandir pessoas"}>{open?<PanelRightClose/>:<PanelRightOpen/>}</button>
     <div className="people-heading"><Users/><span>{participants.length}</span>{open&&<b>Pessoas na sala</b>}</div>
     {open?<div className="people-list">{participants.map((person,index)=><div className="person-row" key={person.id}><span className="person-avatar">{person.displayName.slice(0,1).toUpperCase()}</span><div><b>{person.displayName}</b><small>{index===0?"Dono da sala":"Participante"}</small></div><i/></div>)}</div>:<div className="people-mini">{participants.slice(0,4).map(person=><span key={person.id} title={person.displayName}>{person.displayName.slice(0,1).toUpperCase()}</span>)}</div>}
   </aside>;
-}
+},(previous,next)=>sameParticipants(previous.participants,next.participants));
 
-export function CameraDock({cameras,participants}:{cameras:Camera[];participants:RoomParticipant[]}){
+export const CameraDock=memo(function CameraDock({cameras,participants}:{cameras:Camera[];participants:RoomParticipant[]}){
   const [open,setOpen]=useState(true),[pinned,setPinned]=useState<string|null>(null),[large,setLarge]=useState(false),[position,setPosition]=useState<Point|null>(null),[dragging,setDragging]=useState(false);
   const overlayRef=useRef<HTMLDivElement>(null),dragRef=useRef<DragState|null>(null);
   const names=useMemo(()=>new Map(participants.map(person=>[person.id,person.displayName])),[participants]);
@@ -59,13 +54,13 @@ export function CameraDock({cameras,participants}:{cameras:Camera[];participants
         <span><Users/><b>Câmeras</b><small>{countText}</small></span>{open?<ChevronDown/>:<ChevronUp/>}
       </button>
       {open&&cameras.length>0&&<div className="camera-dock-list">{cameras.map(camera=><button type="button" aria-label={`Ampliar câmera de ${cameraName(camera)}`} className="camera-dock-card" key={camera.identity} onClick={()=>setPinned(camera.identity)}>
-        <CameraVideo track={camera.track}/><span>{cameraName(camera)}{camera.local&&<em>VOCÊ</em>}</span><i className="camera-expand-hint"><Maximize2/></i>
+        <OptimizedVideoTile track={camera.track}/><span>{cameraName(camera)}{camera.local&&<em>VOCÊ</em>}</span><i className="camera-expand-hint"><Maximize2/></i>
       </button>)}</div>}
     </section>
     {selected&&<div ref={overlayRef} className={"camera-overlay "+(large?"large ":"")+(dragging?"dragging":"")} style={position?{left:position.x,top:position.y,right:"auto",bottom:"auto"}:undefined} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag}>
-      <CameraVideo track={selected.track}/>
+      <OptimizedVideoTile track={selected.track}/>
       <div className="camera-overlay-actions"><button onClick={()=>{setLarge(value=>!value);setPosition(null);}} aria-label={large?"Reduzir câmera":"Expandir câmera"}>{large?<Minimize2/>:<Maximize2/>}</button><button onClick={()=>setPinned(null)} aria-label="Fechar câmera"><X/></button></div>
       <span>{cameraName(selected)}{selected.local?" · VOCÊ":""}</span>
     </div>}
   </>;
-}
+},(previous,next)=>sameCameras(previous.cameras,next.cameras)&&sameParticipants(previous.participants,next.participants));

@@ -1,0 +1,7 @@
+/* Performance boundaries for media surfaces.
+   Keep containment on sized leaf visuals so draggable overlays and stage layout stay untouched. */
+.broadcast-screen,
+.video-stage,
+.camera-dock-card {
+  contain: layout style paint;
+}
