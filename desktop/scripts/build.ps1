@@ -27,6 +27,58 @@ $root = Split-Path -Parent $PSScriptRoot
 $assets = Join-Path $root "Assets"
 New-Item -ItemType Directory -Force -Path $assets | Out-Null
 
+$logoSource = Join-Path $assets "Lunira-source.png"
+$iconPath = Join-Path $assets "Lunira.ico"
+
+if (-not (Test-Path $logoSource)) {
+  throw "Logo fonte não encontrada: $logoSource"
+}
+
+Add-Type -AssemblyName System.Drawing
+$source = [System.Drawing.Image]::FromFile($logoSource)
+try {
+  $crop = New-Object System.Drawing.Bitmap 42, 42
+  $cropGraphics = [System.Drawing.Graphics]::FromImage($crop)
+  try {
+    $cropGraphics.DrawImage(
+      $source,
+      (New-Object System.Drawing.Rectangle 0, 0, 42, 42),
+      (New-Object System.Drawing.Rectangle 8, 1, 42, 42),
+      [System.Drawing.GraphicsUnit]::Pixel
+    )
+  }
+  finally {
+    $cropGraphics.Dispose()
+  }
+
+  $iconBitmap = New-Object System.Drawing.Bitmap 128, 128
+  $iconGraphics = [System.Drawing.Graphics]::FromImage($iconBitmap)
+  try {
+    $iconGraphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $iconGraphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+    $iconGraphics.DrawImage($crop, 0, 0, 128, 128)
+  }
+  finally {
+    $iconGraphics.Dispose()
+    $crop.Dispose()
+  }
+
+  $iconHandle = $iconBitmap.GetHicon()
+  $icon = [System.Drawing.Icon]::FromHandle($iconHandle)
+  $iconStream = [System.IO.File]::Create($iconPath)
+  try {
+    $icon.Save($iconStream)
+  }
+  finally {
+    $iconStream.Dispose()
+    $icon.Dispose()
+    $iconBitmap.Dispose()
+  }
+}
+finally {
+  $source.Dispose()
+}
+
 $bootstrapper = Join-Path $assets "MicrosoftEdgeWebview2Setup.exe"
 if (-not (Test-Path $bootstrapper)) {
   Write-Host "Baixando bootstrapper oficial do Microsoft Edge WebView2..."
