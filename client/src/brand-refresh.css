@@ -487,8 +487,8 @@
     top:14%!important;
   }
   .home-floating-chip-bottom{
-    right:auto!important;
-    left:calc(100% + 16px)!important;
+    left:auto!important;
+    right:calc(100% + 16px)!important;
     bottom:14%!important;
   }
 }
