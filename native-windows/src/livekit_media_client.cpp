@@ -100,6 +100,7 @@ void LiveKitMediaClient::Stop() {
     }
 
     StopLocalCamera();
+    StopSystemAudio();
 
     std::unique_ptr<livekit::Room> oldRoom;
     {
@@ -231,6 +232,84 @@ void LiveKitMediaClient::StopLocalCamera() {
     localCameraSource_.reset();
     localCameraWidth_ = 0;
     localCameraHeight_ = 0;
+}
+
+bool LiveKitMediaClient::StartSystemAudio(int sampleRate, int channels) {
+    if (sampleRate <= 0 || channels <= 0 || !connected_.load()) return false;
+    std::scoped_lock lock(mutex_);
+    if (!room_) return false;
+    if (systemAudioSource_ && systemAudioTrack_ &&
+        systemAudioSampleRate_ == sampleRate && systemAudioChannels_ == channels) return true;
+
+    if (systemAudioTrack_) {
+        if (auto participant = room_->localParticipant().lock()) {
+            participant->unpublishTrack(systemAudioTrack_->sid());
+        }
+    }
+    systemAudioTrack_.reset();
+    systemAudioSource_.reset();
+
+    try {
+        auto participant = room_->localParticipant().lock();
+        if (!participant) return false;
+        auto source = std::make_shared<livekit::AudioSource>(sampleRate, channels);
+        auto track = participant->publishAudioTrack(
+            "screen-audio", source, livekit::TrackSource::SOURCE_SCREENSHARE_AUDIO);
+        if (!track) return false;
+        systemAudioSource_ = std::move(source);
+        systemAudioTrack_ = std::move(track);
+        systemAudioSampleRate_ = sampleRate;
+        systemAudioChannels_ = channels;
+        return true;
+    } catch (...) {
+        systemAudioSource_.reset();
+        systemAudioTrack_.reset();
+        systemAudioSampleRate_ = 0;
+        systemAudioChannels_ = 0;
+        return false;
+    }
+}
+
+bool LiveKitMediaClient::PushSystemAudioFrame(const std::int16_t* samples, size_t sampleCount,
+                                               int sampleRate, int channels) {
+    if (!samples || sampleCount == 0 || sampleRate <= 0 || channels <= 0 ||
+        sampleCount % static_cast<size_t>(channels) != 0) return false;
+    std::shared_ptr<livekit::AudioSource> source;
+    {
+        std::scoped_lock lock(mutex_);
+        source = systemAudioSource_;
+    }
+    if (!source) {
+        if (!StartSystemAudio(sampleRate, channels)) return false;
+        std::scoped_lock lock(mutex_);
+        source = systemAudioSource_;
+    }
+    if (!source) return false;
+    try {
+        std::vector<std::int16_t> copy(samples, samples + sampleCount);
+        livekit::AudioFrame frame(std::move(copy), sampleRate, channels,
+            static_cast<int>(sampleCount / static_cast<size_t>(channels)));
+        source->captureFrame(frame, 100);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+void LiveKitMediaClient::StopSystemAudio() {
+    std::scoped_lock lock(mutex_);
+    if (room_ && systemAudioTrack_) {
+        try {
+            if (auto participant = room_->localParticipant().lock()) {
+                participant->unpublishTrack(systemAudioTrack_->sid());
+            }
+        } catch (...) {
+        }
+    }
+    systemAudioTrack_.reset();
+    systemAudioSource_.reset();
+    systemAudioSampleRate_ = 0;
+    systemAudioChannels_ = 0;
 }
 
 void LiveKitMediaClient::ConnectWorker(

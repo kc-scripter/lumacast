@@ -53,6 +53,10 @@ public:
         int width,
         int height);
     void StopLocalCamera();
+    bool StartSystemAudio(int sampleRate = 48000, int channels = 2);
+    bool PushSystemAudioFrame(const std::int16_t* samples, size_t sampleCount,
+                              int sampleRate, int channels);
+    void StopSystemAudio();
 
 private:
     void ConnectWorker(std::wstring url, std::wstring token);
@@ -86,6 +90,10 @@ private:
     std::shared_ptr<livekit::LocalVideoTrack> localCameraTrack_;
     int localCameraWidth_ = 0;
     int localCameraHeight_ = 0;
+    std::shared_ptr<livekit::AudioSource> systemAudioSource_;
+    std::shared_ptr<livekit::LocalAudioTrack> systemAudioTrack_;
+    int systemAudioSampleRate_ = 0;
+    int systemAudioChannels_ = 0;
 };
 
 } // namespace lunira

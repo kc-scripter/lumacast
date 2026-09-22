@@ -33,6 +33,8 @@ add_executable(LuniraScreen WIN32
   src/socket_io_client.cpp
   src/livekit_media_client.cpp
   src/camera_capture.cpp
+  src/agora_screen_client.cpp
+  src/system_audio_capture.cpp
   "${LUNIRA_GENERATED_DIR}/resources.rc"
 )
 
@@ -73,6 +75,7 @@ target_link_libraries(LuniraScreen PRIVATE
   mfreadwrite
   mfuuid
   ole32
+  uuid
 )
 
 
@@ -106,6 +109,10 @@ find_package(LiveKit CONFIG REQUIRED)
 
 target_link_libraries(LuniraScreen PRIVATE LiveKit::livekit)
 lunira_copy_livekit_runtime(LuniraScreen "${LUNIRA_LIVEKIT_ROOT}")
+
+include(LuniraAgora)
+lunira_setup_agora(LUNIRA_AGORA_ROOT)
+lunira_link_agora(LuniraScreen "${LUNIRA_AGORA_ROOT}")
 
 add_executable(LuniraLiveKitSmoke
   tests/livekit_smoke.cpp
