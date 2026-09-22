@@ -99,6 +99,8 @@ void LiveKitMediaClient::Stop() {
         connectThread_.join();
     }
 
+    StopLocalCamera();
+
     std::unique_ptr<livekit::Room> oldRoom;
     {
         std::scoped_lock lock(mutex_);
@@ -123,6 +125,112 @@ void LiveKitMediaClient::Stop() {
 
 bool LiveKitMediaClient::IsConnected() const noexcept {
     return connected_.load();
+}
+
+bool LiveKitMediaClient::StartLocalCamera(int width, int height) {
+    if (width <= 0 || height <= 0 || !connected_.load()) return false;
+
+    std::scoped_lock lock(mutex_);
+    if (!room_) return false;
+
+    if (localCameraSource_ &&
+        localCameraTrack_ &&
+        localCameraWidth_ == width &&
+        localCameraHeight_ == height) {
+        return true;
+    }
+
+    if (localCameraTrack_) {
+        if (auto participant = room_->localParticipant().lock()) {
+            participant->unpublishTrack(localCameraTrack_->sid());
+        }
+        localCameraTrack_.reset();
+        localCameraSource_.reset();
+    }
+
+    try {
+        auto participant = room_->localParticipant().lock();
+        if (!participant) return false;
+
+        auto source = std::make_shared<livekit::VideoSource>(width, height);
+        auto track = participant->publishVideoTrack(
+            "camera0",
+            source,
+            livekit::TrackSource::SOURCE_CAMERA);
+
+        if (!track) return false;
+
+        localCameraSource_ = std::move(source);
+        localCameraTrack_ = std::move(track);
+        localCameraWidth_ = width;
+        localCameraHeight_ = height;
+        return true;
+    } catch (...) {
+        localCameraSource_.reset();
+        localCameraTrack_.reset();
+        localCameraWidth_ = 0;
+        localCameraHeight_ = 0;
+        return false;
+    }
+}
+
+bool LiveKitMediaClient::PushLocalCameraFrame(
+    const std::uint8_t* bgra,
+    size_t bytes,
+    int width,
+    int height) {
+    if (!bgra || width <= 0 || height <= 0) return false;
+
+    const size_t required =
+        static_cast<size_t>(width) *
+        static_cast<size_t>(height) * 4u;
+    if (bytes < required) return false;
+
+    std::shared_ptr<livekit::VideoSource> source;
+    {
+        std::scoped_lock lock(mutex_);
+        source = localCameraSource_;
+    }
+
+    if (!source) {
+        if (!StartLocalCamera(width, height)) return false;
+        std::scoped_lock lock(mutex_);
+        source = localCameraSource_;
+    }
+
+    if (!source) return false;
+
+    try {
+        auto frame = livekit::VideoFrame::create(
+            width,
+            height,
+            livekit::VideoBufferType::BGRA);
+        if (!frame.data() || frame.dataSize() < required) return false;
+
+        std::memcpy(frame.data(), bgra, required);
+        source->captureFrame(frame);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+void LiveKitMediaClient::StopLocalCamera() {
+    std::scoped_lock lock(mutex_);
+
+    if (room_ && localCameraTrack_) {
+        try {
+            if (auto participant = room_->localParticipant().lock()) {
+                participant->unpublishTrack(localCameraTrack_->sid());
+            }
+        } catch (...) {
+        }
+    }
+
+    localCameraTrack_.reset();
+    localCameraSource_.reset();
+    localCameraWidth_ = 0;
+    localCameraHeight_ = 0;
 }
 
 void LiveKitMediaClient::ConnectWorker(
