@@ -298,7 +298,6 @@ private:
             L"pt-BR",
             format.ReleaseAndGetAddressOf());
 
-        if (format_) {}
         format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
         format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
@@ -352,6 +351,9 @@ private:
             DrawSettings(rail, top, width, height);
         } else {
             DrawRoom(rail, top, width, height);
+            if (selectedCamera_ >= 0) {
+                DrawCameraOverlay(width, height);
+            }
         }
     }
 
@@ -441,6 +443,11 @@ private:
         const float contentTop = top + pad;
         const float contentRight = width - pad;
         const float contentBottom = height - pad;
+        if (focused_) {
+            DrawStage(Rect(contentLeft, contentTop, contentRight, contentBottom));
+            return;
+        }
+
         const float sideLeft = contentRight - side;
         const float stageRight = sideLeft - gap;
 
@@ -644,8 +651,8 @@ private:
         DrawInviteCard(Rect(area.left, y, area.right, y + 170));
         y += 184;
 
-        DrawQualityCard(Rect(area.left, y, area.right, y + 250));
-        y += 264;
+        DrawQualityCard(Rect(area.left, y, area.right, y + 286));
+        y += 300;
 
         DrawControlsCard(Rect(area.left, y, area.right, area.bottom));
     }
@@ -703,6 +710,55 @@ private:
 
         Text(L"CÂMERA", Rect(rect.left + 16, rect.top + 216, rect.right - 16, rect.top + 234),
              tinyBold_.Get(), dimBrush_.Get());
+        SelectBox(Rect(rect.left + 16, rect.top + 238, rect.right - 16, rect.top + 276), L"720p · 40 FPS");
+    }
+
+    void DrawCameraOverlay(float width, float height) {
+        const bool large = cameraOverlayLarge_;
+        const float overlayW = large ? 560.0f : 390.0f;
+        const float overlayH = large ? 330.0f : 236.0f;
+        const float right = width - 34.0f;
+        const float bottom = height - 34.0f;
+        const D2D1_RECT_F rect = Rect(right - overlayW, bottom - overlayH, right, bottom);
+
+        const auto shadow = D2D1::RoundedRect(
+            Rect(rect.left + 8, rect.top + 10, rect.right + 8, rect.bottom + 10),
+            15, 15);
+        ComPtr<ID2D1SolidColorBrush> shadowBrush;
+        renderTarget_->CreateSolidColorBrush(Hex(0x000000, 0.42f), shadowBrush.ReleaseAndGetAddressOf());
+        renderTarget_->FillRoundedRectangle(shadow, shadowBrush.Get());
+
+        const auto card = D2D1::RoundedRect(rect, 14, 14);
+        renderTarget_->FillRoundedRectangle(card, panelBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(card, violetBrush_.Get(), 1.2f);
+
+        const D2D1_RECT_F video = Rect(rect.left + 10, rect.top + 10, rect.right - 10, rect.bottom - 42);
+        const auto videoRr = D2D1::RoundedRect(video, 10, 10);
+        renderTarget_->FillRoundedRectangle(videoRr, violetPanelBrush_.Get());
+
+        static constexpr std::array<std::wstring_view, 3> initials{ L"K", L"P", L"A" };
+        static constexpr std::array<std::wstring_view, 3> names{ L"Kauã · VOCÊ", L"Pedro", L"Ana" };
+        const int index = std::clamp(selectedCamera_, 0, 2);
+
+        const float cx = (video.left + video.right) * 0.5f;
+        const float cy = (video.top + video.bottom) * 0.5f;
+        renderTarget_->FillEllipse(
+            D2D1::Ellipse(D2D1::Point2F(cx, cy), large ? 38.0f : 30.0f, large ? 38.0f : 30.0f),
+            violetBrush_.Get());
+        CenterText(initials[static_cast<size_t>(index)],
+                   Rect(cx - 34, cy - 34, cx + 34, cy + 34),
+                   title_.Get(), textBrush_.Get());
+
+        Text(names[static_cast<size_t>(index)],
+             Rect(rect.left + 14, rect.bottom - 34, rect.right - 100, rect.bottom - 10),
+             bodyStrong_.Get(), textBrush_.Get());
+
+        const D2D1_RECT_F resize = Rect(rect.right - 78, rect.bottom - 36, rect.right - 46, rect.bottom - 8);
+        const D2D1_RECT_F close = Rect(rect.right - 40, rect.bottom - 36, rect.right - 8, rect.bottom - 8);
+        AddHit(15, resize);
+        AddHit(14, close);
+        Button(resize, large ? L"−" : L"+", false, hover_ == 15);
+        Button(close, L"×", false, hover_ == 14);
     }
 
     void DrawControlsCard(const D2D1_RECT_F& rect) {
@@ -923,7 +979,7 @@ private:
             copied_ = true;
             if (OpenClipboard(hwnd_)) {
                 EmptyClipboard();
-                const wchar_t code[] = L"https://lunira.local/?room=LUNA72PX";
+                const wchar_t code[] = L"https://lumacast-live-kc.onrender.com/?room=LUNA72PX";
                 const size_t bytes = sizeof(code);
                 HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, bytes);
                 if (memory) {
@@ -963,6 +1019,14 @@ private:
         case 12:
         case 13:
             selectedCamera_ = id - 11;
+            cameraOverlayLarge_ = false;
+            break;
+        case 14:
+            selectedCamera_ = -1;
+            cameraOverlayLarge_ = false;
+            break;
+        case 15:
+            cameraOverlayLarge_ = !cameraOverlayLarge_;
             break;
         default:
             break;
@@ -987,6 +1051,7 @@ private:
     bool copied_ = false;
     int fps_ = 60;
     int selectedCamera_ = -1;
+    bool cameraOverlayLarge_ = false;
 
     bool trackingMouse_ = false;
     int hover_ = -1;
