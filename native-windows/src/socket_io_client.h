@@ -4,6 +4,7 @@
 #include <winhttp.h>
 
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -50,7 +51,7 @@ struct SocketEvent {
     std::wstring agoraAppId;
     std::wstring agoraChannel;
     std::wstring agoraToken;
-    int agoraUid = 0;
+    std::uint32_t agoraUid = 0;
     std::wstring livekitUrl;
     std::wstring livekitToken;
     std::wstring socketId;
