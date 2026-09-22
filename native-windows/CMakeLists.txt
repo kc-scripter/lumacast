@@ -1,10 +1,38 @@
 cmake_minimum_required(VERSION 3.24)
-project(LuniraScreenNative LANGUAGES CXX)
+project(LuniraScreenNative LANGUAGES CXX RC)
+
+find_program(LUNIRA_POWERSHELL NAMES pwsh powershell REQUIRED)
+set(LUNIRA_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${LUNIRA_GENERATED_DIR}")
+set(LUNIRA_ICON_PATH "${LUNIRA_GENERATED_DIR}/Lunira.ico")
+
+execute_process(
+  COMMAND "${LUNIRA_POWERSHELL}"
+          -NoProfile
+          -ExecutionPolicy Bypass
+          -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_icon.ps1"
+          -InputPng "${CMAKE_CURRENT_SOURCE_DIR}/assets/lunira.png"
+          -OutputIco "${LUNIRA_ICON_PATH}"
+  RESULT_VARIABLE LUNIRA_ICON_RESULT
+  OUTPUT_VARIABLE LUNIRA_ICON_STDOUT
+  ERROR_VARIABLE LUNIRA_ICON_STDERR
+)
+
+if(NOT LUNIRA_ICON_RESULT EQUAL 0 OR NOT EXISTS "${LUNIRA_ICON_PATH}")
+  message(FATAL_ERROR "Failed to generate Lunira icon: ${LUNIRA_ICON_STDOUT} ${LUNIRA_ICON_STDERR}")
+endif()
+
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/resources.rc.in"
+  "${LUNIRA_GENERATED_DIR}/resources.rc"
+  @ONLY
+)
 
 add_executable(LuniraScreen WIN32
   src/main.cpp
   src/socket_io_client.cpp
   src/livekit_media_client.cpp
+  "${LUNIRA_GENERATED_DIR}/resources.rc"
 )
 
 target_compile_features(LuniraScreen PRIVATE cxx_std_20)
