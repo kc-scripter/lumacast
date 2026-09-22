@@ -78,6 +78,7 @@ struct VideoProbe {
     int width = 0;
     int height = 0;
     size_t bytes = 0;
+    std::wstring error;
 
     void OnEvent(lunira::AgoraEvent event) {
         std::scoped_lock lock(mutex);
@@ -86,7 +87,10 @@ struct VideoProbe {
             width = event.width;
             height = event.height;
             bytes = event.bgra.size();
-        } else if (event.type == lunira::AgoraEventType::Error) failed = true;
+        } else if (event.type == lunira::AgoraEventType::Error) {
+            failed = true;
+            error = std::move(event.error);
+        }
         cv.notify_all();
     }
 
@@ -139,6 +143,10 @@ int PublishSynthetic(const lunira::AgoraCredentials& credentials) {
     context.eventHandler = &handler;
     context.channelProfile = agora::CHANNEL_PROFILE_LIVE_BROADCASTING;
     if (engine->initialize(context) != 0) return 21;
+    if (engine->enableVideo() != 0) {
+        agora::rtc::IRtcEngine::release(nullptr);
+        return 25;
+    }
 
     void* rawMedia = nullptr;
     if (engine->queryInterface(agora::rtc::AGORA_IID_MEDIA_ENGINE, &rawMedia) != 0 || !rawMedia) {
@@ -261,16 +269,20 @@ int main(int argc, char** argv) {
     lunira::AgoraScreenClient receiver;
     if (!receiver.StartViewer(receiverCredentials,
             [&](lunira::AgoraEvent event) { videoProbe.OnEvent(std::move(event)); }) ||
-        !videoProbe.WaitConnected()) return 6;
+        !videoProbe.WaitConnected()) {
+        std::cerr << "Agora receiver failed: " << WideToUtf8(videoProbe.error) << "\n";
+        return 6;
+    }
 
     const int publisherExit = RunPublisherProcess(publisherCredentials);
     const bool frameReceived = videoProbe.WaitFrame();
     const bool valid = publisherExit == 0 && frameReceived &&
         videoProbe.width == 320 && videoProbe.height == 180 &&
         videoProbe.bytes >= static_cast<size_t>(320 * 180 * 4);
-    std::cout << "Agora synthetic screen roundtrip: " << (valid ? "ok" : "failed")
+    std::cerr << "Agora synthetic screen roundtrip: " << (valid ? "ok" : "failed")
               << " (" << videoProbe.width << "x" << videoProbe.height
-              << ", publisher=" << publisherExit << ")\n";
+              << ", publisher=" << publisherExit
+              << ", receiver=" << WideToUtf8(videoProbe.error) << ")\n";
     receiver.Stop();
     viewer.Stop();
     owner.Stop();

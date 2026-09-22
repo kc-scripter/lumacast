@@ -69,6 +69,11 @@ bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool pu
         Stop();
         return false;
     }
+    if (engine_->enableVideo() != 0) {
+        Notify({AgoraEventType::Error, 0, 0, {}, L"Não foi possível habilitar vídeo no Agora."});
+        Stop();
+        return false;
+    }
 
     void* rawMediaEngine = nullptr;
     if (engine_->queryInterface(agora::rtc::AGORA_IID_MEDIA_ENGINE, &rawMediaEngine) != 0 ||
