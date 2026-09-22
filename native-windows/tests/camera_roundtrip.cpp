@@ -132,7 +132,7 @@ int main() {
     auto createRoom = [&]() -> std::optional<lunira::SocketEvent> {
         const int createId = ownerSignal.EmitWithAck(
             "create-room",
-            "{\"displayName\":\"NativeCameraPublisher\"}");
+            "{\"displayName\":\"NativePublisher\"}");
         if (createId < 0) return std::nullopt;
         return ownerProbe.WaitAck(createId, 15s);
     };
@@ -163,7 +163,7 @@ int main() {
         return 3;
     }
 
-    std::string joinPayload = "{\"displayName\":\"NativeCameraViewer\",\"roomId\":";
+    std::string joinPayload = "{\"displayName\":\"NativeViewer\",\"roomId\":";
     joinPayload += lunira::SocketIoClient::JsonQuote(create->roomId);
     joinPayload += "}";
 
