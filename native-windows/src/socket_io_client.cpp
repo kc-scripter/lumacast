@@ -255,6 +255,7 @@ std::vector<Participant> FindParticipants(std::string_view json) {
 RoomSnapshot ParseRoom(std::string_view json) {
     RoomSnapshot room;
     room.live = FindBool(json, "live");
+    room.livekitActive = FindBool(json, "livekitActive");
     room.count = FindInt(json, "count");
     room.activeScreenSharerId = FindString(json, "activeScreenSharerId");
     room.activeScreenSharerName = FindString(json, "activeScreenSharerName");
@@ -625,6 +626,9 @@ void SocketIoClient::HandlePacket(std::string_view packet) {
             SocketEvent event;
             event.type = SocketEventType::Connected;
             event.ok = true;
+            if (packet.size() > 2) {
+                event.socketId = FindString(packet.substr(2), "sid");
+            }
             Notify(std::move(event));
         }
         return;
