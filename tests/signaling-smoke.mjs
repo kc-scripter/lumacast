@@ -36,5 +36,16 @@ const viewer1b=await connect();
 const rejoined=await ack(viewer1b,"join-room",{roomId:created.roomId,participantToken:reconnectToken,displayName:"Ignored Name"});
 assert.equal(rejoined.ok,true);assert.equal(rejoined.displayName,"Smoke Viewer 1");
 
-host.disconnect();viewer1b.disconnect();viewer2.disconnect();
-console.log(JSON.stringify({ok:true,roomId:created.roomId,joins:true,screenLock:true,broadcastLifecycle:true,participantReconnect:true}));
+const capacitySockets=[];
+for(let index=3;index<=8;index++){
+  const socket=await connect();capacitySockets.push(socket);
+  const joined=await ack(socket,"join-room",{roomId:created.roomId,displayName:`Smoke Viewer ${index}`});
+  assert.equal(joined.ok,true);
+}
+const overflow=await connect();
+const rejected=await ack(overflow,"join-room",{roomId:created.roomId,displayName:"Overflow Viewer"});
+assert.equal(rejected.ok,false);
+assert.match(rejected.error,/limite de participantes/i);
+
+host.disconnect();viewer1b.disconnect();viewer2.disconnect();overflow.disconnect();capacitySockets.forEach(socket=>socket.disconnect());
+console.log(JSON.stringify({ok:true,roomId:created.roomId,joins:true,screenLock:true,broadcastLifecycle:true,participantReconnect:true,roomCapacity:true}));
