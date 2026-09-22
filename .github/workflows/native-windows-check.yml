@@ -57,8 +57,8 @@ jobs:
             }
           }
 
-          $front = "https://lunira-screen.onrender.com"
-          $legacy = "https://lumacast-live-kc.onrender.com"
+          $front = "https://lunirascreen.mooo.com"
+          $legacy = "https://lunira-screen.onrender.com"
 
           $home = Probe $front
           Probe "$front/api/health" | Out-Null
