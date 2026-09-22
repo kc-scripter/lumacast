@@ -2,6 +2,7 @@ import { BarChart3,Check,ChevronDown,Clipboard,Eye,MonitorUp,Radio,Square,Users,
 import { useState } from "react";
 import { BrowserCompatibilityNotice } from "../components/BrowserCompatibilityNotice";
 import { Logo } from "../components/Logo";
+import { NameDialog } from "../components/NameDialog";
 import { OptimizedVideo } from "../components/OptimizedVideo";
 import { ParticipantsSidebar } from "../components/ParticipantsSidebar";
 import { RoomStage } from "../components/RoomStage";
@@ -9,11 +10,18 @@ import { StatsPanel } from "../components/StatsPanel";
 import { StatusPill } from "../components/StatusPill";
 import { useAdaptiveScreenQuality } from "../hooks/useAdaptiveScreenQuality";
 import { useMediaPreferences } from "../hooks/useMediaPreferences";
-import { copyText } from "../services/browser";
+import { copyText,safeSessionGet,safeSessionSet } from "../services/browser";
+import { navigate } from "../services/navigation";
 import { useCollaborativeRoom } from "../services/useCollaborativeRoom";
 import type { CameraPreset,Quality } from "../types";
 
 export function BroadcasterPage(){
+  const [nameReady,setNameReady]=useState(()=>!!safeSessionGet("lumacast-display-name"));
+  if(!nameReady)return <main className="studio-shell"><NameDialog eyebrow="Criar sala" submitLabel="Criar sala" onSubmit={value=>{safeSessionSet("lumacast-display-name",value);setNameReady(true);}} onCancel={()=>navigate("/")}/></main>;
+  return <BroadcasterRoomPage/>;
+}
+
+function BroadcasterRoomPage(){
   const room=useCollaborativeRoom(true),{quality,setQuality,fps,setFps}=useMediaPreferences(),[copied,setCopied]=useState(false),[showStats,setShowStats]=useState(false);
   useAdaptiveScreenQuality({enabled:quality==="auto"&&room.isScreenSharer&&room.roomState.screenProvider==="agora",stats:room.stats,preferredFps:fps,updateQuality:room.updateScreenQuality,updateFrameRate:room.updateScreenFrameRate});
   const roomUrl=room.roomId?`${location.origin}/?room=${encodeURIComponent(room.roomId)}`:"",screenStarting=!!room.roomState.activeScreenSharerId&&!room.roomState.live,busy=!!room.roomState.activeScreenSharerId&&!room.ownsScreenLock,canShare=typeof navigator.mediaDevices?.getDisplayMedia==="function",stageTitle=screenStarting?(room.ownsScreenLock?"Preparando sua transmissão…":(room.roomState.activeScreenSharerName||"Alguém")+" está iniciando uma transmissão…"):"Nenhuma tela sendo compartilhada",stageText=screenStarting?(room.ownsScreenLock?"Escolha a tela ou janela que deseja compartilhar.":"Aguarde enquanto a tela é preparada."):"Qualquer participante pode começar a transmitir.";

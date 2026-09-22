@@ -60,6 +60,11 @@ export function useAdaptiveScreenQuality({enabled,stats,preferredFps,updateQuali
           rttMs:rtt,
           packetLossDelta:lossDelta
         });
+      }catch(cause){
+        extremeRef.current=0;
+        stableRef.current=0;
+        lastChangeRef.current=Date.now();
+        console.warn("LumaCast adaptive quality update failed",cause);
       }finally{busyRef.current=false;}
     })();
   },[enabled,preferredFps,stats,updateFrameRate,updateQuality]);
