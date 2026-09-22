@@ -167,3 +167,19 @@ target_link_libraries(LuniraCameraRoundtrip PRIVATE
 )
 
 lunira_copy_livekit_runtime(LuniraCameraRoundtrip "${LUNIRA_LIVEKIT_ROOT}")
+
+add_executable(LuniraAgoraRoundtrip
+  tests/agora_roundtrip.cpp
+  src/socket_io_client.cpp
+  src/agora_screen_client.cpp
+)
+target_compile_features(LuniraAgoraRoundtrip PRIVATE cxx_std_20)
+target_compile_definitions(LuniraAgoraRoundtrip PRIVATE
+  UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+if(MSVC)
+  target_compile_options(LuniraAgoraRoundtrip PRIVATE /W4 /permissive- /EHsc /utf-8)
+  set_property(TARGET LuniraAgoraRoundtrip PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+target_link_libraries(LuniraAgoraRoundtrip PRIVATE winhttp)
+lunira_link_agora(LuniraAgoraRoundtrip "${LUNIRA_AGORA_ROOT}")

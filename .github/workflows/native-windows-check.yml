@@ -1,13 +1,6 @@
 name: Native Windows App
 
 on:
-  push:
-    branches:
-      - feature/native-windows-app
-    paths:
-      - "native-windows/**"
-      - "server/**"
-      - ".github/workflows/native-windows-check.yml"
   pull_request:
     paths:
       - "native-windows/**"
@@ -109,8 +102,12 @@ jobs:
             throw "Falhou o fluxo real: sala -> join -> LiveKit -> câmera -> pixels no receptor nativo."
           }
 
+          & "native-windows/build/Release/LuniraAgoraRoundtrip.exe"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falhou o fluxo real: token do backend -> fonte sintética Agora -> pixels no receptor nativo."
+          }
+
       - name: Report LiveKit runtime size
-        if: always()
         shell: pwsh
         run: |
           $files = Get-ChildItem "native-windows/build/Release/*.dll" -ErrorAction SilentlyContinue
@@ -124,7 +121,6 @@ jobs:
           Write-Host "LiveKit runtime total: $([math]::Round($total / 1MB, 2)) MB"
 
       - name: Stage runnable preview
-        if: always()
         shell: pwsh
         run: |
           $source = "native-windows/build/Release"
@@ -146,7 +142,6 @@ jobs:
           Write-Host "LuniraScreen-Native package: $([math]::Round($packageBytes / 1MB, 2)) MB"
 
       - name: Upload native preview
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: LuniraScreen-Native
