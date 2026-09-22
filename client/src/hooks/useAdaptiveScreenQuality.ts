@@ -54,7 +54,7 @@ export function useAdaptiveScreenQuality({enabled,stats,preferredFps,updateQuali
         extremeRef.current=0;
         stableRef.current=0;
         lastChangeRef.current=Date.now();
-        console.info("LumaCast adaptive screen profile",{
+        console.info("Lunira Screen adaptive screen profile",{
           profile,
           reason:next>previousTier?"extreme-network-degrade":"stable-network-recover",
           rttMs:rtt,
@@ -64,7 +64,7 @@ export function useAdaptiveScreenQuality({enabled,stats,preferredFps,updateQuali
         extremeRef.current=0;
         stableRef.current=0;
         lastChangeRef.current=Date.now();
-        console.warn("LumaCast adaptive quality update failed",cause);
+        console.warn("Lunira Screen adaptive quality update failed",cause);
       }finally{busyRef.current=false;}
     })();
   },[enabled,preferredFps,stats,updateFrameRate,updateQuality]);

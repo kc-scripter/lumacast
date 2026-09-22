@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+import { RoomProductPreview } from "../components/RoomProductPreview";
 import { navigate } from "../services/navigation";
 
 const steps=[
@@ -23,7 +24,7 @@ const steps=[
     number:"01",
     icon:<Users/>,
     title:"Crie a sala",
-    text:"Escolha seu nome e o LumaCast gera um código único de 8 caracteres. Não precisa criar conta.",
+    text:"Escolha seu nome e o Lunira Screen gera um código único de 8 caracteres. Não precisa criar conta.",
   },
   {
     number:"02",
@@ -62,7 +63,7 @@ const mediaDetails=[
     icon:<Volume2/>,
     title:"Áudio da tela",
     value:"Quando a fonte oferece",
-    text:"O LumaCast solicita áudio junto da captura, mas o navegador e o tipo de fonte precisam fornecer essa trilha.",
+    text:"O Lunira Screen solicita áudio junto da captura, mas o navegador e o tipo de fonte precisam fornecer essa trilha.",
   },
   {
     icon:<Zap/>,
@@ -76,7 +77,7 @@ const recoveryDetails=[
   {
     icon:<Signal/>,
     title:"Oscilações curtas",
-    text:"Picos rápidos de latência não devem reduzir a qualidade imediatamente. O LumaCast tenta preservar o perfil escolhido.",
+    text:"Picos rápidos de latência não devem reduzir a qualidade imediatamente. O Lunira Screen tenta preservar o perfil escolhido.",
   },
   {
     icon:<RefreshCw/>,
@@ -103,10 +104,10 @@ export function HowItWorksPage(){
     <section className="how-v2-hero">
       <div className="how-v2-hero-copy">
         <div className="how-v2-eyebrow"><Sparkles/> COMO FUNCIONA</div>
-        <h1>Você compartilha.<br/><em>O LumaCast cuida do resto.</em></h1>
+        <h1>Você compartilha.<br/><em>O Lunira Screen cuida do resto.</em></h1>
         <p>Crie uma sala, mande o código e comece quando quiser. Tela, áudio, câmeras e presença são tratados separadamente para que uma parte possa se recuperar sem derrubar o resto da sessão.</p>
 
-        <div className="how-v3-hero-points" aria-label="Resumo do LumaCast">
+        <div className="how-v3-hero-points" aria-label="Resumo do Lunira Screen">
           <span><MonitorPlay/><b>Até 1080p60</b><small>compartilhamento de tela</small></span>
           <span><Video/><b>Câmera flexível</b><small>720p40 ou 480p60</small></span>
           <span><RefreshCw/><b>Recuperação</b><small>reconexão e fallback</small></span>
@@ -118,33 +119,7 @@ export function HowItWorksPage(){
         </div>
       </div>
 
-      <div className="how-v2-live-card" aria-label="Fluxo visual de uma sessão LumaCast">
-        <div className="how-v2-live-head">
-          <div><i/><span>SESSÃO AO VIVO</span></div>
-          <strong>00000000</strong>
-        </div>
-        <div className="how-v2-live-stage">
-          <div className="how-v2-live-source">
-            <span><MonitorPlay/></span>
-            <div><small>ORIGEM</small><b>Sua tela</b><em>Aba, janela ou monitor</em></div>
-          </div>
-          <div className="how-v2-live-route" aria-hidden="true"><i/><i/><i/><b/></div>
-          <div className="how-v2-live-core">
-            <RadioTower/>
-            <small>DISTRIBUIÇÃO</small>
-            <b>Tempo real</b>
-          </div>
-          <div className="how-v2-live-route reverse" aria-hidden="true"><i/><i/><i/><b/></div>
-          <div className="how-v2-live-viewers">
-            <Users/>
-            <div><small>SALA</small><b>Participantes</b><em>Recebem automaticamente</em></div>
-          </div>
-        </div>
-        <div className="how-v2-live-foot">
-          <span><Signal/><i/>Estado sincronizado</span>
-          <span><Zap/>Baixa latência</span>
-        </div>
-      </div>
+      <RoomProductPreview className="how-v2-room-preview" compact/>
     </section>
 
     <section className="how-v2-section how-v2-steps">
@@ -166,7 +141,7 @@ export function HowItWorksPage(){
       <div className="how-v2-section-heading">
         <div><span>02</span><small>MÍDIA E QUALIDADE</small></div>
         <h2>Cada tipo de mídia tem um trabalho diferente.</h2>
-        <p>Os presets são limites solicitados pelo LumaCast. O resultado real também depende do hardware, do navegador e da conexão.</p>
+        <p>Os presets são limites solicitados pelo Lunira Screen. O resultado real também depende do hardware, do navegador e da conexão.</p>
       </div>
 
       <div className="how-v3-media-grid">
@@ -197,7 +172,7 @@ export function HowItWorksPage(){
         </div>
       </div>
 
-      <div className="how-v2-routing" aria-label="Diagrama das rotas de mídia do LumaCast">
+      <div className="how-v2-routing" aria-label="Diagrama das rotas de mídia do Lunira Screen">
         <div className="how-v2-routing-head">
           <span>ROTAS DA SESSÃO</span>
           <b><i/>online</b>
@@ -233,7 +208,7 @@ export function HowItWorksPage(){
     <section className="how-v2-section how-v3-recovery">
       <div className="how-v2-section-heading">
         <div><span>04</span><small>QUANDO A REDE OSCILA</small></div>
-        <h2>O LumaCast tenta recuperar antes de desistir.</h2>
+        <h2>O Lunira Screen tenta recuperar antes de desistir.</h2>
         <p>Nem toda oscilação precisa virar uma interrupção visível para a sala.</p>
       </div>
 
@@ -254,7 +229,7 @@ export function HowItWorksPage(){
       </div>
       <div className="how-v2-fact-grid">
         <article><span><Users/></span><div><b>Uma tela por vez</b><p>Qualquer membro pode pedir para compartilhar, mas existe um bloqueio para impedir duas telas simultâneas na mesma sala.</p></div></article>
-        <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas usam credenciais temporárias de RTC. O LumaCast não grava nem armazena o conteúdo da transmissão.</p></div></article>
+        <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas usam credenciais temporárias de RTC. O Lunira Screen não grava nem armazena o conteúdo da transmissão.</p></div></article>
         <article><span><Video/></span><div><b>Hardware ainda importa</b><p>Solicitar 480p60 ou 720p40 não faz uma webcam ultrapassar o FPS ou a resolução que ela realmente suporta.</p></div></article>
       </div>
     </section>
@@ -270,16 +245,16 @@ export function HowItWorksPage(){
           <p>Sim. Dono e participantes podem iniciar um compartilhamento, desde que outra pessoa não esteja transmitindo naquele momento.</p>
         </details>
         <details>
-          <summary>O LumaCast é conexão direta entre os computadores?<ArrowRight/></summary>
+          <summary>O Lunira Screen é conexão direta entre os computadores?<ArrowRight/></summary>
           <p>Não. A mídia passa por SFUs. A tela usa Agora como rota principal; câmeras e áudio colaborativo usam LiveKit. Assim o transmissor não precisa enviar uma cópia separada para cada espectador.</p>
         </details>
         <details>
           <summary>60 FPS é garantido em qualquer dispositivo?<ArrowRight/></summary>
-          <p>Não. O LumaCast solicita o perfil escolhido, mas navegador, fonte capturada, monitor, webcam, hardware e rede podem entregar menos.</p>
+          <p>Não. O Lunira Screen solicita o perfil escolhido, mas navegador, fonte capturada, monitor, webcam, hardware e rede podem entregar menos.</p>
         </details>
         <details>
           <summary>Posso mudar a qualidade da câmera sem desligá-la?<ArrowRight/></summary>
-          <p>Sim. O LumaCast tenta trocar entre 720p40 e 480p60 mantendo a câmera ativa. Se o navegador exigir, a faixa é recriada automaticamente por trás da interface.</p>
+          <p>Sim. O Lunira Screen tenta trocar entre 720p40 e 480p60 mantendo a câmera ativa. Se o navegador exigir, a faixa é recriada automaticamente por trás da interface.</p>
         </details>
         <details>
           <summary>O áudio da tela sempre funciona?<ArrowRight/></summary>
@@ -290,8 +265,8 @@ export function HowItWorksPage(){
           <p>Depende do navegador e do sistema. Assistir à sala funciona normalmente em navegadores compatíveis; a opção de compartilhar tela só aparece quando o próprio navegador oferece captura de tela.</p>
         </details>
         <details>
-          <summary>O LumaCast grava ou salva a transmissão?<ArrowRight/></summary>
-          <p>Não. A aplicação distribui a mídia em tempo real; o conteúdo da transmissão não é gravado pelo LumaCast.</p>
+          <summary>O Lunira Screen grava ou salva a transmissão?<ArrowRight/></summary>
+          <p>Não. A aplicação distribui a mídia em tempo real; o conteúdo da transmissão não é gravado pelo Lunira Screen.</p>
         </details>
       </div>
     </section>
@@ -306,7 +281,7 @@ export function HowItWorksPage(){
     </section>
 
     <footer className="how-footer how-v2-footer">
-      <span>© {new Date().getFullYear()} LumaCast</span>
+      <span>© {new Date().getFullYear()} Lunira Screen</span>
       <div className="how-v2-footer-actions"><button type="button" onClick={()=>navigate("/termos")}>Termos</button><button type="button" onClick={()=>navigate("/")}><ArrowLeft/>Voltar ao início</button></div>
     </footer>
   </main>;

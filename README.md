@@ -1,4 +1,4 @@
-# LumaCast
+# Lunira Screen
 
 Transmissão de tela em tempo real no navegador com WebRTC. O vídeo da tela usa Agora como rota principal; câmeras, áudio colaborativo e fallback usam LiveKit.
 
@@ -107,7 +107,7 @@ O proxy reverso precisa permitir upgrade de WebSocket para `/socket.io`.
 - Tokens de retomada persistidos são hash-only e comparados de forma timing-safe.
 - App ID/certificado Agora e chaves LiveKit ficam apenas no servidor.
 - O código da sala não é uma credencial secreta; permissões de publicação dependem do socket e de tokens RTC emitidos pelo backend.
-- O LumaCast não possui gravação própria da transmissão.
+- O Lunira Screen não possui gravação própria da transmissão.
 - O limite padrão é de 50 participantes por sala, configurável por ambiente.
 - O CI executa TypeScript, audit de dependências, build, smoke test, teste de segurança e load test.
 

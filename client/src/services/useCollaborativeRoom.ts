@@ -44,7 +44,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     cameraRef.current=track;
     putCamera({identity:socketIdRef.current,track,local:true});
     setCameraOn(true);
-    console.info("LumaCast camera preset",{preset,requested:cameraPresetConfig(preset),actual:{width:settings.width,height:settings.height,frameRate:settings.frameRate}});
+    console.info("Lunira Screen camera preset",{preset,requested:cameraPresetConfig(preset),actual:{width:settings.width,height:settings.height,frameRate:settings.frameRate}});
     if(settings.frameRate&&settings.frameRate<fps-5)console.warn(`Camera limitada pelo dispositivo/navegador a ${Math.round(settings.frameRate)} FPS (solicitado ${fps}).`);
     track.addEventListener("ended",()=>{
       if(cameraRestartingRef.current)return;
@@ -288,7 +288,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     const videoAgoraTrack=AgoraRTC.createCustomVideoTrack({mediaStreamTrack:video,width,height,frameRate:fps,bitrateMax,optimizationMode:"motion"});
     await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);
     const tracks:(ILocalVideoTrack|ILocalAudioTrack)[]=[videoAgoraTrack];
-    console.info("LumaCast capture",{video:video.getSettings(),requestedFps:fps,bitrateMax,hasAudio:stream.getAudioTracks().some(valid),audioProvider:"livekit"});
+    console.info("Lunira Screen capture",{video:video.getSettings(),requestedFps:fps,bitrateMax,hasAudio:stream.getAudioTracks().some(valid),audioProvider:"livekit"});
     screenTracksRef.current=tracks;await client.publish(tracks);await tuneAgoraSender(videoAgoraTrack,quality,fps,bitrateMax);},[fallback,renew,tuneAgoraSender]);
   const startScreen=useCallback(async(quality:Quality,fps:FrameRate)=>{
     if(startingRef.current||stoppingRef.current||streamRef.current)return;
@@ -346,7 +346,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         if(!videoTrack)throw new Error("Faixa de vídeo indisponível.");
         await tuneAgoraSender(videoTrack,quality,nextFps,bitrateMax);
       }
-      console.info("LumaCast Agora encoder FPS",{captureFps:source.getSettings().frameRate,encoderFps:nextFps});
+      console.info("Lunira Screen Agora encoder FPS",{captureFps:source.getSettings().frameRate,encoderFps:nextFps});
       const actual=source.getSettings().frameRate;
       if(nextFps===60&&actual&&actual<50)setError(`O navegador limitou a captura a ${Math.round(actual)} FPS. Para 60 FPS reais, use Chrome ou Edge com aceleração de hardware.`);else setError("");
     }catch(cause){console.warn("Agora live FPS update failed",cause);setError("Não foi possível aplicar a nova taxa de quadros.");}
@@ -363,7 +363,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         if(!videoTrack)throw new Error("Faixa de vídeo indisponível.");
         await tuneAgoraSender(videoTrack,nextQuality,fps,bitrateMax);
       }
-      console.info("LumaCast Agora encoder quality",{capture:source.getSettings(),quality:nextQuality,fps});
+      console.info("Lunira Screen Agora encoder quality",{capture:source.getSettings(),quality:nextQuality,fps});
       setError("");
     }catch(cause){console.warn("Agora live quality update failed",cause);setError("Não foi possível aplicar a nova qualidade.");}
   },[tuneAgoraSender]);
