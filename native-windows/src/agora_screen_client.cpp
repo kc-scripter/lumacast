@@ -54,7 +54,7 @@ bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool pu
     const std::string channel = WideToUtf8(credentials.channel);
     const std::string token = WideToUtf8(credentials.token);
 
-    engine_ = agora::rtc::createAgoraRtcEngine();
+    engine_ = createAgoraRtcEngine();
     if (!engine_) {
         Notify({AgoraEventType::Error, 0, 0, {}, L"Não foi possível criar o motor Agora."});
         return false;
