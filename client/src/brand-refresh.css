@@ -364,3 +364,162 @@
     animation:none!important;
   }
 }
+
+
+/* Home motion performance pass.
+   Keep hover work on compositor-friendly properties so interactions stay close to display refresh rate. */
+.home-primary-action,
+.home-viewer-action,
+.home-action-icon,
+.home-action-arrow,
+.home-nav-links>a,
+.brand-mark,
+.home-content .benefit-row span,
+.home-content .benefit-row span svg,
+.home-visual-zone .home-visual.product-preview{
+  backface-visibility:hidden;
+  transform:translateZ(0);
+}
+
+.home-primary-action,
+.home-viewer-action,
+.home-nav-links>a,
+.brand-mark{
+  will-change:transform;
+}
+
+.home-primary-action{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1),border-color .14s ease!important;
+}
+.home-viewer-action{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1),border-color .14s ease!important;
+}
+.home-action-icon{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1)!important;
+}
+.home-action-arrow{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1),color .14s ease!important;
+}
+.home-nav-links>a{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1),color .14s ease!important;
+}
+.brand-mark{
+  transition:transform .14s cubic-bezier(.2,.8,.2,1)!important;
+}
+
+/* Replace left-position shine animation with a compositor transform. */
+.home-primary-action::before{
+  left:-38%!important;
+  transition:transform .42s cubic-bezier(.2,.8,.2,1)!important;
+  will-change:transform;
+}
+.home-primary-action::after{
+  left:-34%!important;
+  transition:transform .42s cubic-bezier(.2,.8,.2,1)!important;
+  will-change:transform;
+}
+@media(hover:hover){
+  .home-primary-action:hover{
+    transform:translate3d(0,-2px,0)!important;
+    box-shadow:0 16px 45px #5d3be02b,inset 0 1px #ffffff24!important;
+    background-position:0 0!important;
+  }
+  .home-primary-action:hover::before{
+    left:-38%!important;
+    transform:translate3d(560%,0,0) rotate(18deg)!important;
+  }
+  .home-primary-action:hover::after{
+    left:-34%!important;
+    transform:translate3d(620%,0,0) rotate(18deg)!important;
+  }
+  .home-primary-action:hover .home-action-icon{
+    transform:translate3d(0,0,0) scale(1.05)!important;
+  }
+  .home-primary-action:hover .home-action-arrow{
+    transform:translate3d(4px,0,0)!important;
+  }
+
+  .home-viewer-action:hover{
+    transform:translate3d(0,-1px,0)!important;
+    box-shadow:none!important;
+    background:linear-gradient(135deg,#11131d,#0e1018)!important;
+  }
+  .home-viewer-action:hover .home-viewer-toggle .home-action-icon{
+    transform:translate3d(0,0,0) scale(1.04)!important;
+  }
+  .home-viewer-action:not(.expanded):hover .home-action-arrow{
+    transform:translate3d(4px,0,0)!important;
+  }
+
+  .home-content .benefit-row span:hover{
+    transform:translate3d(0,-1px,0)!important;
+  }
+  .home-content .benefit-row span:hover svg{
+    transform:translate3d(0,0,0) scale(1.06)!important;
+    filter:none!important;
+  }
+
+  .brand:hover .brand-mark{
+    transform:translate3d(0,-1px,0)!important;
+    box-shadow:0 8px 22px #5f42db30,inset 0 1px #ffffff3d!important;
+  }
+}
+
+/* The large blurred preview glow is static; animating it forces expensive repaints. */
+.home-visual-zone::before{
+  animation:none!important;
+  opacity:.72;
+}
+
+/* Moving a backdrop-filter is paint-heavy. Keep the chips visually solid while they float. */
+.home-floating-chip{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  background:#11131ceb!important;
+  will-change:transform;
+}
+
+/* Keep the chips completely outside the illustrated app instead of overlaying its chrome/content. */
+@media(min-width:1401px){
+  .home-floating-chip-top{
+    left:auto!important;
+    right:calc(100% + 16px)!important;
+    top:14%!important;
+  }
+  .home-floating-chip-bottom{
+    left:auto!important;
+    right:calc(100% + 16px)!important;
+    bottom:14%!important;
+  }
+}
+
+/* If the right-side gutter would be too small, put both badges outside on the left. */
+@media(min-width:1101px) and (max-width:1400px){
+  .home-floating-chip-top{
+    left:auto!important;
+    right:calc(100% + 14px)!important;
+    top:13%!important;
+  }
+  .home-floating-chip-bottom{
+    left:auto!important;
+    right:calc(100% + 14px)!important;
+    bottom:13%!important;
+  }
+}
+
+/* Do not let decorative badges compete with the content on compact layouts. */
+@media(max-width:1100px){
+  .home-floating-chip{display:none!important}
+}
+
+/* Disable continuous floating if the device/browser is likely struggling with effects. */
+@media(prefers-reduced-motion:reduce){
+  .home-primary-action,
+  .home-viewer-action,
+  .home-action-icon,
+  .home-action-arrow,
+  .home-nav-links>a,
+  .brand-mark{
+    transition:none!important;
+  }
+}
