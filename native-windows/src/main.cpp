@@ -32,7 +32,7 @@ using Microsoft::WRL::ComPtr;
 namespace {
 
 constexpr wchar_t kWindowClass[] = L"LuniraNativeWindow";
-constexpr wchar_t kWindowTitle[] = L"Lunira Screen";
+constexpr wchar_t kWindowTitle[] = L"LuniraScreen";
 constexpr UINT kSocketEventMessage = WM_APP + 42;
 constexpr UINT kMediaEventMessage = WM_APP + 43;
 
@@ -455,8 +455,7 @@ private:
             D2D1::Ellipse(D2D1::Point2F(47, 23), 3.2f, 3.2f),
             violet2Brush_.Get());
 
-        Text(L"Lunira", Rect(68, 16, 142, 40), title_.Get(), textBrush_.Get());
-        Text(L"SCREEN", Rect(69, 39, 126, 56), tinyBold_.Get(), violet2Brush_.Get());
+        Text(L"LuniraScreen", Rect(68, 17, 190, 48), title_.Get(), textBrush_.Get());
     }
 
     void DrawTopRight(float width) {
@@ -553,7 +552,7 @@ private:
         const float right = width - 84.0f;
         const float split = std::clamp(width * 0.53f, 650.0f, right - 460.0f);
 
-        Text(L"LUNIRA SCREEN PARA WINDOWS", Rect(left, contentTop, split - 30, contentTop + 24),
+        Text(L"LUNIRASCREEN PARA WINDOWS", Rect(left, contentTop, split - 30, contentTop + 24),
              tinyBold_.Get(), violet2Brush_.Get());
 
         Text(L"Sua sala privada,\nagora no Windows.",
@@ -602,7 +601,7 @@ private:
         renderTarget_->FillRoundedRectangle(cardRr, panelBrush_.Get());
         renderTarget_->DrawRoundedRectangle(cardRr, borderBrush_.Get(), 1.0f);
 
-        Text(L"Entrar no Lunira", Rect(card.left + 28, card.top + 26, card.right - 28, card.top + 56),
+        Text(L"Entrar no LuniraScreen", Rect(card.left + 28, card.top + 26, card.right - 28, card.top + 56),
              heading_.Get(), textBrush_.Get());
         Text(L"Todas as salas são privadas.", Rect(card.left + 28, card.top + 60, card.right - 28, card.top + 83),
              body_.Get(), mutedBrush_.Get());
@@ -2182,8 +2181,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     if (!app.Initialize(instance)) {
         MessageBoxW(
             nullptr,
-            L"Não foi possível iniciar a interface nativa do Lunira Screen.",
-            L"Lunira Screen",
+            L"Não foi possível iniciar a interface nativa do LuniraScreen.",
+            L"LuniraScreen",
             MB_OK | MB_ICONERROR);
         return 1;
     }
