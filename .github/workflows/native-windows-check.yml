@@ -36,46 +36,13 @@ jobs:
             throw "UI shell ficou maior que 5 MB; revisar dependências."
           }
 
-      - name: Cross-client signaling smoke
-        shell: pwsh
-        run: |
-          $exe = "native-windows/build/Release/LuniraSignalingSmoke.exe"
-          & $exe
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Primeira tentativa falhou; aguardando possível cold start do Render..."
-            Start-Sleep -Seconds 8
-            & $exe
-          }
-          if ($LASTEXITCODE -ne 0) {
-            throw "O cliente nativo não conseguiu criar + entrar na mesma sala do backend web."
-          }
-
-      - name: LiveKit native media smoke
-        shell: pwsh
-        run: |
-          $exe = "native-windows/build/Release/LuniraLiveKitSmoke.exe"
-          & $exe
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Primeira conexão LiveKit falhou; aguardando possível cold start..."
-            Start-Sleep -Seconds 8
-            & $exe
-          }
-          if ($LASTEXITCODE -ne 0) {
-            throw "O cliente nativo não conseguiu conectar ao mesmo LiveKit usado pela versão web."
-          }
-
-      - name: Native camera frame roundtrip
+      - name: Cross-compatible camera roundtrip
         shell: pwsh
         run: |
           $exe = "native-windows/build/Release/LuniraCameraRoundtrip.exe"
           & $exe
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "Primeira tentativa de vídeo falhou; repetindo após alguns segundos..."
-            Start-Sleep -Seconds 6
-            & $exe
-          }
-          if ($LASTEXITCODE -ne 0) {
-            throw "O receptor usado pelo app não recebeu um frame de câmera LiveKit de ponta a ponta."
+            throw "Falhou o fluxo real: sala -> join -> LiveKit -> câmera -> pixels no receptor nativo."
           }
 
       - name: Report LiveKit runtime size
