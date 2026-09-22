@@ -6,10 +6,12 @@
 #include <dwmapi.h>
 #include <wrl/client.h>
 
+#include "socket_io_client.h"
+
 #include <algorithm>
 #include <cstring>
 #include <cwctype>
-#include <random>
+#include <memory>
 #include <array>
 #include <string>
 #include <string_view>
@@ -24,6 +26,7 @@ namespace {
 
 constexpr wchar_t kWindowClass[] = L"LuniraNativeWindow";
 constexpr wchar_t kWindowTitle[] = L"Lunira Screen";
+constexpr UINT kSocketEventMessage = WM_APP + 42;
 
 D2D1_COLOR_F Hex(unsigned rgb, float alpha = 1.0f) {
     return D2D1::ColorF(
@@ -126,6 +129,7 @@ public:
 private:
     enum class Page { Home, Room, Settings };
     enum class Field { None, Name, Code };
+    enum class PendingAction { None, Create, Join };
 
     struct Hit {
         int id = -1;
@@ -209,6 +213,12 @@ private:
                 return 0;
             }
             break;
+        case kSocketEventMessage: {
+            std::unique_ptr<lunira::SocketEvent> event(
+                reinterpret_cast<lunira::SocketEvent*>(lParam));
+            if (event) HandleSocketEvent(*event);
+            return 0;
+        }
         case WM_SETCURSOR:
             if (LOWORD(lParam) == HTCLIENT && (hover_ == 20 || hover_ == 22)) {
                 SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
@@ -220,6 +230,7 @@ private:
             }
             break;
         case WM_DESTROY:
+            socket_.Stop();
             PostQuitMessage(0);
             return 0;
         default:
@@ -418,8 +429,10 @@ private:
         renderTarget_->DrawRoundedRectangle(connected, borderBrush_.Get(), 1.0f);
         renderTarget_->FillEllipse(
             D2D1::Ellipse(D2D1::Point2F(x + 148, 34), 4, 4),
-            amberBrush_.Get());
-        Text(L"Modo local", Rect(x + 160, 24, x + 233, 45), bodyStrong_.Get(), mutedBrush_.Get());
+            networkConnected_ ? greenBrush_.Get() : amberBrush_.Get());
+        Text(networkConnected_ ? L"Conectado" : L"Offline",
+             Rect(x + 160, 24, x + 233, 45),
+             bodyStrong_.Get(), mutedBrush_.Get());
 
         const auto avatar = D2D1::Ellipse(D2D1::Point2F(width - 38, 34), 17, 17);
         renderTarget_->FillEllipse(avatar, violetPanelBrush_.Get());
@@ -499,7 +512,7 @@ private:
              Rect(left, contentTop + 46, split - 30, contentTop + 145),
              heroTitle_.Get(), textBrush_.Get());
 
-        Text(L"Crie uma sala ou entre com um código. Nada de salas públicas,\ncontas ou microfone. Só transmissão, câmeras e quem você convidar.",
+        Text(L"Crie uma sala ou entre com um código. Nada de salas públicas,\ncontas ou microfone. App e navegador entram na mesma sala.",
              Rect(left, contentTop + 164, split - 40, contentTop + 224),
              heroBody_.Get(), mutedBrush_.Get());
 
@@ -553,7 +566,9 @@ private:
 
         const D2D1_RECT_F create = Rect(card.left + 28, card.top + 198, card.right - 28, card.top + 246);
         AddHit(21, create);
-        PrimaryButton(create, L"Criar sala privada", false, hover_ == 21);
+        PrimaryButton(create,
+                      pendingAction_ == PendingAction::Create ? L"Conectando..." : L"Criar sala privada",
+                      false, hover_ == 21);
 
         Line(card.left + 28, card.top + 278, card.left + 158, card.top + 278, borderSoftBrush_.Get(), 1.0f);
         CenterText(L"OU ENTRE COM UM CÓDIGO",
@@ -568,7 +583,9 @@ private:
 
         const D2D1_RECT_F join = Rect(card.left + 28, card.top + 404, card.right - 28, card.top + 450);
         AddHit(23, join);
-        Button(join, L"Entrar na sala", false, hover_ == 23);
+        Button(join,
+               pendingAction_ == PendingAction::Join ? L"Conectando..." : L"Entrar na sala",
+               false, hover_ == 23);
 
         if (!homeError_.empty()) {
             Text(homeError_, Rect(card.left + 28, card.top + 468, card.right - 28, card.top + 494),
@@ -969,9 +986,15 @@ private:
         Button(stats, L"Estatísticas", statsOn_, hover_ == 9);
 
         if (statsOn_ && rect.bottom - y > 94) {
-            Text(L"0.0% perda  ·  7.8 Mbps",
+            Text(L"0.0% perda  ·  sinalização online",
                  Rect(rect.left + 18, y + 54, rect.right - 18, y + 74),
-                 tiny_.Get(), greenBrush_.Get());
+                 tiny_.Get(), networkConnected_ ? greenBrush_.Get() : amberBrush_.Get());
+        }
+
+        if (!roomNotice_.empty() && rect.bottom - y > 118) {
+            Text(roomNotice_,
+                 Rect(rect.left + 18, y + 80, rect.right - 18, rect.bottom - 8),
+                 tiny_.Get(), amberBrush_.Get());
         }
     }
 
@@ -1155,8 +1178,8 @@ private:
         }
 
         if (ch == L'\r') {
-            if (focusedField_ == Field::Code) JoinLocalRoom();
-            else CreateLocalRoom();
+            if (focusedField_ == Field::Code) BeginJoinRoom();
+            else BeginCreateRoom();
             return;
         }
 
@@ -1169,7 +1192,7 @@ private:
         }
 
         if (focusedField_ == Field::Name) {
-            if (ch >= 32 && ch != 127 && displayName_.size() < 24) {
+            if (ch >= 32 && ch != 127 && displayName_.size() < 20) {
                 displayName_.push_back(ch);
                 homeError_.clear();
                 InvalidateRect(hwnd_, nullptr, FALSE);
@@ -1196,7 +1219,7 @@ private:
             const auto* text = static_cast<const wchar_t*>(GlobalLock(data));
             if (text) {
                 if (focusedField_ == Field::Name) {
-                    for (const wchar_t* p = text; *p && displayName_.size() < 24; ++p) {
+                    for (const wchar_t* p = text; *p && displayName_.size() < 20; ++p) {
                         if (*p >= 32 && *p != 127 && *p != L'\r' && *p != L'\n') displayName_.push_back(*p);
                     }
                 } else {
@@ -1215,36 +1238,39 @@ private:
         InvalidateRect(hwnd_, nullptr, FALSE);
     }
 
-    bool HasValidName() {
-        return std::any_of(displayName_.begin(), displayName_.end(), [](wchar_t ch) {
-            return !std::iswspace(ch);
+    bool HasValidName() const {
+        const auto first = std::find_if_not(displayName_.begin(), displayName_.end(), [](wchar_t ch) {
+            return std::iswspace(ch) != 0;
         });
+        if (first == displayName_.end()) return false;
+
+        const auto last = std::find_if_not(displayName_.rbegin(), displayName_.rend(), [](wchar_t ch) {
+            return std::iswspace(ch) != 0;
+        }).base();
+
+        const auto length = static_cast<size_t>(std::distance(first, last));
+        return length >= 2 && length <= 20;
     }
 
-    void CreateLocalRoom() {
+    void BeginCreateRoom() {
         if (!HasValidName()) {
-            homeError_ = L"Digite seu nome antes de criar a sala.";
+            homeError_ = L"Digite um nome entre 2 e 20 caracteres.";
             focusedField_ = Field::Name;
             InvalidateRect(hwnd_, nullptr, FALSE);
             return;
         }
 
-        static constexpr wchar_t alphabet[] = L"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        std::random_device rd;
-        std::mt19937 generator(rd());
-        std::uniform_int_distribution<size_t> distribution(0, (sizeof(alphabet) / sizeof(wchar_t)) - 2);
-
-        roomCode_.clear();
-        for (int i = 0; i < 8; ++i) roomCode_.push_back(alphabet[distribution(generator)]);
-        roomCodeInput_ = roomCode_;
-        homeError_.clear();
+        pendingAction_ = PendingAction::Create;
+        pendingAckId_ = -1;
+        homeError_ = L"Conectando ao servidor...";
         focusedField_ = Field::None;
-        page_ = Page::Room;
+        EnsureSocketForPendingAction();
+        InvalidateRect(hwnd_, nullptr, FALSE);
     }
 
-    void JoinLocalRoom() {
+    void BeginJoinRoom() {
         if (!HasValidName()) {
-            homeError_ = L"Digite seu nome antes de entrar.";
+            homeError_ = L"Digite um nome entre 2 e 20 caracteres.";
             focusedField_ = Field::Name;
             InvalidateRect(hwnd_, nullptr, FALSE);
             return;
@@ -1257,10 +1283,154 @@ private:
             return;
         }
 
-        roomCode_ = roomCodeInput_;
-        homeError_.clear();
+        pendingAction_ = PendingAction::Join;
+        pendingAckId_ = -1;
+        homeError_ = L"Conectando ao servidor...";
         focusedField_ = Field::None;
-        page_ = Page::Room;
+        EnsureSocketForPendingAction();
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+
+    void EnsureSocketForPendingAction() {
+        if (socket_.IsConnected()) {
+            networkConnected_ = true;
+            SendPendingRoomRequest();
+            return;
+        }
+
+        if (socket_.IsRunning()) return;
+
+        const bool started = socket_.Start([this](lunira::SocketEvent event) {
+            auto* heapEvent = new (std::nothrow) lunira::SocketEvent(std::move(event));
+            if (!heapEvent) return;
+            if (!PostMessageW(hwnd_, kSocketEventMessage, 0, reinterpret_cast<LPARAM>(heapEvent))) {
+                delete heapEvent;
+            }
+        });
+
+        if (!started) {
+            pendingAction_ = PendingAction::None;
+            homeError_ = L"Não foi possível iniciar a conexão.";
+        }
+    }
+
+    void SendPendingRoomRequest() {
+        if (!socket_.IsConnected() || pendingAction_ == PendingAction::None) return;
+
+        std::string payload = "{\"displayName\":";
+        payload += lunira::SocketIoClient::JsonQuote(displayName_);
+
+        if (pendingAction_ == PendingAction::Join) {
+            payload += ",\"roomId\":";
+            payload += lunira::SocketIoClient::JsonQuote(roomCodeInput_);
+        }
+
+        payload += "}";
+
+        const std::string_view eventName =
+            pendingAction_ == PendingAction::Create ? "create-room" : "join-room";
+
+        pendingAckId_ = socket_.EmitWithAck(eventName, payload);
+        if (pendingAckId_ < 0) {
+            pendingAction_ = PendingAction::None;
+            homeError_ = L"A conexão caiu antes de enviar a solicitação.";
+        } else {
+            homeError_ = pendingAction_ == PendingAction::Create
+                ? L"Criando sala privada..."
+                : L"Entrando na sala...";
+        }
+    }
+
+    void HandleSocketEvent(const lunira::SocketEvent& event) {
+        switch (event.type) {
+        case lunira::SocketEventType::Connected:
+            networkConnected_ = true;
+            roomNotice_.clear();
+            SendPendingRoomRequest();
+            break;
+
+        case lunira::SocketEventType::Ack:
+            if (event.ackId != pendingAckId_) break;
+
+            if (!event.ok) {
+                homeError_ = event.error.empty() ? L"O servidor recusou a solicitação." : event.error;
+                pendingAction_ = PendingAction::None;
+                pendingAckId_ = -1;
+                networkConnected_ = socket_.IsConnected();
+                break;
+            }
+
+            if (!event.displayName.empty()) displayName_ = event.displayName;
+            if (pendingAction_ == PendingAction::Create) {
+                roomCode_ = event.roomId;
+                roomCodeInput_ = event.roomId;
+                ownerToken_ = event.ownerToken;
+                participantToken_.clear();
+                ownsRoom_ = true;
+            } else {
+                roomCode_ = roomCodeInput_;
+                participantToken_ = event.participantToken;
+                ownerToken_.clear();
+                ownsRoom_ = false;
+            }
+
+            roomState_ = event.room;
+            sharing_ = roomState_.live;
+            pendingAction_ = PendingAction::None;
+            pendingAckId_ = -1;
+            homeError_.clear();
+            roomNotice_.clear();
+            page_ = Page::Room;
+            focusedField_ = Field::None;
+            break;
+
+        case lunira::SocketEventType::RoomState:
+            roomState_ = event.room;
+            sharing_ = roomState_.live;
+            roomNotice_.clear();
+            break;
+
+        case lunira::SocketEventType::BroadcastStarted:
+            sharing_ = true;
+            roomState_.live = true;
+            break;
+
+        case lunira::SocketEventType::BroadcastEnded:
+            sharing_ = false;
+            roomState_.live = false;
+            break;
+
+        case lunira::SocketEventType::RoomExpired:
+            roomNotice_.clear();
+            homeError_ = L"A sala expirou.";
+            roomCode_.clear();
+            roomCodeInput_.clear();
+            page_ = Page::Home;
+            pendingAction_ = PendingAction::None;
+            break;
+
+        case lunira::SocketEventType::Disconnected:
+            networkConnected_ = false;
+            if (page_ == Page::Home) {
+                homeError_ = L"Conexão com o servidor encerrada. Tente novamente.";
+            } else {
+                roomNotice_ = L"Conexão perdida. Volte ao início para reconectar.";
+            }
+            break;
+
+        case lunira::SocketEventType::Error:
+            networkConnected_ = false;
+            if (page_ == Page::Home) {
+                homeError_ = event.error.empty() ? L"Falha de conexão." : event.error;
+                pendingAction_ = PendingAction::None;
+                pendingAckId_ = -1;
+            } else {
+                roomNotice_ = event.error.empty() ? L"Falha de conexão." : event.error;
+            }
+            break;
+        }
+
+        InvalidateRect(hwnd_, nullptr, FALSE);
     }
 
     void Click(int px, int py) {
@@ -1286,19 +1456,20 @@ private:
             homeError_.clear();
             break;
         case 21:
-            CreateLocalRoom();
+            BeginCreateRoom();
             break;
         case 22:
             focusedField_ = Field::Code;
             homeError_.clear();
             break;
         case 23:
-            JoinLocalRoom();
+            BeginJoinRoom();
             break;
         case 2:
             focused_ = !focused_;
             break;
         case 3:
+            if (roomCode_.empty()) break;
             copied_ = true;
             if (OpenClipboard(hwnd_)) {
                 EmptyClipboard();
@@ -1328,7 +1499,7 @@ private:
             cameraOn_ = !cameraOn_;
             break;
         case 7:
-            sharing_ = !sharing_;
+            roomNotice_ = L"Transmissão nativa entra na próxima etapa.";
             break;
         case 8:
             break;
@@ -1366,10 +1537,19 @@ private:
     Theme theme_{};
     Page page_ = Page::Home;
     Field focusedField_ = Field::Name;
+    PendingAction pendingAction_ = PendingAction::None;
+    int pendingAckId_ = -1;
+    bool networkConnected_ = false;
+    bool ownsRoom_ = false;
     std::wstring displayName_;
     std::wstring roomCodeInput_;
     std::wstring roomCode_;
+    std::wstring ownerToken_;
+    std::wstring participantToken_;
     std::wstring homeError_;
+    std::wstring roomNotice_;
+    lunira::RoomSnapshot roomState_;
+    lunira::SocketIoClient socket_;
 
     bool sharing_ = false;
     bool cameraOn_ = true;
