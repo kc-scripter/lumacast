@@ -61,3 +61,36 @@ if(MSVC)
 endif()
 
 target_link_libraries(LuniraSignalingSmoke PRIVATE winhttp)
+
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(LuniraLiveKit)
+lunira_setup_livekit(LUNIRA_LIVEKIT_ROOT)
+list(PREPEND CMAKE_PREFIX_PATH "${LUNIRA_LIVEKIT_ROOT}")
+find_package(LiveKit CONFIG REQUIRED)
+
+add_executable(LuniraLiveKitSmoke
+  tests/livekit_smoke.cpp
+  src/socket_io_client.cpp
+)
+
+target_compile_features(LuniraLiveKitSmoke PRIVATE cxx_std_20)
+target_compile_definitions(LuniraLiveKitSmoke PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+)
+
+if(MSVC)
+  target_compile_options(LuniraLiveKitSmoke PRIVATE /W4 /permissive- /EHsc /utf-8)
+  set_property(TARGET LuniraLiveKitSmoke PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+target_link_libraries(LuniraLiveKitSmoke PRIVATE
+  LiveKit::livekit
+  winhttp
+)
+
+lunira_copy_livekit_runtime(LuniraLiveKitSmoke "${LUNIRA_LIVEKIT_ROOT}")
