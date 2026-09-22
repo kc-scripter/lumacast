@@ -14,7 +14,7 @@
 namespace lunira {
 namespace {
 
-constexpr wchar_t kHost[] = L"lumacast-live-kc.onrender.com";
+constexpr wchar_t kHost[] = L"lunira-screen.onrender.com";
 constexpr wchar_t kPath[] = L"/socket.io/?EIO=4&transport=websocket";
 
 std::wstring Utf8ToWide(std::string_view value) {
