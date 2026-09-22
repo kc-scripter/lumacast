@@ -484,9 +484,9 @@
   animation:howV2PanelIn .72s .09s cubic-bezier(.16,1,.3,1) both;
 }
 .how-v2-live-head{height:58px;padding:0 18px;border-bottom:1px solid #222533;display:flex;align-items:center;justify-content:space-between}
-.how-v2-live-head>div{display:flex;align-items:center;gap:8px;color:#999daf;font-size:8px;font-weight:800;letter-spacing:.14em}
+.how-v2-live-head>div{display:flex;align-items:center;gap:8px;color:#a8acbd;font-size:10px;font-weight:800;letter-spacing:.14em}
 .how-v2-live-head>div i{width:7px;height:7px;border-radius:50%;background:#49e6a1;box-shadow:0 0 0 5px #49e6a10f;animation:howV2Pulse 2s ease-out infinite}
-.how-v2-live-head strong{font:700 10px Manrope;letter-spacing:.13em;color:#d7d5df}
+.how-v2-live-head strong{font:700 11px Manrope;letter-spacing:.13em;color:#d7d5df}
 .how-v2-live-stage{min-height:305px;padding:38px 26px;display:flex;align-items:center;justify-content:center}
 .how-v2-live-source,.how-v2-live-viewers{
   width:132px;
@@ -503,9 +503,9 @@
 .how-v2-live-source>span{width:34px;height:34px;border-radius:10px;background:#251d3b;color:#aa8cff;display:grid;place-items:center}
 .how-v2-live-source svg,.how-v2-live-viewers>svg{width:17px}
 .how-v2-live-viewers>svg{color:#8e77ff}
-.how-v2-live-source small,.how-v2-live-viewers small,.how-v2-live-core small{display:block;color:#65697c;font-size:6px;letter-spacing:.12em}
-.how-v2-live-source b,.how-v2-live-viewers b{display:block;margin-top:3px;font:700 10px Manrope}
-.how-v2-live-source em,.how-v2-live-viewers em{display:block;margin-top:4px;color:#777b8d;font-size:7px;font-style:normal;line-height:1.4}
+.how-v2-live-source small,.how-v2-live-viewers small,.how-v2-live-core small{display:block;color:#65697c;font-size:9px;letter-spacing:.12em}
+.how-v2-live-source b,.how-v2-live-viewers b{display:block;margin-top:3px;font:700 12px Manrope}
+.how-v2-live-source em,.how-v2-live-viewers em{display:block;margin-top:4px;color:#8a8ea0;font-size:9px;font-style:normal;line-height:1.4}
 .how-v2-live-core{
   width:122px;
   height:122px;
@@ -520,13 +520,13 @@
   gap:4px;
 }
 .how-v2-live-core svg{width:28px;color:#b9a6ff;margin-bottom:4px;animation:howV2CoreFloat 3.8s ease-in-out infinite}
-.how-v2-live-core b{font:700 10px Manrope}
+.how-v2-live-core b{font:700 12px Manrope}
 .how-v2-live-route{position:relative;width:72px;height:2px;flex:none;background:#302b42;overflow:visible}
 .how-v2-live-route i{position:absolute;top:-2px;width:6px;height:6px;border-radius:50%;background:#a889ff;box-shadow:0 0 12px #936fff;animation:howV2Travel 2.4s linear infinite}
 .how-v2-live-route i:nth-child(2){animation-delay:.8s}.how-v2-live-route i:nth-child(3){animation-delay:1.6s}
 .how-v2-live-route b{position:absolute;inset:-6px 0 auto;border-top:1px solid #7b60dd18}
 .how-v2-live-route.reverse i{animation-direction:reverse}
-.how-v2-live-foot{height:64px;padding:0 18px;border-top:1px solid #222533;display:flex;align-items:center;justify-content:space-between;color:#777b8d;font-size:8px}
+.how-v2-live-foot{height:64px;padding:0 18px;border-top:1px solid #222533;display:flex;align-items:center;justify-content:space-between;color:#9094a6;font-size:10px}
 .how-v2-live-foot span{display:flex;align-items:center;gap:7px}
 .how-v2-live-foot svg{width:13px;color:#9d86ff}
 .how-v2-live-foot span:first-child i{width:6px;height:6px;border-radius:50%;background:#49e6a1}
@@ -534,10 +534,10 @@
 .how-v2-section{max-width:1500px;margin:0 auto;padding:82px clamp(24px,4.2vw,64px);position:relative;z-index:2}
 .how-v2-section-heading{max-width:760px;margin-bottom:30px}
 .how-v2-section-heading>div{display:flex;align-items:center;gap:10px}
-.how-v2-section-heading>div span{width:34px;height:34px;border:1px solid #3a3153;border-radius:10px;background:#181423;color:#ad91ff;display:grid;place-items:center;font:700 9px Manrope}
-.how-v2-section-heading small{color:#74788a;font-size:8px;letter-spacing:.17em;font-weight:800}
+.how-v2-section-heading>div span{width:34px;height:34px;border:1px solid #3a3153;border-radius:10px;background:#181423;color:#ad91ff;display:grid;place-items:center;font:700 10px Manrope}
+.how-v2-section-heading small{color:#8a8e9f;font-size:10px;letter-spacing:.17em;font-weight:800}
 .how-v2-section-heading h2{margin:12px 0 8px;font:800 clamp(28px,3vw,43px)/1.12 Manrope;letter-spacing:-.04em}
-.how-v2-section-heading>p{margin:0;color:#7f8394;font-size:13px}
+.how-v2-section-heading>p{margin:0;color:#9296a7;font-size:14px}
 .how-v2-section-heading.compact{margin-bottom:24px}
 
 .how-v2-steps{border-top:1px solid #1e202b}
@@ -554,8 +554,8 @@
 .how-v2-step-top>span{width:42px;height:42px;border-radius:12px;background:#211a34;color:#aa8cff;display:grid;place-items:center;transition:transform .24s cubic-bezier(.2,.8,.2,1),background .24s ease}
 .how-v2-step-top svg{width:18px}
 .how-v2-step-top>b{color:#343747;font:800 30px Manrope}
-.how-v2-step-grid h3{margin:38px 0 8px;font:700 14px Manrope}
-.how-v2-step-grid p{margin:0;color:#797d8e;font-size:11px;line-height:1.62}
+.how-v2-step-grid h3{margin:38px 0 8px;font:700 16px Manrope}
+.how-v2-step-grid p{margin:0;color:#8c90a2;font-size:12px;line-height:1.68}
 
 .how-v2-tech{
   display:grid;
@@ -564,13 +564,13 @@
   align-items:center;
   border-top:1px solid #1e202b;
 }
-.how-v2-tech-lede{max-width:660px;margin:-6px 0 28px;color:#8d91a2;font-size:13px;line-height:1.7}
+.how-v2-tech-lede{max-width:660px;margin:-6px 0 28px;color:#9a9eae;font-size:14px;line-height:1.72}
 .how-v2-tech-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .how-v2-tech-list article{min-height:126px;padding:15px;border:1px solid #252836;border-radius:14px;background:#0f1119;display:flex;gap:12px;transition:border-color .22s ease,transform .22s cubic-bezier(.2,.8,.2,1),background .22s ease}
 .how-v2-tech-list article>span{width:35px;height:35px;flex:none;border-radius:10px;background:#211a34;color:#a98cff;display:grid;place-items:center}
 .how-v2-tech-list svg{width:16px}
-.how-v2-tech-list b{font:700 11px Manrope}
-.how-v2-tech-list p{margin:5px 0 0;color:#737789;font-size:9px;line-height:1.55}
+.how-v2-tech-list b{font:700 13px Manrope}
+.how-v2-tech-list p{margin:6px 0 0;color:#898d9f;font-size:11px;line-height:1.62}
 
 .how-v2-routing{
   min-height:455px;
@@ -580,15 +580,15 @@
   background:linear-gradient(145deg,#11131b,#0c0e14);
   box-shadow:0 28px 80px #0005;
 }
-.how-v2-routing-head{height:36px;display:flex;align-items:flex-start;justify-content:space-between;color:#707487;font-size:7px;letter-spacing:.13em}
-.how-v2-routing-head>b{display:flex;align-items:center;gap:6px;color:#7d8192;font-size:7px;font-weight:600;letter-spacing:0}
+.how-v2-routing-head{height:36px;display:flex;align-items:flex-start;justify-content:space-between;color:#8a8e9f;font-size:9px;letter-spacing:.13em}
+.how-v2-routing-head>b{display:flex;align-items:center;gap:6px;color:#9296a7;font-size:9px;font-weight:600;letter-spacing:0}
 .how-v2-routing-head>b i{width:6px;height:6px;border-radius:50%;background:#49e6a1;box-shadow:0 0 0 4px #49e6a10d}
 .how-v2-route-row{display:grid;grid-template-columns:128px minmax(35px,1fr) 132px minmax(35px,1fr) 118px;align-items:center;gap:8px;margin-top:24px}
 .how-v2-route-row.secondary{margin-top:28px}
 .how-v2-route-source,.how-v2-provider,.how-v2-destination{min-height:72px;border:1px solid #2b2e3d;border-radius:12px;background:#0d0f16;padding:12px;display:flex;align-items:center;gap:9px}
 .how-v2-route-source>svg,.how-v2-provider>svg,.how-v2-destination>svg{width:17px;flex:none;color:#a58cff}
-.how-v2-route-source b,.how-v2-provider b,.how-v2-destination b{display:block;font:700 8px Manrope}
-.how-v2-route-source small,.how-v2-provider small,.how-v2-destination small{display:block;margin-top:3px;color:#666a7d;font-size:6px;line-height:1.3}
+.how-v2-route-source b,.how-v2-provider b,.how-v2-destination b{display:block;font:700 10px Manrope}
+.how-v2-route-source small,.how-v2-provider small,.how-v2-destination small{display:block;margin-top:3px;color:#85899b;font-size:9px;line-height:1.35}
 .how-v2-provider.primary{border-color:#55457b;background:#171225}
 .how-v2-provider.primary>svg{color:#b69fff}
 .how-v2-wire{height:1px;position:relative;background:#312c43;overflow:visible}
@@ -598,8 +598,8 @@
 .how-v2-fallback{margin-top:30px;padding:13px 14px;border:1px solid #3a3150;border-radius:12px;background:#15111f;display:flex;align-items:center;gap:11px}
 .how-v2-fallback>svg{width:18px;color:#bd9fff;animation:howV2SoftSpin 8s linear infinite}
 .how-v2-fallback b,.how-v2-fallback small{display:block}
-.how-v2-fallback b{font-size:8px}.how-v2-fallback small{margin-top:3px;color:#6f7385;font-size:7px}
-.how-v2-state-line{margin-top:10px;padding:11px 13px;border-radius:11px;background:#0a0c12;color:#737789;display:flex;align-items:center;gap:9px;font-size:7px}
+.how-v2-fallback b{font-size:10px}.how-v2-fallback small{margin-top:3px;color:#8b8f9f;font-size:9px}
+.how-v2-state-line{margin-top:10px;padding:11px 13px;border-radius:11px;background:#0a0c12;color:#8a8e9f;display:flex;align-items:center;gap:9px;font-size:9px}
 .how-v2-state-line svg{width:14px;color:#62d7a7}.how-v2-state-line b{color:#b9bdcb}
 
 .how-v2-facts{border-top:1px solid #1e202b}
@@ -607,17 +607,17 @@
 .how-v2-fact-grid article{padding:20px;border:1px solid #252836;border-radius:16px;background:#0f1119;display:flex;gap:13px;transition:transform .22s cubic-bezier(.2,.8,.2,1),border-color .22s ease,background .22s ease}
 .how-v2-fact-grid article>span{width:39px;height:39px;flex:none;border-radius:11px;background:#211a34;color:#a98cff;display:grid;place-items:center}
 .how-v2-fact-grid svg{width:17px}
-.how-v2-fact-grid b{font:700 12px Manrope}
-.how-v2-fact-grid p{margin:6px 0 0;color:#777b8c;font-size:10px;line-height:1.6}
+.how-v2-fact-grid b{font:700 13px Manrope}
+.how-v2-fact-grid p{margin:6px 0 0;color:#8b8f9f;font-size:11px;line-height:1.66}
 
 .how-v2-faq{border-top:1px solid #1e202b}
 .how-v2-faq-list{max-width:1000px;border-top:1px solid #272a37}
 .how-v2-faq-list details{border-bottom:1px solid #272a37}
-.how-v2-faq-list summary{min-height:66px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#d9d8e1;font:700 12px Manrope}
+.how-v2-faq-list summary{min-height:72px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;color:#e3e2e9;font:700 14px Manrope}
 .how-v2-faq-list summary::-webkit-details-marker{display:none}
 .how-v2-faq-list summary svg{width:17px;color:#777b90;transition:transform .24s cubic-bezier(.2,.8,.2,1),color .2s ease}
 .how-v2-faq-list details[open] summary svg{transform:rotate(90deg);color:#aa8cff}
-.how-v2-faq-list p{max-width:830px;margin:-3px 0 20px;color:#777b8c;font-size:10px;line-height:1.65;animation:howV2FaqIn .22s ease both}
+.how-v2-faq-list p{max-width:860px;margin:-2px 0 22px;color:#9094a5;font-size:12px;line-height:1.72;animation:howV2FaqIn .22s ease both}
 
 .how-v2-cta{
   max-width:1372px;
@@ -636,10 +636,10 @@
   z-index:2;
 }
 .how-v2-cta:after{content:"";position:absolute;width:360px;height:220px;right:-80px;top:-90px;border-radius:50%;background:#7148ff1c;filter:blur(38px);pointer-events:none}
-.how-v2-cta small{color:#9d85ff;font-size:8px;letter-spacing:.16em;font-weight:800}
+.how-v2-cta small{color:#aa95ff;font-size:10px;letter-spacing:.16em;font-weight:800}
 .how-v2-cta h2{margin:7px 0 6px;font:800 24px Manrope;letter-spacing:-.03em}
-.how-v2-cta p{margin:0;color:#7b7f90;font-size:10px}
-.how-v2-cta button{height:48px;padding:0 18px;border:1px solid #a68bff;border-radius:12px;background:linear-gradient(105deg,#744cff,#5d39e5);display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:11px;font-weight:800;cursor:pointer;position:relative;z-index:1}
+.how-v2-cta p{margin:0;color:#9094a5;font-size:12px}
+.how-v2-cta button{height:48px;padding:0 18px;border:1px solid #a68bff;border-radius:12px;background:linear-gradient(105deg,#744cff,#5d39e5);display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:12px;font-weight:800;cursor:pointer;position:relative;z-index:1}
 .how-v2-cta button svg{width:16px}
 
 .how-v2-footer{
@@ -649,9 +649,9 @@
   padding:0 clamp(24px,4.2vw,64px);
   border-top:1px solid #20222d;
   color:#606476;
-  font-size:9px;
+  font-size:10px;
 }
-.how-v2-footer button{border:0;background:none;color:#74788a;display:flex;align-items:center;gap:6px;font-size:9px;cursor:pointer}
+.how-v2-footer button{border:0;background:none;color:#85899a;display:flex;align-items:center;gap:6px;font-size:10px;cursor:pointer}
 .how-v2-footer button svg{width:13px}
 
 @keyframes howV2Rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
