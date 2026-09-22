@@ -129,12 +129,28 @@ int main() {
         return 1;
     }
 
-    const int createId = ownerSignal.EmitWithAck(
-        "create-room",
-        "{\"displayName\":\"NativeCameraPublisher\"}");
-    auto create = ownerProbe.WaitAck(createId, 15s);
+    auto createRoom = [&]() -> std::optional<lunira::SocketEvent> {
+        const int createId = ownerSignal.EmitWithAck(
+            "create-room",
+            "{\"displayName\":\"NativeCameraPublisher\"}");
+        if (createId < 0) return std::nullopt;
+        return ownerProbe.WaitAck(createId, 15s);
+    };
+
+    auto create = createRoom();
+    if (create && !create->ok &&
+        create->error.find(L"Muitas tentativas") != std::wstring::npos) {
+        std::cout << "create-room rate limited; waiting for server window...\n";
+        std::this_thread::sleep_for(65s);
+        create = createRoom();
+    }
+
     if (!create || !create->ok || create->roomId.size() != 8) {
-        std::cerr << "create-room failed\n";
+        std::cerr << "create-room failed";
+        if (create && !create->error.empty()) {
+            std::cerr << " (server rejected request)";
+        }
+        std::cerr << "\n";
         ownerSignal.Stop();
         return 2;
     }
