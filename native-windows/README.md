@@ -1,4 +1,4 @@
-# Lunira Screen — Windows nativo
+# LuniraScreen — Windows nativo
 
 Cliente Windows novo, desenvolvido separadamente da interface web.
 
