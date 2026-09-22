@@ -47,6 +47,9 @@ function(lunira_link_agora target sdk_root)
   set(_runtime_names
     agora_rtc_sdk.dll
     libaosl.dll
+    libagora-ffmpeg.dll
+    libagora-soundtouch.dll
+    libagora-fdkaac.dll
     libagora_screen_capture_extension.dll
     libagora-wgc.dll
     libagora_video_encoder_extension.dll
