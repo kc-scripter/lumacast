@@ -32,7 +32,7 @@ export function useAdaptiveScreenQuality({enabled,stats,preferredFps,updateQuali
     // Deliberately conservative: automatic quality only reacts to sustained,
     // clearly bad sender connectivity. Short spikes must not change quality.
     const extreme=(rtt!=null&&rtt>=600)||lossDelta>=50;
-    const stable=(rtt==null||rtt<=180)&&lossDelta<=2;
+    const stable=rtt!=null&&rtt<=180&&lossDelta<=2;
     extremeRef.current=extreme?extremeRef.current+1:0;
     stableRef.current=stable?stableRef.current+1:0;
 
