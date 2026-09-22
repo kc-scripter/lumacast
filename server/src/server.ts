@@ -49,7 +49,7 @@ app.use("/api",rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",le
 app.get("/api/health",(_req,res)=>{
   const issues=runtimeIssues();
   res.setHeader("Cache-Control","no-store");
-  res.status(issues.length?503:200).json({ok:issues.length===0,service:"lumacast-signaling",issues});
+  res.status(issues.length?503:200).json({ok:issues.length===0,service:"lunira-screen-signaling",issues});
 });
 app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
@@ -71,6 +71,6 @@ app.use(express.static(clientDist,{
 app.get(/.*/,(_req,res)=>{res.setHeader("Cache-Control","no-cache");res.sendFile(join(clientDist,"index.html"));});
 httpServer.listen(port,()=>{
   const issues=runtimeIssues();
-  if(issues.length)console.warn(`LumaCast started with incomplete RTC config: ${issues.join(", ")}`);
-  console.log(`LumaCast signaling on http://localhost:${port} · ${rooms.count()} active rooms`);
+  if(issues.length)console.warn(`Lunira Screen started with incomplete RTC config: ${issues.join(", ")}`);
+  console.log(`Lunira Screen signaling on http://localhost:${port} · ${rooms.count()} active rooms`);
 });
