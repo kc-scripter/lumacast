@@ -2,21 +2,19 @@
 
 Cliente Windows novo, desenvolvido separadamente da interface web.
 
-## Etapa 1 — shell visual da sala
-
-Esta etapa contém apenas a interface local para validar design e peso antes de conectar rede/media:
+## Recursos
 
 - visual baseado diretamente na sala atual do site;
 - transmissão como elemento principal;
 - dock de câmeras logo abaixo da transmissão;
-- três câmeras de demonstração;
 - sala privada + código de convite;
 - qualidade 1080p / 30–60 FPS;
+- compartilhamento nativo de monitor ou janela via Agora;
+- câmeras e áudio do sistema via LiveKit;
+- captura de áudio WASAPI loopback, sem publicar microfone;
 - controles de câmera, compartilhamento, áudio da tela e estatísticas;
 - página de ajustes mínima;
 - hover e controles sem animações contínuas.
-
-Nenhum backend, Agora, LiveKit ou captura real foi conectado ainda.
 
 ## Tecnologia
 
@@ -24,7 +22,8 @@ Nenhum backend, Agora, LiveKit ou captura real foi conectado ainda.
 - Win32;
 - Direct2D;
 - DirectWrite;
-- somente bibliotecas do Windows.
+- Agora Windows SDK 4.6.2;
+- LiveKit C++ SDK.
 
 Não usa Electron, Chromium, WebView ou .NET.
 
@@ -40,3 +39,7 @@ Saída:
 ```text
 native-windows/build/Release/LuniraScreen.exe
 ```
+
+O diretório Release também contém somente as DLLs do Agora e LiveKit necessárias
+para executar o aplicativo. O workflow `Native Windows App` publica esse conjunto
+como o artefato `LuniraScreen-Native`.

@@ -43,24 +43,36 @@ struct SignalProbe {
     std::condition_variable cv;
     bool connected = false;
     bool failed = false;
+    std::wstring error;
     std::optional<lunira::SocketEvent> ack;
 
     void OnEvent(lunira::SocketEvent event) {
         std::scoped_lock lock(mutex);
         if (event.type == lunira::SocketEventType::Connected) connected = true;
         else if (event.type == lunira::SocketEventType::Ack) ack = std::move(event);
-        else if (event.type == lunira::SocketEventType::Error) failed = true;
+        else if (event.type == lunira::SocketEventType::Error) {
+            failed = true;
+            error = std::move(event.error);
+        }
         cv.notify_all();
     }
 
-    bool WaitConnected() {
-        std::unique_lock lock(mutex);
-        return cv.wait_for(lock, 40s, [&] { return connected || failed; }) && connected;
+    void Reset() {
+        std::scoped_lock lock(mutex);
+        connected = false;
+        failed = false;
+        error.clear();
+        ack.reset();
     }
 
-    std::optional<lunira::SocketEvent> WaitAck(int id) {
+    bool WaitConnected(std::chrono::seconds timeout) {
         std::unique_lock lock(mutex);
-        const bool ready = cv.wait_for(lock, 20s, [&] {
+        return cv.wait_for(lock, timeout, [&] { return connected || failed; }) && connected;
+    }
+
+    std::optional<lunira::SocketEvent> WaitAck(int id, std::chrono::seconds timeout) {
+        std::unique_lock lock(mutex);
+        const bool ready = cv.wait_for(lock, timeout, [&] {
             return failed || (ack && ack->ackId == id);
         });
         if (!ready || failed || !ack || ack->ackId != id) return std::nullopt;
@@ -69,6 +81,33 @@ struct SignalProbe {
         return result;
     }
 };
+
+bool ConnectSignal(
+    lunira::SocketIoClient& client,
+    SignalProbe& probe,
+    std::string_view label) {
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        probe.Reset();
+        const bool started = client.Start(
+            [&probe](lunira::SocketEvent event) { probe.OnEvent(std::move(event)); });
+        if (started && probe.WaitConnected(40s)) {
+            std::cout << label << " signaling: ok (attempt " << attempt << ")\n";
+            return true;
+        }
+
+        std::wstring error;
+        {
+            std::scoped_lock lock(probe.mutex);
+            error = probe.error;
+        }
+        client.Stop();
+        std::cerr << label << " signaling attempt " << attempt << " failed";
+        if (!error.empty()) std::cerr << ": " << WideToUtf8(error);
+        std::cerr << "\n";
+        if (attempt < 3) std::this_thread::sleep_for(5s);
+    }
+    return false;
+}
 
 struct VideoProbe {
     std::mutex mutex;
@@ -238,26 +277,62 @@ int main(int argc, char** argv) {
     lunira::SocketIoClient viewer;
     SignalProbe ownerProbe;
     SignalProbe viewerProbe;
-    if (!owner.Start([&](lunira::SocketEvent event) { ownerProbe.OnEvent(std::move(event)); }) ||
-        !ownerProbe.WaitConnected()) return 1;
+    if (!ConnectSignal(owner, ownerProbe, "Agora owner")) return 1;
 
-    const int createId = owner.EmitWithAck("create-room", "{\"displayName\":\"AgoraSynthetic\"}");
-    auto create = ownerProbe.WaitAck(createId);
-    if (!create || !create->ok) return 2;
+    auto createRoom = [&]() -> std::optional<lunira::SocketEvent> {
+        const int id = owner.EmitWithAck(
+            "create-room", "{\"displayName\":\"AgoraSynthetic\"}");
+        if (id < 0) return std::nullopt;
+        return ownerProbe.WaitAck(id, 15s);
+    };
+    auto create = createRoom();
+    if (create && !create->ok) {
+        std::cerr << "Agora create-room first rejection: "
+                  << WideToUtf8(create->error) << "\n";
+        std::cout << "waiting 65s before one controlled retry...\n";
+        std::this_thread::sleep_for(65s);
+        create = createRoom();
+    }
+    if (!create || !create->ok || create->roomId.size() != 8) {
+        std::cerr << "Agora create-room failed";
+        if (create && !create->error.empty()) {
+            std::cerr << ": " << WideToUtf8(create->error);
+        }
+        std::cerr << "\n";
+        owner.Stop();
+        return 2;
+    }
 
-    if (!viewer.Start([&](lunira::SocketEvent event) { viewerProbe.OnEvent(std::move(event)); }) ||
-        !viewerProbe.WaitConnected()) return 3;
+    if (!ConnectSignal(viewer, viewerProbe, "Agora viewer")) {
+        owner.Stop();
+        return 3;
+    }
     std::string joinPayload = "{\"displayName\":\"AgoraReceiver\",\"roomId\":";
     joinPayload += lunira::SocketIoClient::JsonQuote(create->roomId);
     joinPayload += "}";
-    auto join = viewerProbe.WaitAck(viewer.EmitWithAck("join-room", joinPayload));
-    if (!join || !join->ok) return 4;
+    auto join = viewerProbe.WaitAck(viewer.EmitWithAck("join-room", joinPayload), 15s);
+    if (!join || !join->ok) {
+        std::cerr << "Agora join-room failed";
+        if (join && !join->error.empty()) std::cerr << ": " << WideToUtf8(join->error);
+        std::cerr << "\n";
+        viewer.Stop();
+        owner.Stop();
+        return 4;
+    }
 
     std::string sharePayload = "{\"roomId\":";
     sharePayload += lunira::SocketIoClient::JsonQuote(create->roomId);
     sharePayload += "}";
-    auto share = ownerProbe.WaitAck(owner.EmitWithAck("request-screen-share", sharePayload));
-    if (!share || !share->ok) return 5;
+    auto share = ownerProbe.WaitAck(
+        owner.EmitWithAck("request-screen-share", sharePayload), 15s);
+    if (!share || !share->ok) {
+        std::cerr << "Agora request-screen-share failed";
+        if (share && !share->error.empty()) std::cerr << ": " << WideToUtf8(share->error);
+        std::cerr << "\n";
+        viewer.Stop();
+        owner.Stop();
+        return 5;
+    }
 
     lunira::AgoraCredentials receiverCredentials{
         join->agoraAppId, join->agoraChannel, join->agoraToken,
