@@ -295,14 +295,28 @@ std::wstring Quote(std::wstring_view value) {
 
 int RunPublisherProcess(const lunira::AgoraCredentials& credentials) {
     wchar_t exePath[MAX_PATH]{};
-    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-    std::wstring command = Quote(exePath) + L" --publish " +
+    const DWORD length = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH) return -1;
+
+    std::wstring publisherPath(exePath, length);
+    const size_t slash = publisherPath.find_last_of(L"\\/");
+    if (slash == std::wstring::npos) return -1;
+    publisherPath.resize(slash + 1);
+    publisherPath += L"LuniraAgoraPublisher.exe";
+
+    if (GetFileAttributesW(publisherPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        return -1;
+    }
+
+    std::wstring command = Quote(publisherPath) + L" --publish " +
         Quote(credentials.appId) + L" " + Quote(credentials.channel) + L" " +
         Quote(credentials.token) + L" " + std::to_wstring(credentials.uid);
+
     STARTUPINFOW startup{sizeof(startup)};
     PROCESS_INFORMATION process{};
-    if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE,
+    if (!CreateProcessW(publisherPath.c_str(), command.data(), nullptr, nullptr, FALSE,
             0, nullptr, nullptr, &startup, &process)) return -1;
+
     WaitForSingleObject(process.hProcess, 30000);
     DWORD exitCode = 99;
     GetExitCodeProcess(process.hProcess, &exitCode);
