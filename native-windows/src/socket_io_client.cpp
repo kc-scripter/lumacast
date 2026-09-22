@@ -15,7 +15,8 @@ namespace lunira {
 namespace {
 
 constexpr wchar_t kHost[] = L"lunira-screen.onrender.com";
-constexpr wchar_t kPath[] = L"/socket.io/?EIO=4&transport=websocket";
+constexpr wchar_t kBasePath[] = L"/socket.io/?EIO=4&transport=polling";
+constexpr size_t kMaxPayloadBytes = 256 * 1024;
 
 std::wstring Utf8ToWide(std::string_view value) {
     if (value.empty()) return {};
@@ -210,13 +211,9 @@ std::vector<Participant> FindParticipants(std::string_view json) {
         const char ch = json[i];
 
         if (inString) {
-            if (escaped) {
-                escaped = false;
-            } else if (ch == '\\') {
-                escaped = true;
-            } else if (ch == '"') {
-                inString = false;
-            }
+            if (escaped) escaped = false;
+            else if (ch == '\\') escaped = true;
+            else if (ch == '"') inString = false;
             continue;
         }
 
@@ -295,6 +292,47 @@ std::wstring ErrorMessage(std::wstring_view prefix, DWORD error) {
     return stream.str();
 }
 
+bool ReadResponseBody(HINTERNET request, std::string& body) {
+    body.clear();
+
+    for (;;) {
+        DWORD available = 0;
+        if (!WinHttpQueryDataAvailable(request, &available)) return false;
+        if (available == 0) break;
+
+        if (body.size() + available > kMaxPayloadBytes) return false;
+
+        const size_t oldSize = body.size();
+        body.resize(oldSize + available);
+
+        DWORD read = 0;
+        if (!WinHttpReadData(
+                request,
+                body.data() + oldSize,
+                available,
+                &read)) {
+            return false;
+        }
+
+        body.resize(oldSize + read);
+        if (read == 0) break;
+    }
+
+    return true;
+}
+
+bool QueryStatus(HINTERNET request, DWORD& status) {
+    DWORD size = sizeof(status);
+    status = 0;
+    return WinHttpQueryHeaders(
+               request,
+               WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+               WINHTTP_HEADER_NAME_BY_INDEX,
+               &status,
+               &size,
+               WINHTTP_NO_HEADER_INDEX) == TRUE;
+}
+
 } // namespace
 
 SocketIoClient::SocketIoClient() = default;
@@ -309,6 +347,7 @@ bool SocketIoClient::Start(Callback callback) {
     callback_ = std::move(callback);
     stop_.store(false);
     connected_.store(false);
+    sessionId_.clear();
 
     try {
         thread_ = std::thread([this] { Run(); });
@@ -322,38 +361,22 @@ bool SocketIoClient::Start(Callback callback) {
 void SocketIoClient::Stop() {
     stop_.store(true);
 
-    HINTERNET socket = nullptr;
+    HINTERNET poll = nullptr;
     {
         std::scoped_lock lock(handleMutex_);
-        socket = webSocket_;
+        poll = activePollRequest_;
+        activePollRequest_ = nullptr;
     }
-
-    if (socket) {
-        const char closePacket[] = "41";
-        {
-            std::scoped_lock sendLock(sendMutex_);
-            WinHttpWebSocketSend(
-                socket,
-                WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE,
-                const_cast<char*>(closePacket),
-                static_cast<DWORD>(sizeof(closePacket) - 1));
-
-            const char engineClose[] = "1";
-            WinHttpWebSocketSend(
-                socket,
-                WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE,
-                const_cast<char*>(engineClose),
-                static_cast<DWORD>(sizeof(engineClose) - 1));
-
-            WinHttpWebSocketShutdown(
-                socket,
-                WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS,
-                nullptr,
-                0);
-        }
-    }
+    if (poll) WinHttpCloseHandle(poll);
 
     if (thread_.joinable()) thread_.join();
+
+    if (!sessionId_.empty()) {
+        DWORD status = 0;
+        SendText("41");
+        HttpPost(PollingPath(true), "1", status);
+    }
+
     Cleanup();
     connected_.store(false);
     running_.store(false);
@@ -398,14 +421,15 @@ std::string SocketIoClient::JsonQuote(std::wstring_view value) {
 }
 
 void SocketIoClient::Run() {
-    if (!ConnectWebSocket()) {
+    if (!ConnectPolling()) {
         connected_.store(false);
         running_.store(false);
         Cleanup();
         return;
     }
 
-    ReceiveLoop();
+    PollLoop();
+
     const bool wasConnected = connected_.exchange(false);
     running_.store(false);
     Cleanup();
@@ -417,9 +441,9 @@ void SocketIoClient::Run() {
     }
 }
 
-bool SocketIoClient::ConnectWebSocket() {
+bool SocketIoClient::ConnectPolling() {
     session_ = WinHttpOpen(
-        L"LuniraScreenNative/0.3",
+        L"LuniraScreenNative/0.6",
         WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
@@ -428,12 +452,12 @@ bool SocketIoClient::ConnectWebSocket() {
     if (!session_) {
         SocketEvent event;
         event.type = SocketEventType::Error;
-        event.error = ErrorMessage(L"WinHTTP não iniciou", GetLastError());
+        event.error = ErrorMessage(L"Não foi possível iniciar a conexão", GetLastError());
         Notify(std::move(event));
         return false;
     }
 
-    WinHttpSetTimeouts(session_, 10000, 30000, 30000, 0);
+    WinHttpSetTimeouts(session_, 10000, 15000, 10000, 65000);
 
     connection_ = WinHttpConnect(
         session_,
@@ -444,173 +468,217 @@ bool SocketIoClient::ConnectWebSocket() {
     if (!connection_) {
         SocketEvent event;
         event.type = SocketEventType::Error;
-        event.error = ErrorMessage(L"Não foi possível conectar ao servidor", GetLastError());
+        event.error = ErrorMessage(L"Não foi possível alcançar o servidor", GetLastError());
         Notify(std::move(event));
         return false;
     }
 
-    HINTERNET request = WinHttpOpenRequest(
-        connection_,
-        L"GET",
-        kPath,
-        nullptr,
-        WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
-        WINHTTP_FLAG_SECURE);
-
-    if (!request) {
-        SocketEvent event;
-        event.type = SocketEventType::Error;
-        event.error = ErrorMessage(L"Falha ao preparar WebSocket", GetLastError());
-        Notify(std::move(event));
-        return false;
-    }
-
-    if (!WinHttpSetOption(
-            request,
-            WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET,
-            nullptr,
-            0)) {
-        const DWORD error = GetLastError();
-        WinHttpCloseHandle(request);
-        SocketEvent event;
-        event.type = SocketEventType::Error;
-        event.error = ErrorMessage(L"WebSocket não disponível", error);
-        Notify(std::move(event));
-        return false;
-    }
-
-    const BOOL sent = WinHttpSendRequest(
-        request,
-        WINHTTP_NO_ADDITIONAL_HEADERS,
-        0,
-        WINHTTP_NO_REQUEST_DATA,
-        0,
-        0,
-        0);
-
-    if (!sent || !WinHttpReceiveResponse(request, nullptr)) {
-        const DWORD error = GetLastError();
-        WinHttpCloseHandle(request);
-        SocketEvent event;
-        event.type = SocketEventType::Error;
-        event.error = ErrorMessage(L"Servidor indisponível", error);
-        Notify(std::move(event));
-        return false;
-    }
-
+    std::string handshake;
     DWORD status = 0;
-    DWORD statusSize = sizeof(status);
-    if (!WinHttpQueryHeaders(
-            request,
-            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-            WINHTTP_HEADER_NAME_BY_INDEX,
-            &status,
-            &statusSize,
-            WINHTTP_NO_HEADER_INDEX) ||
-        status != 101) {
-        WinHttpCloseHandle(request);
+    if (!HttpGet(PollingPath(false), handshake, status) ||
+        status != 200 ||
+        handshake.empty() ||
+        handshake[0] != '0') {
         SocketEvent event;
         event.type = SocketEventType::Error;
-        event.error = L"O servidor recusou o WebSocket.";
+        event.error = status == 0
+            ? L"Não foi possível conectar ao servidor."
+            : L"O servidor recusou a conexão.";
         Notify(std::move(event));
         return false;
     }
 
-    HINTERNET socket = WinHttpWebSocketCompleteUpgrade(request, 0);
-    WinHttpCloseHandle(request);
-
-    if (!socket) {
+    sessionId_ = WideToUtf8(FindString(handshake.substr(1), "sid"));
+    if (sessionId_.empty()) {
         SocketEvent event;
         event.type = SocketEventType::Error;
-        event.error = ErrorMessage(L"Falha no upgrade WebSocket", GetLastError());
+        event.error = L"O servidor respondeu sem uma sessão válida.";
         Notify(std::move(event));
         return false;
     }
 
-    {
-        std::scoped_lock lock(handleMutex_);
-        webSocket_ = socket;
+    if (!HttpPost(PollingPath(true), "40", status) || status != 200) {
+        SocketEvent event;
+        event.type = SocketEventType::Error;
+        event.error = L"Não foi possível abrir a sessão Socket.IO.";
+        Notify(std::move(event));
+        return false;
     }
 
     return true;
 }
 
-void SocketIoClient::ReceiveLoop() {
+void SocketIoClient::PollLoop() {
     while (!stop_.load()) {
-        std::string message;
-        if (!ReceiveMessage(message)) break;
-        if (message.empty()) continue;
-        HandlePacket(message);
+        std::string payload;
+        DWORD status = 0;
+
+        if (!HttpGet(PollingPath(true), payload, status)) {
+            if (!stop_.load()) {
+                SocketEvent event;
+                event.type = SocketEventType::Error;
+                event.error = L"A conexão com o servidor foi interrompida.";
+                Notify(std::move(event));
+            }
+            break;
+        }
+
+        if (status != 200) {
+            if (!stop_.load()) {
+                SocketEvent event;
+                event.type = SocketEventType::Error;
+                event.error = L"O servidor encerrou a sessão.";
+                Notify(std::move(event));
+            }
+            break;
+        }
+
+        if (!payload.empty()) HandlePayload(payload);
     }
 }
 
-bool SocketIoClient::ReceiveMessage(std::string& message) {
-    HINTERNET socket = nullptr;
+bool SocketIoClient::HttpGet(std::wstring_view path, std::string& body, DWORD& statusCode) {
+    if (!connection_ || stop_.load()) return false;
+
+    std::wstring pathCopy(path);
+    HINTERNET request = WinHttpOpenRequest(
+        connection_,
+        L"GET",
+        pathCopy.c_str(),
+        nullptr,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_SECURE);
+
+    if (!request) return false;
+
     {
         std::scoped_lock lock(handleMutex_);
-        socket = webSocket_;
-    }
-    if (!socket) return false;
-
-    std::array<char, 8192> buffer{};
-    std::string accumulated;
-
-    while (!stop_.load()) {
-        DWORD bytesRead = 0;
-        WINHTTP_WEB_SOCKET_BUFFER_TYPE type = WINHTTP_WEB_SOCKET_BINARY_MESSAGE_BUFFER_TYPE;
-        const DWORD result = WinHttpWebSocketReceive(
-            socket,
-            buffer.data(),
-            static_cast<DWORD>(buffer.size()),
-            &bytesRead,
-            &type);
-
-        if (result != NO_ERROR) return false;
-        if (type == WINHTTP_WEB_SOCKET_CLOSE_BUFFER_TYPE) return false;
-
-        if (type != WINHTTP_WEB_SOCKET_UTF8_FRAGMENT_BUFFER_TYPE &&
-            type != WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE) {
-            continue;
+        if (stop_.load()) {
+            WinHttpCloseHandle(request);
+            return false;
         }
-
-        if (bytesRead > 0) accumulated.append(buffer.data(), bytesRead);
-        if (accumulated.size() > 64 * 1024) return false;
-
-        if (type == WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE) {
-            message = std::move(accumulated);
-            return true;
-        }
+        activePollRequest_ = request;
     }
 
-    return false;
+    const wchar_t* headers =
+        L"Accept: */*\r\n"
+        L"Cache-Control: no-cache\r\n"
+        L"Pragma: no-cache\r\n";
+
+    bool ok =
+        WinHttpSendRequest(
+            request,
+            headers,
+            static_cast<DWORD>(-1L),
+            WINHTTP_NO_REQUEST_DATA,
+            0,
+            0,
+            0) == TRUE &&
+        WinHttpReceiveResponse(request, nullptr) == TRUE &&
+        QueryStatus(request, statusCode) &&
+        ReadResponseBody(request, body);
+
+    bool closeHere = false;
+    {
+        std::scoped_lock lock(handleMutex_);
+        if (activePollRequest_ == request) {
+            activePollRequest_ = nullptr;
+            closeHere = true;
+        }
+    }
+
+    if (closeHere) WinHttpCloseHandle(request);
+    return ok;
+}
+
+bool SocketIoClient::HttpPost(
+    std::wstring_view path,
+    std::string_view body,
+    DWORD& statusCode) {
+    if (!connection_ || stop_.load()) return false;
+
+    std::wstring pathCopy(path);
+    HINTERNET request = WinHttpOpenRequest(
+        connection_,
+        L"POST",
+        pathCopy.c_str(),
+        nullptr,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        WINHTTP_FLAG_SECURE);
+
+    if (!request) return false;
+
+    const wchar_t* headers =
+        L"Content-Type: text/plain;charset=UTF-8\r\n"
+        L"Accept: */*\r\n"
+        L"Cache-Control: no-cache\r\n";
+
+    const BOOL sent = WinHttpSendRequest(
+        request,
+        headers,
+        static_cast<DWORD>(-1L),
+        body.empty() ? WINHTTP_NO_REQUEST_DATA : const_cast<char*>(body.data()),
+        static_cast<DWORD>(body.size()),
+        static_cast<DWORD>(body.size()),
+        0);
+
+    std::string response;
+    const bool ok =
+        sent == TRUE &&
+        WinHttpReceiveResponse(request, nullptr) == TRUE &&
+        QueryStatus(request, statusCode) &&
+        ReadResponseBody(request, response);
+
+    WinHttpCloseHandle(request);
+
+    if (!ok) return false;
+    return statusCode == 200 && (response.empty() || response == "ok");
+}
+
+std::wstring SocketIoClient::PollingPath(bool includeSession) const {
+    std::wstring path = kBasePath;
+
+    if (includeSession && !sessionId_.empty()) {
+        path += L"&sid=";
+        path += Utf8ToWide(sessionId_);
+    }
+
+    path += L"&t=";
+    path += std::to_wstring(requestCounter_.fetch_add(1));
+    return path;
 }
 
 bool SocketIoClient::SendText(std::string_view text) {
-    if (stop_.load()) return false;
-
-    HINTERNET socket = nullptr;
-    {
-        std::scoped_lock lock(handleMutex_);
-        socket = webSocket_;
-    }
-    if (!socket) return false;
+    if (stop_.load() || sessionId_.empty()) return false;
 
     std::scoped_lock lock(sendMutex_);
-    const DWORD result = WinHttpWebSocketSend(
-        socket,
-        WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE,
-        const_cast<char*>(text.data()),
-        static_cast<DWORD>(text.size()));
+    DWORD status = 0;
+    return HttpPost(PollingPath(true), text, status) && status == 200;
+}
 
-    return result == NO_ERROR;
+void SocketIoClient::HandlePayload(std::string_view payload) {
+    size_t start = 0;
+
+    while (start <= payload.size()) {
+        const size_t separator = payload.find('\x1e', start);
+        const size_t end = separator == std::string_view::npos
+            ? payload.size()
+            : separator;
+
+        const std::string_view packet = payload.substr(start, end - start);
+        if (!packet.empty()) HandlePacket(packet);
+
+        if (separator == std::string_view::npos) break;
+        start = separator + 1;
+    }
 }
 
 void SocketIoClient::HandlePacket(std::string_view packet) {
     if (packet.empty()) return;
 
     if (packet[0] == '0') {
-        SendText("40");
         return;
     }
 
@@ -647,7 +715,7 @@ void SocketIoClient::HandlePacket(std::string_view packet) {
     if (packet.starts_with("44")) {
         SocketEvent event;
         event.type = SocketEventType::Error;
-        event.error = L"O servidor recusou a conexão Socket.IO.";
+        event.error = L"O servidor recusou a sessão Socket.IO.";
         Notify(std::move(event));
     }
 }
@@ -724,9 +792,9 @@ void SocketIoClient::Notify(SocketEvent event) {
 void SocketIoClient::Cleanup() {
     std::scoped_lock lock(handleMutex_);
 
-    if (webSocket_) {
-        WinHttpCloseHandle(webSocket_);
-        webSocket_ = nullptr;
+    if (activePollRequest_) {
+        WinHttpCloseHandle(activePollRequest_);
+        activePollRequest_ = nullptr;
     }
     if (connection_) {
         WinHttpCloseHandle(connection_);
@@ -736,6 +804,8 @@ void SocketIoClient::Cleanup() {
         WinHttpCloseHandle(session_);
         session_ = nullptr;
     }
+
+    sessionId_.clear();
 }
 
 } // namespace lunira
