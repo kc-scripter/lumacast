@@ -10,6 +10,8 @@
 #include "socket_io_client.h"
 #include "livekit_media_client.h"
 #include "camera_capture.h"
+#include "agora_screen_client.h"
+#include "system_audio_capture.h"
 
 #include <algorithm>
 #include <atomic>
@@ -35,6 +37,7 @@ constexpr wchar_t kWindowClass[] = L"LuniraNativeWindow";
 constexpr wchar_t kWindowTitle[] = L"LuniraScreen";
 constexpr UINT kSocketEventMessage = WM_APP + 42;
 constexpr UINT kMediaEventMessage = WM_APP + 43;
+constexpr UINT kAgoraEventMessage = WM_APP + 44;
 
 D2D1_COLOR_F Hex(unsigned rgb, float alpha = 1.0f) {
     return D2D1::ColorF(
@@ -252,6 +255,9 @@ private:
         case kMediaEventMessage:
             HandleQueuedMediaEvents();
             return 0;
+        case kAgoraEventMessage:
+            HandleQueuedAgoraEvents();
+            return 0;
         case WM_SETCURSOR:
             if (LOWORD(lParam) == HTCLIENT && (hover_ == 20 || hover_ == 22)) {
                 SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
@@ -263,8 +269,10 @@ private:
             }
             break;
         case WM_DESTROY:
+            StopSystemAudioCapture(false);
             StopLocalCameraCapture(false);
             media_.Stop();
+            agora_.Stop();
             socket_.Stop();
             PostQuitMessage(0);
             return 0;
@@ -362,6 +370,8 @@ private:
             frame.bitmap.Reset();
             frame.dirty = true;
         }
+        screenFrame_.bitmap.Reset();
+        screenFrame_.dirty = true;
     }
 
     void MakeBrush(const D2D1_COLOR_F& color, ComPtr<ID2D1SolidColorBrush>& brush) {
@@ -923,6 +933,7 @@ private:
         renderTarget_->DrawRoundedRectangle(screen, borderSoftBrush_.Get(), 1.0f);
 
         if (sharing_) {
+            if (DrawFrame(screenFrame_, rect)) return;
             const float cx = (rect.left + rect.right) * 0.5f;
             const float cy = (rect.top + rect.bottom) * 0.5f - 22.0f;
             const auto icon = D2D1::RoundedRect(Rect(cx - 30, cy - 30, cx + 30, cy + 30), 16, 16);
@@ -935,7 +946,7 @@ private:
             CenterText(L"Transmissão ativa",
                        Rect(rect.left + 40, cy + 44, rect.right - 40, cy + 70),
                        heading_.Get(), textBrush_.Get());
-            const std::wstring detail = sharer + L" está compartilhando · vídeo na próxima etapa";
+            const std::wstring detail = sharer + L" está compartilhando · conectando ao vídeo Agora";
             CenterText(detail,
                        Rect(rect.left + 40, cy + 76, rect.right - 40, cy + 100),
                        body_.Get(), mutedBrush_.Get());
@@ -980,16 +991,13 @@ private:
             14, 14);
         renderTarget_->FillRoundedRectangle(badge, panel2Brush_.Get());
         renderTarget_->DrawRoundedRectangle(badge, borderBrush_.Get(), 1.0f);
-        CenterText(L"1080p · 60 FPS",
+        const std::wstring quality = L"1080p · " + std::to_wstring(fps_) + L" FPS";
+        CenterText(quality,
                    Rect(rect.right - 120, rect.top + 14, rect.right - 16, rect.top + 35),
                    tinyBold_.Get(), mutedBrush_.Get());
     }
 
-    bool DrawCameraFrame(std::wstring_view identity, const D2D1_RECT_F& destination) {
-        auto it = cameraFrames_.find(std::wstring(identity));
-        if (it == cameraFrames_.end()) return false;
-
-        auto& frame = it->second;
+    bool DrawFrame(CameraFrameCache& frame, const D2D1_RECT_F& destination) {
         if (frame.width <= 0 || frame.height <= 0 || frame.bgra.empty()) return false;
         const size_t required =
             static_cast<size_t>(frame.width) * static_cast<size_t>(frame.height) * 4u;
@@ -1061,6 +1069,11 @@ private:
             source);
         renderTarget_->PopAxisAlignedClip();
         return true;
+    }
+
+    bool DrawCameraFrame(std::wstring_view identity, const D2D1_RECT_F& destination) {
+        auto it = cameraFrames_.find(std::wstring(identity));
+        return it != cameraFrames_.end() && DrawFrame(it->second, destination);
     }
 
     void DrawCameraDock(const D2D1_RECT_F& rect) {
@@ -1335,10 +1348,15 @@ private:
 
         const D2D1_RECT_F share = Rect(rect.left + 16, rect.top + 50, rect.right - 16, rect.top + 96);
         AddHit(7, share);
+        const std::wstring shareLabel = screenShareStarting_
+            ? L"Iniciando transmissão…"
+            : localScreenSharing_ ? L"Parar transmissão"
+            : sharing_ ? L"Tela em uso"
+            : L"Compartilhar tela";
         PrimaryButton(
             share,
-            sharing_ ? L"Parar transmissão" : L"Compartilhar tela",
-            sharing_,
+            shareLabel,
+            localScreenSharing_,
             hover_ == 7);
 
         const float middle = (rect.left + rect.right) * 0.5f;
@@ -1792,6 +1810,169 @@ private:
         InvalidateRect(hwnd_, nullptr, FALSE);
     }
 
+    void QueueAgoraEvent(lunira::AgoraEvent event) {
+        {
+            std::scoped_lock lock(agoraQueueMutex_);
+            if (event.type == lunira::AgoraEventType::ScreenFrame) {
+                auto existing = std::find_if(pendingAgoraEvents_.begin(), pendingAgoraEvents_.end(),
+                    [](const lunira::AgoraEvent& pending) {
+                        return pending.type == lunira::AgoraEventType::ScreenFrame;
+                    });
+                if (existing != pendingAgoraEvents_.end()) *existing = std::move(event);
+                else pendingAgoraEvents_.push_back(std::move(event));
+            } else {
+                pendingAgoraEvents_.push_back(std::move(event));
+            }
+            if (agoraMessagePosted_.exchange(true)) return;
+        }
+        if (!PostMessageW(hwnd_, kAgoraEventMessage, 0, 0)) agoraMessagePosted_.store(false);
+    }
+
+    lunira::AgoraScreenClient::Callback AgoraCallback() {
+        return [this](lunira::AgoraEvent event) { QueueAgoraEvent(std::move(event)); };
+    }
+
+    void StartAgoraViewer() {
+        if (!viewerAgoraCredentials_.Valid() || screenShareStarting_ || localScreenSharing_) return;
+        agora_.StartViewer(viewerAgoraCredentials_, AgoraCallback());
+    }
+
+    void HandleQueuedAgoraEvents() {
+        std::vector<lunira::AgoraEvent> events;
+        {
+            std::scoped_lock lock(agoraQueueMutex_);
+            events.swap(pendingAgoraEvents_);
+            agoraMessagePosted_.store(false);
+        }
+        for (auto& event : events) HandleAgoraEvent(std::move(event));
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+
+    void HandleAgoraEvent(lunira::AgoraEvent event) {
+        switch (event.type) {
+        case lunira::AgoraEventType::Connected:
+            agoraConnected_ = true;
+            if (screenShareStarting_ && agora_.IsSharing()) {
+                screenShareStarting_ = false;
+                localScreenSharing_ = true;
+                sharing_ = true;
+                roomNotice_ = L"Sua tela está ao vivo.";
+                std::string payload = "{\"roomId\":";
+                payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+                payload += "}";
+                socket_.Emit("broadcast-started", payload);
+            }
+            break;
+        case lunira::AgoraEventType::Disconnected:
+            agoraConnected_ = false;
+            if (!localScreenSharing_) roomNotice_ = L"Reconectando ao vídeo da tela…";
+            break;
+        case lunira::AgoraEventType::ScreenFrame:
+            screenFrame_.width = event.width;
+            screenFrame_.height = event.height;
+            screenFrame_.bgra = std::move(event.bgra);
+            screenFrame_.dirty = true;
+            if (screenFrame_.bitmap &&
+                (static_cast<int>(screenFrame_.bitmap->GetPixelSize().width) != event.width ||
+                 static_cast<int>(screenFrame_.bitmap->GetPixelSize().height) != event.height)) {
+                screenFrame_.bitmap.Reset();
+            }
+            break;
+        case lunira::AgoraEventType::CaptureEnded:
+            if (localScreenSharing_ || screenShareStarting_) {
+                StopNativeScreenShare(true, L"A janela ou monitor compartilhado foi encerrado.");
+            }
+            break;
+        case lunira::AgoraEventType::TokenExpiring: {
+            if (agoraRenewAckId_ >= 0 || roomCode_.empty()) break;
+            std::string payload = "{\"roomId\":";
+            payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+            payload += ",\"screen\":";
+            payload += (localScreenSharing_ || screenShareStarting_) ? "true" : "false";
+            payload += "}";
+            agoraRenewAckId_ = socket_.EmitWithAck("renew-agora-token", payload);
+            break;
+        }
+        case lunira::AgoraEventType::Error:
+            agoraConnected_ = false;
+            if (localScreenSharing_ || screenShareStarting_) {
+                StopNativeScreenShare(true, event.error.empty() ? L"A transmissão Agora falhou." : event.error);
+            } else {
+                roomNotice_ = event.error.empty() ? L"O vídeo Agora falhou." : std::move(event.error);
+            }
+            break;
+        }
+    }
+
+    bool ChooseScreenSource(lunira::ScreenSource& selected) {
+        const auto sources = agora_.ListSources();
+        if (sources.empty()) {
+            roomNotice_ = L"Nenhum monitor ou janela disponível para compartilhar.";
+            return false;
+        }
+
+        HMENU root = CreatePopupMenu();
+        HMENU monitors = CreatePopupMenu();
+        HMENU windows = CreatePopupMenu();
+        if (!root || !monitors || !windows) {
+            if (root) DestroyMenu(root);
+            if (monitors) DestroyMenu(monitors);
+            if (windows) DestroyMenu(windows);
+            return false;
+        }
+        for (size_t i = 0; i < sources.size(); ++i) {
+            std::wstring title = sources[i].title.substr(0, 70);
+            AppendMenuW(sources[i].kind == lunira::ScreenSource::Kind::Monitor ? monitors : windows,
+                MF_STRING, static_cast<UINT_PTR>(1000 + i), title.c_str());
+        }
+        AppendMenuW(root, MF_POPUP, reinterpret_cast<UINT_PTR>(monitors), L"Monitores");
+        AppendMenuW(root, MF_POPUP, reinterpret_cast<UINT_PTR>(windows), L"Janelas e aplicativos");
+        POINT point{};
+        GetCursorPos(&point);
+        const UINT command = TrackPopupMenuEx(root, TPM_RETURNCMD | TPM_RIGHTBUTTON,
+            point.x, point.y, hwnd_, nullptr);
+        DestroyMenu(root);
+        if (command < 1000 || static_cast<size_t>(command - 1000) >= sources.size()) return false;
+        selected = sources[command - 1000];
+        return true;
+    }
+
+    void BeginNativeScreenShare() {
+        if (!viewerAgoraCredentials_.Valid() || screenShareAckId_ >= 0 ||
+            screenShareStarting_ || localScreenSharing_) return;
+        lunira::ScreenSource source;
+        if (!ChooseScreenSource(source)) return;
+        pendingScreenSource_ = std::move(source);
+        std::string payload = "{\"roomId\":";
+        payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+        payload += "}";
+        screenShareAckId_ = socket_.EmitWithAck("request-screen-share", payload);
+        if (screenShareAckId_ < 0) {
+            roomNotice_ = L"Não foi possível reservar a transmissão.";
+        } else {
+            roomNotice_ = L"Preparando captura nativa…";
+        }
+    }
+
+    void StopNativeScreenShare(bool notifyServer, std::wstring notice = {}) {
+        const bool wasLocal = localScreenSharing_ || screenShareStarting_;
+        localScreenSharing_ = false;
+        screenShareStarting_ = false;
+        screenShareAckId_ = -1;
+        agora_.Stop();
+        agoraConnected_ = false;
+        screenFrame_ = {};
+        sharing_ = roomState_.live && !wasLocal;
+        if (notifyServer && wasLocal && socket_.IsConnected() && !roomCode_.empty()) {
+            std::string payload = "{\"roomId\":";
+            payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+            payload += "}";
+            socket_.EmitWithAck("release-screen-share", payload);
+        }
+        if (!notice.empty()) roomNotice_ = std::move(notice);
+        StartAgoraViewer();
+    }
+
     void SetLocalLiveKitMediaActive(bool active) {
         if (!socket_.IsConnected() || roomCode_.empty()) return;
         if (livekitMediaAnnounced_ == active) return;
@@ -1927,6 +2108,51 @@ private:
         }
     }
 
+    void StartSystemAudioCapture() {
+        if (!mediaConnected_ || systemAudioCapture_.IsRunning() || systemAudioOn_) return;
+        audioEnablePending_ = true;
+        roomNotice_ = L"Conectando áudio da tela…";
+        if (!media_.StartSystemAudio()) {
+            audioEnablePending_ = false;
+            roomNotice_ = L"Não foi possível publicar o áudio no LiveKit.";
+            return;
+        }
+        const bool started = systemAudioCapture_.Start(
+            [this](lunira::CapturedAudioFrame frame) {
+                if (!media_.PushSystemAudioFrame(frame.samples.data(), frame.samples.size(),
+                        frame.sampleRate, frame.channels)) {
+                    lunira::MediaEvent error;
+                    error.type = lunira::MediaEventType::Error;
+                    error.error = L"O envio do áudio da tela foi interrompido.";
+                    QueueMediaEvent(std::move(error));
+                }
+            },
+            [this](std::wstring message) {
+                lunira::MediaEvent error;
+                error.type = lunira::MediaEventType::Error;
+                error.error = std::move(message);
+                QueueMediaEvent(std::move(error));
+            });
+        if (!started) {
+            media_.StopSystemAudio();
+            audioEnablePending_ = false;
+            roomNotice_ = L"Não foi possível capturar o áudio do Windows.";
+            return;
+        }
+        systemAudioOn_ = true;
+        audioEnablePending_ = false;
+        roomNotice_ = L"Áudio da tela ligado.";
+        SetLocalLiveKitMediaActive(true);
+    }
+
+    void StopSystemAudioCapture(bool notifyServer = true) {
+        audioEnablePending_ = false;
+        systemAudioCapture_.Stop();
+        media_.StopSystemAudio();
+        systemAudioOn_ = false;
+        if (notifyServer) SetLocalLiveKitMediaActive(cameraOn_);
+    }
+
     void HandleMediaEvent(lunira::MediaEvent event) {
         switch (event.type) {
         case lunira::MediaEventType::Connected:
@@ -1939,6 +2165,9 @@ private:
             if (cameraEnablePending_ && !cameraOn_) {
                 StartLocalCameraCapture();
             }
+            if (audioEnablePending_ && !systemAudioOn_) {
+                StartSystemAudioCapture();
+            }
             break;
 
         case lunira::MediaEventType::Disconnected:
@@ -1950,6 +2179,7 @@ private:
                 StopLocalCameraCapture(false);
                 roomNotice_ = L"Conexão de mídia encerrada.";
             }
+            if (systemAudioOn_ || audioEnablePending_) StopSystemAudioCapture(false);
             break;
 
         case lunira::MediaEventType::CameraFrame: {
@@ -1997,6 +2227,7 @@ private:
             if (cameraOn_ || cameraEnablePending_) {
                 StopLocalCameraCapture(false);
             }
+            if (systemAudioOn_ || audioEnablePending_) StopSystemAudioCapture(false);
             roomNotice_ = event.error.empty()
                 ? L"Não foi possível conectar à mídia da sala."
                 : std::move(event.error);
@@ -2014,6 +2245,35 @@ private:
             break;
 
         case lunira::SocketEventType::Ack:
+            if (event.ackId == agoraRenewAckId_) {
+                agoraRenewAckId_ = -1;
+                if (event.ok && !event.agoraToken.empty()) {
+                    agora_.RenewToken(event.agoraToken);
+                } else {
+                    roomNotice_ = event.error.empty() ? L"Não foi possível renovar o Agora." : event.error;
+                }
+                break;
+            }
+
+            if (event.ackId == screenShareAckId_) {
+                screenShareAckId_ = -1;
+                if (!event.ok) {
+                    roomNotice_ = event.error.empty() ? L"A transmissão não pôde começar." : event.error;
+                    break;
+                }
+                lunira::AgoraCredentials publisher;
+                publisher.appId = event.agoraAppId;
+                publisher.channel = event.agoraChannel;
+                publisher.token = event.agoraToken;
+                publisher.uid = static_cast<unsigned int>(event.agoraUid);
+                screenShareStarting_ = true;
+                agoraConnected_ = false;
+                if (!agora_.StartSharing(publisher, pendingScreenSource_, fps_, AgoraCallback())) {
+                    StopNativeScreenShare(true, L"Não foi possível iniciar a captura Agora.");
+                }
+                break;
+            }
+
             if (event.ackId == livekitAckId_) {
                 livekitAckId_ = -1;
                 if (!event.ok || event.livekitUrl.empty() || event.livekitToken.empty()) {
@@ -2055,6 +2315,10 @@ private:
 
             roomState_ = event.room;
             sharing_ = roomState_.live;
+            viewerAgoraCredentials_.appId = event.agoraAppId;
+            viewerAgoraCredentials_.channel = event.agoraChannel;
+            viewerAgoraCredentials_.token = event.agoraToken;
+            viewerAgoraCredentials_.uid = static_cast<unsigned int>(event.agoraUid);
             pendingAction_ = PendingAction::None;
             pendingAckId_ = -1;
             livekitAckId_ = -1;
@@ -2084,11 +2348,13 @@ private:
             if (roomState_.livekitActive) {
                 EnsureLiveKitMedia();
             }
+            StartAgoraViewer();
             break;
 
         case lunira::SocketEventType::RoomState:
             roomState_ = event.room;
             sharing_ = roomState_.live;
+            if (!sharing_ && !localScreenSharing_) screenFrame_ = {};
             if (roomState_.livekitActive) {
                 EnsureLiveKitMedia();
             } else if (!cameraOn_ &&
@@ -2114,16 +2380,20 @@ private:
         case lunira::SocketEventType::BroadcastEnded:
             sharing_ = false;
             roomState_.live = false;
+            screenFrame_ = {};
             break;
 
         case lunira::SocketEventType::RoomExpired:
+            StopSystemAudioCapture(false);
             StopLocalCameraCapture(false);
             media_.Stop();
+            agora_.Stop();
             mediaConnected_ = false;
             mediaStarting_ = false;
             cachedLivekitUrl_.clear();
             cachedLivekitToken_.clear();
             cameraFrames_.clear();
+            screenFrame_ = {};
             roomNotice_.clear();
             homeError_ = L"A sala expirou.";
             roomCode_.clear();
@@ -2134,14 +2404,21 @@ private:
 
         case lunira::SocketEventType::Disconnected:
             networkConnected_ = false;
+            StopSystemAudioCapture(false);
             StopLocalCameraCapture(false);
             media_.Stop();
+            agora_.Stop();
             mediaConnected_ = false;
             mediaStarting_ = false;
             livekitAckId_ = -1;
             cachedLivekitUrl_.clear();
             cachedLivekitToken_.clear();
             livekitMediaAnnounced_ = false;
+            localScreenSharing_ = false;
+            screenShareStarting_ = false;
+            screenShareAckId_ = -1;
+            agoraRenewAckId_ = -1;
+            screenFrame_ = {};
             selfSocketId_.clear();
             if (page_ == Page::Home) {
                 homeError_ = L"Conexão com o servidor encerrada. Tente novamente.";
@@ -2178,14 +2455,24 @@ private:
             focusedField_ = Field::None;
             break;
         case 16:
+            if (localScreenSharing_ || screenShareStarting_) StopNativeScreenShare(true);
+            if (socket_.IsConnected() && !roomCode_.empty()) {
+                std::string payload = "{\"roomId\":";
+                payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+                payload += "}";
+                socket_.Emit("leave-room", payload);
+            }
+            StopSystemAudioCapture(true);
             StopLocalCameraCapture(true);
             media_.Stop();
+            agora_.Stop();
             mediaConnected_ = false;
             mediaStarting_ = false;
             cameraFrames_.clear();
             page_ = Page::Home;
             focusedField_ = Field::None;
             selectedCameraIdentity_.clear();
+            screenFrame_ = {};
             focused_ = false;
             break;
         case 20:
@@ -2228,9 +2515,11 @@ private:
             break;
         case 4:
             fps_ = 30;
+            if (localScreenSharing_) agora_.UpdateFrameRate(fps_);
             break;
         case 5:
             fps_ = 60;
+            if (localScreenSharing_) agora_.UpdateFrameRate(fps_);
             break;
         case 6:
             if (cameraOn_ || cameraCapture_.IsRunning()) {
@@ -2245,9 +2534,23 @@ private:
             }
             break;
         case 7:
-            roomNotice_ = L"Transmissão nativa entra na próxima etapa.";
+            if (localScreenSharing_ || screenShareStarting_) {
+                StopNativeScreenShare(true, L"Transmissão encerrada.");
+            } else if (sharing_) {
+                roomNotice_ = L"Outra pessoa já está compartilhando a tela.";
+            } else {
+                BeginNativeScreenShare();
+            }
             break;
         case 8:
+            if (systemAudioOn_ || systemAudioCapture_.IsRunning()) {
+                StopSystemAudioCapture(true);
+                roomNotice_ = L"Áudio da tela desligado.";
+            } else {
+                audioEnablePending_ = true;
+                EnsureLiveKitMedia();
+                if (mediaConnected_) StartSystemAudioCapture();
+            }
             break;
         case 9:
             statsOn_ = !statsOn_;
@@ -2302,11 +2605,14 @@ private:
     lunira::SocketIoClient socket_;
     lunira::LiveKitMediaClient media_;
     lunira::CameraCapture cameraCapture_;
+    lunira::SystemAudioCapture systemAudioCapture_;
+    lunira::AgoraScreenClient agora_;
     int livekitAckId_ = -1;
     bool mediaConnected_ = false;
     bool mediaStarting_ = false;
     bool cameraEnablePending_ = false;
     bool systemAudioOn_ = false;
+    bool audioEnablePending_ = false;
     bool livekitMediaAnnounced_ = false;
     std::atomic<bool> cameraPublishFailed_{false};
     std::wstring selfSocketId_;
@@ -2317,9 +2623,20 @@ private:
     std::vector<lunira::MediaEvent> pendingMediaEvents_;
     std::atomic<bool> mediaMessagePosted_{false};
     std::unordered_map<std::wstring, CameraFrameCache> cameraFrames_;
+    CameraFrameCache screenFrame_;
     std::array<std::wstring, 3> cameraHitIdentities_{};
 
     bool sharing_ = false;
+    bool localScreenSharing_ = false;
+    bool screenShareStarting_ = false;
+    bool agoraConnected_ = false;
+    int screenShareAckId_ = -1;
+    int agoraRenewAckId_ = -1;
+    lunira::AgoraCredentials viewerAgoraCredentials_;
+    lunira::ScreenSource pendingScreenSource_;
+    std::mutex agoraQueueMutex_;
+    std::vector<lunira::AgoraEvent> pendingAgoraEvents_;
+    std::atomic<bool> agoraMessagePosted_{false};
     bool cameraOn_ = false;
     bool statsOn_ = false;
     bool camerasOpen_ = true;

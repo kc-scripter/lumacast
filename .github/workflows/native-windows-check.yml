@@ -1,6 +1,13 @@
-name: Native Windows UI
+name: Native Windows App
 
 on:
+  push:
+    branches:
+      - feature/native-windows-app
+    paths:
+      - "native-windows/**"
+      - "server/**"
+      - ".github/workflows/native-windows-check.yml"
   pull_request:
     paths:
       - "native-windows/**"
@@ -86,6 +93,16 @@ jobs:
       - name: Cross-compatible camera roundtrip
         shell: pwsh
         run: |
+          & "native-windows/build/Release/LuniraSignalingSmoke.exe"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falhou o signaling Socket.IO nativo no domínio de produção."
+          }
+
+          & "native-windows/build/Release/LuniraLiveKitSmoke.exe"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falhou a conexão LiveKit obtida pelo signaling atual."
+          }
+
           $exe = "native-windows/build/Release/LuniraCameraRoundtrip.exe"
           & $exe
           if ($LASTEXITCODE -ne 0) {
@@ -116,6 +133,17 @@ jobs:
           Copy-Item "$source/LuniraScreen.exe" $stage
           Copy-Item "$source/livekit.dll" $stage
           Copy-Item "$source/livekit_ffi.dll" $stage
+          @(
+            "agora_rtc_sdk.dll",
+            "libaosl.dll",
+            "libagora_screen_capture_extension.dll",
+            "libagora-wgc.dll",
+            "libagora_video_encoder_extension.dll",
+            "video_enc.dll",
+            "video_dec.dll"
+          ) | ForEach-Object { Copy-Item "$source/$_" $stage }
+          $packageBytes = (Get-ChildItem $stage -File | Measure-Object Length -Sum).Sum
+          Write-Host "LuniraScreen-Native package: $([math]::Round($packageBytes / 1MB, 2)) MB"
 
       - name: Upload native preview
         if: always()
