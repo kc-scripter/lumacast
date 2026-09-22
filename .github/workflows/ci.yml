@@ -23,7 +23,7 @@ jobs:
       LIVEKIT_API_KEY: "ci-key"
       LIVEKIT_API_SECRET: "ci-secret"
       TRUST_PROXY_HOPS: "0"
-      MAX_ROOM_PARTICIPANTS: "50"
+      MAX_ROOM_PARTICIPANTS: "8"
 
     steps:
       - uses: actions/checkout@v4
