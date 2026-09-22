@@ -4,7 +4,7 @@ project(LuniraScreenNative LANGUAGES CXX RC)
 find_program(LUNIRA_POWERSHELL NAMES pwsh powershell REQUIRED)
 set(LUNIRA_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${LUNIRA_GENERATED_DIR}")
-set(LUNIRA_ICON_PATH "${LUNIRA_GENERATED_DIR}/Lunira.ico")
+set(LUNIRA_ICON_PATH "${LUNIRA_GENERATED_DIR}/LuniraScreen.ico")
 
 execute_process(
   COMMAND "${LUNIRA_POWERSHELL}"
@@ -19,7 +19,7 @@ execute_process(
 )
 
 if(NOT LUNIRA_ICON_RESULT EQUAL 0 OR NOT EXISTS "${LUNIRA_ICON_PATH}")
-  message(FATAL_ERROR "Failed to generate Lunira icon: ${LUNIRA_ICON_STDOUT} ${LUNIRA_ICON_STDERR}")
+  message(FATAL_ERROR "Failed to generate LuniraScreen icon: ${LUNIRA_ICON_STDOUT} ${LUNIRA_ICON_STDERR}")
 endif()
 
 configure_file(
