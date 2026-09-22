@@ -4,17 +4,23 @@
 #include <d2d1helper.h>
 #include <dwrite.h>
 #include <dwmapi.h>
+#include <dxgiformat.h>
 #include <wrl/client.h>
 
 #include "socket_io_client.h"
+#include "livekit_media_client.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <cwctype>
 #include <memory>
+#include <mutex>
 #include <array>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
@@ -27,6 +33,7 @@ namespace {
 constexpr wchar_t kWindowClass[] = L"LuniraNativeWindow";
 constexpr wchar_t kWindowTitle[] = L"Lunira Screen";
 constexpr UINT kSocketEventMessage = WM_APP + 42;
+constexpr UINT kMediaEventMessage = WM_APP + 43;
 
 D2D1_COLOR_F Hex(unsigned rgb, float alpha = 1.0f) {
     return D2D1::ColorF(
@@ -136,6 +143,14 @@ private:
         D2D1_RECT_F rect{};
     };
 
+    struct CameraFrameCache {
+        int width = 0;
+        int height = 0;
+        std::vector<std::uint8_t> bgra;
+        ComPtr<ID2D1Bitmap> bitmap;
+        bool dirty = true;
+    };
+
     static LRESULT CALLBACK StaticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         AppWindow* self = nullptr;
         if (msg == WM_NCCREATE) {
@@ -219,6 +234,9 @@ private:
             if (event) HandleSocketEvent(*event);
             return 0;
         }
+        case kMediaEventMessage:
+            HandleQueuedMediaEvents();
+            return 0;
         case WM_SETCURSOR:
             if (LOWORD(lParam) == HTCLIENT && (hover_ == 20 || hover_ == 22)) {
                 SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
@@ -230,6 +248,7 @@ private:
             }
             break;
         case WM_DESTROY:
+            media_.Stop();
             socket_.Stop();
             PostQuitMessage(0);
             return 0;
@@ -316,6 +335,11 @@ private:
         greenBrush_.Reset();
         redBrush_.Reset();
         amberBrush_.Reset();
+        for (auto& [identity, frame] : cameraFrames_) {
+            (void)identity;
+            frame.bitmap.Reset();
+            frame.dirty = true;
+        }
     }
 
     void MakeBrush(const D2D1_COLOR_F& color, ComPtr<ID2D1SolidColorBrush>& brush) {
@@ -392,7 +416,7 @@ private:
             DrawSettings(rail, top, width, height);
         } else {
             DrawRoom(rail, top, width, height);
-            if (selectedCamera_ >= 0) {
+            if (!selectedCameraIdentity_.empty()) {
                 DrawCameraOverlay(width, height);
             }
         }
@@ -801,6 +825,84 @@ private:
                    tinyBold_.Get(), mutedBrush_.Get());
     }
 
+    bool DrawCameraFrame(std::wstring_view identity, const D2D1_RECT_F& destination) {
+        auto it = cameraFrames_.find(std::wstring(identity));
+        if (it == cameraFrames_.end()) return false;
+
+        auto& frame = it->second;
+        if (frame.width <= 0 || frame.height <= 0 || frame.bgra.empty()) return false;
+        const size_t required =
+            static_cast<size_t>(frame.width) * static_cast<size_t>(frame.height) * 4u;
+        if (frame.bgra.size() < required) return false;
+
+        if (!frame.bitmap ||
+            static_cast<int>(frame.bitmap->GetPixelSize().width) != frame.width ||
+            static_cast<int>(frame.bitmap->GetPixelSize().height) != frame.height) {
+            frame.bitmap.Reset();
+            const D2D1_BITMAP_PROPERTIES properties = D2D1::BitmapProperties(
+                D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_IGNORE),
+                static_cast<float>(dpi_),
+                static_cast<float>(dpi_));
+
+            const HRESULT created = renderTarget_->CreateBitmap(
+                D2D1::SizeU(
+                    static_cast<UINT32>(frame.width),
+                    static_cast<UINT32>(frame.height)),
+                frame.bgra.data(),
+                static_cast<UINT32>(frame.width * 4),
+                properties,
+                frame.bitmap.ReleaseAndGetAddressOf());
+
+            if (FAILED(created)) return false;
+            frame.dirty = false;
+        } else if (frame.dirty) {
+            if (FAILED(frame.bitmap->CopyFromMemory(
+                    nullptr,
+                    frame.bgra.data(),
+                    static_cast<UINT32>(frame.width * 4)))) {
+                frame.bitmap.Reset();
+                return false;
+            }
+            frame.dirty = false;
+        }
+
+        const D2D1_SIZE_F bitmapSize = frame.bitmap->GetSize();
+        const float destinationWidth = destination.right - destination.left;
+        const float destinationHeight = destination.bottom - destination.top;
+        if (destinationWidth <= 0 || destinationHeight <= 0 ||
+            bitmapSize.width <= 0 || bitmapSize.height <= 0) {
+            return false;
+        }
+
+        const float sourceAspect = bitmapSize.width / bitmapSize.height;
+        const float destinationAspect = destinationWidth / destinationHeight;
+        D2D1_RECT_F source = Rect(0, 0, bitmapSize.width, bitmapSize.height);
+
+        if (sourceAspect > destinationAspect) {
+            const float wantedWidth = bitmapSize.height * destinationAspect;
+            const float crop = (bitmapSize.width - wantedWidth) * 0.5f;
+            source.left += crop;
+            source.right -= crop;
+        } else if (sourceAspect < destinationAspect) {
+            const float wantedHeight = bitmapSize.width / destinationAspect;
+            const float crop = (bitmapSize.height - wantedHeight) * 0.5f;
+            source.top += crop;
+            source.bottom -= crop;
+        }
+
+        renderTarget_->PushAxisAlignedClip(destination, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        renderTarget_->DrawBitmap(
+            frame.bitmap.Get(),
+            destination,
+            1.0f,
+            D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+            source);
+        renderTarget_->PopAxisAlignedClip();
+        return true;
+    }
+
     void DrawCameraDock(const D2D1_RECT_F& rect) {
         const auto dock = D2D1::RoundedRect(rect, 11, 11);
         renderTarget_->FillRoundedRectangle(dock, panel3Brush_.Get());
@@ -809,13 +911,21 @@ private:
         const D2D1_RECT_F head = Rect(rect.left, rect.top, rect.right, rect.top + 48);
         AddHit(10, head);
 
+        std::vector<const lunira::Participant*> active;
+        active.reserve(roomState_.participants.size());
+        for (const auto& participant : roomState_.participants) {
+            if (cameraFrames_.contains(participant.id)) {
+                active.push_back(&participant);
+            }
+        }
+
         Text(L"Câmeras", Rect(rect.left + 16, rect.top + 10, rect.left + 90, rect.top + 31),
              bodyStrong_.Get(), textBrush_.Get());
 
-        const std::wstring dockStatus = roomState_.participants.empty()
-            ? L"aguardando sala"
-            : std::to_wstring(roomState_.participants.size()) + L" pessoa(s)";
-        Text(dockStatus, Rect(rect.left + 84, rect.top + 11, rect.left + 180, rect.top + 31),
+        const std::wstring dockStatus = active.empty()
+            ? L"Nenhuma ativa"
+            : std::to_wstring(active.size()) + (active.size() == 1 ? L" ativa" : L" ativas");
+        Text(dockStatus, Rect(rect.left + 84, rect.top + 11, rect.left + 185, rect.top + 31),
              tiny_.Get(), mutedBrush_.Get());
 
         Text(camerasOpen_ ? L"⌄" : L"⌃", Rect(rect.right - 34, rect.top + 9, rect.right - 14, rect.top + 31),
@@ -823,14 +933,19 @@ private:
 
         if (!camerasOpen_) return;
 
-        if (roomState_.participants.empty()) {
-            CenterText(L"As câmeras reais serão conectadas na próxima etapa.",
+        cameraHitIdentities_.fill({});
+
+        if (active.empty()) {
+            const std::wstring message = mediaConnected_
+                ? L"Ninguém está com a câmera ligada."
+                : L"Conectando às câmeras da sala…";
+            CenterText(message,
                        Rect(rect.left + 20, rect.top + 72, rect.right - 20, rect.bottom - 22),
                        body_.Get(), mutedBrush_.Get());
             return;
         }
 
-        const size_t count = std::min<size_t>(3, roomState_.participants.size());
+        const size_t count = std::min<size_t>(3, active.size());
         const float gap = 10.0f;
         const float tileTop = rect.top + 48;
         const float tileBottom = rect.bottom - 10;
@@ -840,7 +955,9 @@ private:
         static constexpr std::array<unsigned, 3> backgrounds{ 0x2A2040, 0x172A39, 0x2B1B32 };
 
         for (size_t i = 0; i < count; ++i) {
-            const auto& participant = roomState_.participants[i];
+            const auto& participant = *active[i];
+            cameraHitIdentities_[i] = participant.id;
+
             const float left = rect.left + 16 + static_cast<float>(i) * (tileW + gap);
             const D2D1_RECT_F tile = Rect(left, tileTop, left + tileW, tileBottom);
             const std::wstring initial = participant.displayName.empty()
@@ -851,21 +968,23 @@ private:
             DrawCameraTile(
                 11 + static_cast<int>(i),
                 tile,
+                participant.id,
                 participant.displayName,
                 self ? std::wstring_view(L"VOCÊ") : std::wstring_view{},
                 backgrounds[i],
                 initial);
         }
 
-        if (roomState_.participants.size() > 3) {
-            const std::wstring more = L"+" + std::to_wstring(roomState_.participants.size() - 3) + L" pessoa(s)";
-            Text(more, Rect(rect.right - 130, rect.top + 10, rect.right - 42, rect.top + 31),
+        if (active.size() > 3) {
+            const std::wstring more = L"+" + std::to_wstring(active.size() - 3);
+            Text(more, Rect(rect.right - 75, rect.top + 10, rect.right - 42, rect.top + 31),
                  tinyBold_.Get(), violet2Brush_.Get());
         }
     }
 
-    void DrawCameraTile(int hitId, const D2D1_RECT_F& rect, std::wstring_view name,
-                        std::wstring_view badge, unsigned background, std::wstring_view initial) {
+    void DrawCameraTile(int hitId, const D2D1_RECT_F& rect, std::wstring_view identity,
+                        std::wstring_view name, std::wstring_view badge,
+                        unsigned background, std::wstring_view initial) {
         AddHit(hitId, rect);
         const auto rr = D2D1::RoundedRect(rect, 10, 10);
 
@@ -877,11 +996,14 @@ private:
             hover_ == hitId ? violetBrush_.Get() : borderBrush_.Get(),
             hover_ == hitId ? 1.6f : 1.0f);
 
-        const float cx = (rect.left + rect.right) * 0.5f;
-        const float cy = rect.top + (rect.bottom - rect.top) * 0.43f;
-        const auto avatar = D2D1::Ellipse(D2D1::Point2F(cx, cy), 21, 21);
-        renderTarget_->FillEllipse(avatar, violetPanelBrush_.Get());
-        CenterText(initial, Rect(cx - 21, cy - 21, cx + 21, cy + 21), heading_.Get(), violet2Brush_.Get());
+        const D2D1_RECT_F videoRect = Rect(rect.left, rect.top, rect.right, rect.bottom - 30);
+        if (!DrawCameraFrame(identity, videoRect)) {
+            const float cx = (videoRect.left + videoRect.right) * 0.5f;
+            const float cy = (videoRect.top + videoRect.bottom) * 0.5f;
+            const auto avatar = D2D1::Ellipse(D2D1::Point2F(cx, cy), 21, 21);
+            renderTarget_->FillEllipse(avatar, violetPanelBrush_.Get());
+            CenterText(initial, Rect(cx - 21, cy - 21, cx + 21, cy + 21), heading_.Get(), violet2Brush_.Get());
+        }
 
         Fill(Rect(rect.left, rect.bottom - 30, rect.right, rect.bottom), panelBrush_.Get());
         Text(name, Rect(rect.left + 10, rect.bottom - 25, rect.right - 70, rect.bottom - 7),
@@ -970,13 +1092,21 @@ private:
     }
 
     void DrawCameraOverlay(float width, float height) {
-        if (selectedCamera_ < 0 ||
-            static_cast<size_t>(selectedCamera_) >= roomState_.participants.size()) {
-            selectedCamera_ = -1;
+        const auto participantIt = std::find_if(
+            roomState_.participants.begin(),
+            roomState_.participants.end(),
+            [this](const lunira::Participant& participant) {
+                return participant.id == selectedCameraIdentity_;
+            });
+
+        if (participantIt == roomState_.participants.end() ||
+            !cameraFrames_.contains(selectedCameraIdentity_)) {
+            selectedCameraIdentity_.clear();
+            cameraOverlayLarge_ = false;
             return;
         }
 
-        const auto& participant = roomState_.participants[static_cast<size_t>(selectedCamera_)];
+        const auto& participant = *participantIt;
         const bool large = cameraOverlayLarge_;
         const float overlayW = large ? 560.0f : 390.0f;
         const float overlayH = large ? 330.0f : 236.0f;
@@ -999,22 +1129,19 @@ private:
         const auto videoRr = D2D1::RoundedRect(video, 10, 10);
         renderTarget_->FillRoundedRectangle(videoRr, violetPanelBrush_.Get());
 
-        const std::wstring initial = participant.displayName.empty()
-            ? L"?"
-            : participant.displayName.substr(0, 1);
-
-        const float cx = (video.left + video.right) * 0.5f;
-        const float cy = (video.top + video.bottom) * 0.5f;
-        renderTarget_->FillEllipse(
-            D2D1::Ellipse(D2D1::Point2F(cx, cy), large ? 38.0f : 30.0f, large ? 38.0f : 30.0f),
-            violetBrush_.Get());
-        CenterText(initial,
-                   Rect(cx - 34, cy - 34, cx + 34, cy + 34),
-                   title_.Get(), textBrush_.Get());
-
-        CenterText(L"Câmera será conectada na próxima etapa",
-                   Rect(video.left + 20, cy + 52, video.right - 20, cy + 76),
-                   tiny_.Get(), mutedBrush_.Get());
+        if (!DrawCameraFrame(participant.id, video)) {
+            const std::wstring initial = participant.displayName.empty()
+                ? L"?"
+                : participant.displayName.substr(0, 1);
+            const float cx = (video.left + video.right) * 0.5f;
+            const float cy = (video.top + video.bottom) * 0.5f;
+            renderTarget_->FillEllipse(
+                D2D1::Ellipse(D2D1::Point2F(cx, cy), large ? 38.0f : 30.0f, large ? 38.0f : 30.0f),
+                violetBrush_.Get());
+            CenterText(initial,
+                       Rect(cx - 34, cy - 34, cx + 34, cy + 34),
+                       title_.Get(), textBrush_.Get());
+        }
 
         const std::wstring label = participant.displayName +
             (participant.displayName == displayName_ ? L" · VOCÊ" : L"");
@@ -1412,6 +1539,115 @@ private:
         }
     }
 
+    void QueueMediaEvent(lunira::MediaEvent event) {
+        {
+            std::scoped_lock lock(mediaQueueMutex_);
+
+            if (event.type == lunira::MediaEventType::CameraFrame) {
+                auto existing = std::find_if(
+                    pendingMediaEvents_.begin(),
+                    pendingMediaEvents_.end(),
+                    [&event](const lunira::MediaEvent& pending) {
+                        return pending.type == lunira::MediaEventType::CameraFrame &&
+                               pending.identity == event.identity;
+                    });
+                if (existing != pendingMediaEvents_.end()) {
+                    *existing = std::move(event);
+                } else {
+                    pendingMediaEvents_.push_back(std::move(event));
+                }
+            } else {
+                pendingMediaEvents_.push_back(std::move(event));
+            }
+
+            if (mediaMessagePosted_.exchange(true)) return;
+        }
+
+        if (!PostMessageW(hwnd_, kMediaEventMessage, 0, 0)) {
+            mediaMessagePosted_.store(false);
+        }
+    }
+
+    void HandleQueuedMediaEvents() {
+        std::vector<lunira::MediaEvent> events;
+        {
+            std::scoped_lock lock(mediaQueueMutex_);
+            events.swap(pendingMediaEvents_);
+            mediaMessagePosted_.store(false);
+        }
+
+        for (auto& event : events) {
+            HandleMediaEvent(std::move(event));
+        }
+
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+
+    void HandleMediaEvent(lunira::MediaEvent event) {
+        switch (event.type) {
+        case lunira::MediaEventType::Connected:
+            mediaConnected_ = true;
+            if (roomNotice_ == L"Conectando câmeras…") roomNotice_.clear();
+            break;
+
+        case lunira::MediaEventType::Disconnected:
+            mediaConnected_ = false;
+            cameraFrames_.clear();
+            selectedCameraIdentity_.clear();
+            roomNotice_ = L"Conexão de câmeras encerrada.";
+            break;
+
+        case lunira::MediaEventType::CameraFrame: {
+            CameraFrameCache& cache = cameraFrames_[event.identity];
+            const bool sizeChanged =
+                cache.width != event.width ||
+                cache.height != event.height;
+            cache.width = event.width;
+            cache.height = event.height;
+            cache.bgra = std::move(event.bgra);
+            cache.dirty = true;
+            if (sizeChanged) cache.bitmap.Reset();
+            break;
+        }
+
+        case lunira::MediaEventType::CameraRemoved:
+            cameraFrames_.erase(event.identity);
+            if (selectedCameraIdentity_ == event.identity) {
+                selectedCameraIdentity_.clear();
+                cameraOverlayLarge_ = false;
+            }
+            break;
+
+        case lunira::MediaEventType::Error:
+            mediaConnected_ = false;
+            roomNotice_ = event.error.empty()
+                ? L"Não foi possível receber as câmeras."
+                : std::move(event.error);
+            break;
+        }
+    }
+
+    void RequestLiveKitMedia() {
+        if (!socket_.IsConnected() || roomCode_.empty()) return;
+
+        media_.Stop();
+        mediaConnected_ = false;
+        cameraFrames_.clear();
+        selectedCameraIdentity_.clear();
+
+        std::string payload = "{\"roomId\":";
+        payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+        payload += "}";
+
+        livekitAckId_ = socket_.EmitWithAck("get-livekit-token", payload);
+        if (livekitAckId_ < 0) {
+            roomNotice_ = L"Não foi possível pedir acesso às câmeras.";
+            return;
+        }
+
+        roomNotice_ = L"Conectando câmeras…";
+    }
+
     void HandleSocketEvent(const lunira::SocketEvent& event) {
         switch (event.type) {
         case lunira::SocketEventType::Connected:
@@ -1421,6 +1657,27 @@ private:
             break;
 
         case lunira::SocketEventType::Ack:
+            if (event.ackId == livekitAckId_) {
+                livekitAckId_ = -1;
+                if (!event.ok || event.livekitUrl.empty() || event.livekitToken.empty()) {
+                    roomNotice_ = event.error.empty()
+                        ? L"Não foi possível acessar as câmeras."
+                        : event.error;
+                    break;
+                }
+
+                const bool started = media_.Start(
+                    event.livekitUrl,
+                    event.livekitToken,
+                    [this](lunira::MediaEvent mediaEvent) {
+                        QueueMediaEvent(std::move(mediaEvent));
+                    });
+                if (!started) {
+                    roomNotice_ = L"Não foi possível iniciar o receptor de câmeras.";
+                }
+                break;
+            }
+
             if (event.ackId != pendingAckId_) break;
 
             if (!event.ok) {
@@ -1453,6 +1710,7 @@ private:
             roomNotice_.clear();
             page_ = Page::Room;
             focusedField_ = Field::None;
+            RequestLiveKitMedia();
             break;
 
         case lunira::SocketEventType::RoomState:
@@ -1472,6 +1730,9 @@ private:
             break;
 
         case lunira::SocketEventType::RoomExpired:
+            media_.Stop();
+            mediaConnected_ = false;
+            cameraFrames_.clear();
             roomNotice_.clear();
             homeError_ = L"A sala expirou.";
             roomCode_.clear();
@@ -1517,9 +1778,12 @@ private:
             focusedField_ = Field::None;
             break;
         case 16:
+            media_.Stop();
+            mediaConnected_ = false;
+            cameraFrames_.clear();
             page_ = Page::Home;
             focusedField_ = Field::None;
-            selectedCamera_ = -1;
+            selectedCameraIdentity_.clear();
             focused_ = false;
             break;
         case 20:
@@ -1567,7 +1831,7 @@ private:
             fps_ = 60;
             break;
         case 6:
-            cameraOn_ = !cameraOn_;
+            roomNotice_ = L"Câmera local entra na próxima subetapa.";
             break;
         case 7:
             roomNotice_ = L"Transmissão nativa entra na próxima etapa.";
@@ -1582,12 +1846,16 @@ private:
             break;
         case 11:
         case 12:
-        case 13:
-            selectedCamera_ = id - 11;
+        case 13: {
+            const size_t slot = static_cast<size_t>(id - 11);
+            if (slot < cameraHitIdentities_.size()) {
+                selectedCameraIdentity_ = cameraHitIdentities_[slot];
+            }
             cameraOverlayLarge_ = false;
             break;
+        }
         case 14:
-            selectedCamera_ = -1;
+            selectedCameraIdentity_.clear();
             cameraOverlayLarge_ = false;
             break;
         case 15:
@@ -1621,15 +1889,24 @@ private:
     std::wstring roomNotice_;
     lunira::RoomSnapshot roomState_;
     lunira::SocketIoClient socket_;
+    lunira::LiveKitMediaClient media_;
+    int livekitAckId_ = -1;
+    bool mediaConnected_ = false;
+
+    std::mutex mediaQueueMutex_;
+    std::vector<lunira::MediaEvent> pendingMediaEvents_;
+    std::atomic<bool> mediaMessagePosted_{false};
+    std::unordered_map<std::wstring, CameraFrameCache> cameraFrames_;
+    std::array<std::wstring, 3> cameraHitIdentities_{};
 
     bool sharing_ = false;
-    bool cameraOn_ = true;
+    bool cameraOn_ = false;
     bool statsOn_ = false;
     bool camerasOpen_ = true;
     bool focused_ = false;
     bool copied_ = false;
     int fps_ = 60;
-    int selectedCamera_ = -1;
+    std::wstring selectedCameraIdentity_;
     bool cameraOverlayLarge_ = false;
 
     bool trackingMouse_ = false;
