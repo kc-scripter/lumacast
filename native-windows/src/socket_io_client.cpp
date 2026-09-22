@@ -14,7 +14,7 @@
 namespace lunira {
 namespace {
 
-constexpr wchar_t kHost[] = L"lumacast-live-kc.onrender.com";
+constexpr wchar_t kHost[] = L"lunirascreen.mooo.com";
 constexpr wchar_t kBasePath[] = L"/socket.io/?EIO=4&transport=polling";
 constexpr size_t kMaxPayloadBytes = 256 * 1024;
 
