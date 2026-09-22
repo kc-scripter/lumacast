@@ -175,8 +175,28 @@ int main() {
     std::cout << "join ack ok; owner room-state update: "
               << (ownerSawBoth ? "ok" : "not observed") << "\n";
 
+    std::string livekitPayload = "{\"roomId\":";
+    livekitPayload += lunira::SocketIoClient::JsonQuote(roomId);
+    livekitPayload += "}";
+
+    const int livekitAckId = joiner.EmitWithAck("get-livekit-token", livekitPayload);
+    auto livekitAck = joinProbe.WaitAck(livekitAckId, 15s);
+
+    if (!livekitAck || !livekitAck->ok ||
+        livekitAck->livekitUrl.empty() ||
+        livekitAck->livekitToken.empty()) {
+        std::cerr << "get-livekit-token ack failed: ";
+        if (livekitAck) PrintWide(livekitAck->error);
+        std::cerr << "\n";
+        joiner.Stop();
+        owner.Stop();
+        return 8;
+    }
+
+    std::cout << "livekit token: ok\n";
+
     joiner.Stop();
     owner.Stop();
 
-    return ownerSawBoth ? 0 : 8;
+    return ownerSawBoth ? 0 : 9;
 }
