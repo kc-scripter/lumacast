@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Escolher tela — Lunira Screen</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#090a0f;color:#f7f7fb}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -20%,#242638 0,#111219 35%,#090a0f 68%);overflow:hidden}
+    .shell{height:100vh;display:flex;flex-direction:column;padding:28px}
+    .top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px}
+    h1{font-size:24px;line-height:1.15;margin:0 0 8px;font-weight:720;letter-spacing:-.025em}
+    p{margin:0;color:#9b9dab;font-size:14px}
+    .cancel{border:1px solid #2b2d39;background:#15161e;color:#d9dae2;border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}
+    .cancel:hover{background:#1b1d27}
+    .sources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;overflow:auto;padding:2px 4px 18px 2px}
+    .source{appearance:none;text-align:left;padding:0;border:1px solid #252733;border-radius:14px;background:#12131a;color:inherit;overflow:hidden;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease}
+    .source:hover,.source:focus-visible{transform:translateY(-2px);border-color:#5a5d73;background:#171821;outline:none}
+    .thumb{aspect-ratio:16/9;background:#07080c;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .thumb img{width:100%;height:100%;object-fit:cover}
+    .thumb span{font-size:36px;color:#5e6172}
+    .meta{display:flex;align-items:center;gap:10px;padding:12px 13px 13px}
+    .meta img{width:22px;height:22px;object-fit:contain;flex:none}
+    .name{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .empty{grid-column:1/-1;border:1px dashed #2a2c39;border-radius:14px;padding:42px;text-align:center;color:#9295a6}
+    @media(max-width:800px){.sources{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="top">
+      <div>
+        <h1>O que você quer compartilhar?</h1>
+        <p>Escolha uma tela inteira ou uma janela. O áudio do sistema é capturado quando disponível.</p>
+      </div>
+      <button class="cancel" id="cancel" type="button">Cancelar</button>
+    </div>
+    <section class="sources" id="sources"><div class="empty">Carregando telas e janelas…</div></section>
+  </main>
+  <script>
+    const root=document.getElementById("sources");
+    document.getElementById("cancel").addEventListener("click",()=>window.luniraPicker.cancel());
+    window.addEventListener("keydown",(event)=>{if(event.key==="Escape")window.luniraPicker.cancel();});
+    window.luniraPicker.onSources((sources)=>{
+      root.replaceChildren();
+      if(!Array.isArray(sources)||!sources.length){
+        const empty=document.createElement("div");
+        empty.className="empty";
+        empty.textContent="Nenhuma tela ou janela disponível.";
+        root.append(empty);
+        return;
+      }
+      for(const source of sources){
+        const button=document.createElement("button");
+        button.className="source";
+        button.type="button";
+        button.title=source.name||"Fonte de captura";
+
+        const thumb=document.createElement("div");
+        thumb.className="thumb";
+        if(source.thumbnail){
+          const image=document.createElement("img");
+          image.src=source.thumbnail;
+          image.alt="";
+          thumb.append(image);
+        }else{
+          const fallback=document.createElement("span");
+          fallback.textContent="▣";
+          thumb.append(fallback);
+        }
+
+        const meta=document.createElement("div");
+        meta.className="meta";
+        if(source.appIcon){
+          const icon=document.createElement("img");
+          icon.src=source.appIcon;
+          icon.alt="";
+          meta.append(icon);
+        }
+        const name=document.createElement("div");
+        name.className="name";
+        name.textContent=source.name||"Tela";
+        meta.append(name);
+
+        button.append(thumb,meta);
+        button.addEventListener("click",()=>window.luniraPicker.choose(source.id));
+        root.append(button);
+      }
+    });
+  </script>
+</body>
+</html>
