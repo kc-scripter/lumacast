@@ -6,4 +6,5 @@ import "./styles.css";
 import "./collaboration.css";
 import "./product.css";
 import "./performance.css";
+import "./launch-polish.css";
 createRoot(document.getElementById("root")!).render(<StrictMode><ErrorBoundary><App/></ErrorBoundary></StrictMode>);

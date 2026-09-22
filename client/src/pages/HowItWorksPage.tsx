@@ -166,7 +166,7 @@ export function HowItWorksPage(){
       <div className="how-v2-fact-grid">
         <article><span><Users/></span><div><b>Uma tela por vez</b><p>Qualquer membro da sala pode pedir para compartilhar, mas existe um bloqueio para impedir duas transmissões de tela simultâneas.</p></div></article>
         <article><span><RefreshCw/></span><div><b>Reconexão com tolerância</b><p>O dono pode recuperar a sala por cerca de 30 segundos após uma queda. Participantes e a tela ativa têm uma janela menor, de cerca de 10 segundos.</p></div></article>
-        <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas ficam em memória e usam tokens RTC temporários. O LumaCast não grava a transmissão nem armazena o vídeo da sessão.</p></div></article>
+        <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas são temporárias e usam credenciais RTC de curta duração. O LumaCast não grava a transmissão nem armazena o vídeo da sessão.</p></div></article>
       </div>
     </section>
 

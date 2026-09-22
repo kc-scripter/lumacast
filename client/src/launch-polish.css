@@ -1,0 +1,333 @@
+/* LumaCast launch polish
+   Final, low-risk visual normalization layer. Keep business/media behavior untouched. */
+
+:root{
+  --lc-page-max:1500px;
+  --lc-room-max:1680px;
+  --lc-gutter:clamp(16px,2.4vw,36px);
+  --lc-radius:14px;
+  --lc-focus:#aa8cff;
+}
+html{scrollbar-gutter:stable}
+body{min-width:320px}
+button,input,select{font:inherit}
+button,select,a,summary{-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:not-allowed}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible{
+  outline:2px solid var(--lc-focus);
+  outline-offset:3px;
+}
+.home-shell,.how-page,.studio-shell,.viewer-shell{isolation:isolate}
+.home-nav,.how-v2-nav,.studio-nav,.viewer-nav{box-sizing:border-box}
+.side-card,.connection-card,.room-stage,.people-sidebar,.camera-dock,.stats-drawer,.name-modal form{box-sizing:border-box}
+
+/* Shared product chrome */
+.studio-nav,.viewer-nav{
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  column-gap:18px;
+}
+.studio-nav>.brand,.viewer-nav>.brand{justify-self:start;min-width:0}
+.room-head,.viewer-room{justify-self:center;min-width:0}
+.nav-status,.viewer-nav-actions{min-width:0}
+.room-head b,.viewer-room b{white-space:nowrap}
+.browser-compat-notice{
+  width:min(var(--lc-page-max),calc(100% - 2 * var(--lc-gutter)));
+  margin:12px auto 0;
+  box-sizing:border-box;
+}
+.nav-status>*,.viewer-nav-actions>*{flex:none}
+
+/* Landing: keep the copy/preview/footer on the same visual grid. */
+.home-nav{max-width:var(--lc-page-max)}
+.home-content{max-width:660px}
+.home-action-stack,.home-content .benefit-row{width:100%}
+.home-primary-action,.home-viewer-toggle{box-sizing:border-box}
+.home-action-copy{overflow:hidden}
+.home-action-copy strong,.home-action-copy small{overflow:hidden;text-overflow:ellipsis}
+.home-viewer-form input{outline:0}
+.home-viewer-form input:focus{border-color:#7763bd;box-shadow:inset 0 0 0 1px #8f76ff26}
+.home-shell>footer{
+  left:50%;
+  right:auto;
+  width:min(var(--lc-page-max),calc(100% - 2 * clamp(26px,5.2vw,92px)));
+  transform:translateX(-50%);
+  box-sizing:border-box;
+}
+.landing-preview,.landing-preview-workspace,.landing-preview-stage,.landing-preview-card{min-width:0}
+.landing-preview-card{box-sizing:border-box}
+.landing-preview-statuses{min-width:0}
+.preview-card-title>div,.preview-person>div{min-width:0}
+.preview-card-title b,.preview-card-title small,.preview-person b,.preview-person small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* How it works: line up every section and make the diagrams resilient. */
+.how-page.how-v2{overflow-x:hidden;overflow-y:visible}
+.how-v2-nav,.how-v2-hero,.how-v2-section,.how-v2-footer{max-width:var(--lc-page-max)}
+.how-v2-hero>*{min-width:0}
+.how-v2-live-card,.how-v2-routing{min-width:0}
+.how-v2-live-source,.how-v2-live-viewers,.how-v2-route-source,.how-v2-provider,.how-v2-destination{box-sizing:border-box}
+.how-v2-step-grid article,.how-v2-tech-list article,.how-v2-fact-grid article{height:100%}
+.how-v2-tech-list article>div,.how-v2-fact-grid article>div{min-width:0}
+.how-v2-route-source span,.how-v2-provider span,.how-v2-destination span{min-width:0}
+.how-v2-route-source b,.how-v2-provider b,.how-v2-destination b,
+.how-v2-route-source small,.how-v2-provider small,.how-v2-destination small{overflow-wrap:anywhere}
+.how-v2-cta{
+  width:min(1372px,calc(100% - 2 * var(--lc-gutter)));
+  box-sizing:border-box;
+}
+.how-v2-live-foot{min-height:64px;height:auto;padding-top:12px;padding-bottom:12px}
+
+/* Room pages: consistent canvas, side column, people rail and controls. */
+.studio-main.collaborative-layout,
+.watch-area.collaborative-layout{
+  width:min(var(--lc-room-max),calc(100% - 2 * var(--lc-gutter)));
+  max-width:var(--lc-room-max);
+  margin-left:auto;
+  margin-right:auto;
+  box-sizing:border-box;
+}
+.studio-main.collaborative-layout{padding-left:0;padding-right:0}
+.studio-stage,.watch-main,.room-stage,.room-stage-screen{min-width:0}
+.room-stage{width:100%}
+.broadcast-screen,.video-stage{
+  box-sizing:border-box;
+  box-shadow:inset 0 0 100px #0003,0 18px 55px #0002;
+}
+.broadcast-screen video,.video-stage video{border-radius:inherit}
+.stage-placeholder,.video-empty{max-width:620px;padding:24px}
+.stage-placeholder p,.video-empty p{max-width:520px;margin-left:auto;margin-right:auto}
+.provider-switch{max-width:calc(100% - 32px);text-align:center}
+.live-corner{white-space:nowrap}
+
+.studio-side{gap:12px}
+.side-card,.connection-card{
+  border-color:#2c2e3d;
+  box-shadow:0 12px 34px #00000016;
+}
+.card-title>div{min-width:0}
+.card-title b,.card-title small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.select-wrap select{padding-right:38px}
+.segmented button{min-width:0}
+.share-code span{padding:0 8px}
+.studio-controls-card .side-controls{gap:7px}
+.studio-controls-card .side-controls button svg,
+.control-dock button svg{width:17px;height:17px;flex:none}
+
+.people-sidebar{
+  border-color:#2a2c3a;
+  box-shadow:0 12px 34px #00000016;
+}
+.people-heading{min-height:22px}
+.people-heading>span{min-width:18px;text-align:center;font-weight:800;color:#c7c1e9}
+.person-row{box-sizing:border-box}
+.camera-dock{border-color:#2c2e3a}
+.camera-dock-head{box-sizing:border-box}
+.camera-dock-head>span{overflow:hidden}
+.camera-dock-head small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.camera-dock-list{overscroll-behavior-inline:contain}
+.camera-dock-card{box-sizing:border-box}
+.camera-dock-card>span{min-width:0}
+.camera-overlay{
+  max-height:calc(100dvh - 48px);
+  border-color:#ffffff38;
+  box-shadow:0 24px 70px #000c;
+}
+.camera-overlay>span{
+  max-width:calc(100% - 88px);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.camera-overlay-actions{z-index:3}
+
+.watch-heading{min-height:45px}
+.watch-heading>div{min-width:0}
+.watch-heading h1{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer-share-options select,.viewer-share-options button{
+  min-height:40px;
+  box-sizing:border-box;
+}
+.viewer-share-options select{padding-right:26px}
+.viewer-foot{gap:18px}
+.viewer-foot span{min-width:0}
+.viewer-foot span:last-child{text-align:right}
+
+.stats-drawer{box-sizing:border-box}
+.stats-grid{align-items:stretch}
+.stat{min-width:0}
+.stat strong{overflow-wrap:anywhere}
+.toast-error{
+  box-sizing:border-box;
+  bottom:max(18px,env(safe-area-inset-bottom));
+}
+.toast-error button{color:inherit}
+
+.name-modal form{box-shadow:0 32px 100px #000b}
+.name-modal input{box-sizing:border-box;font-size:16px}
+.name-modal-actions button{min-width:0}
+
+/* Loading/error states should look like the same product. */
+.app-loading,.app-crash{box-sizing:border-box}
+.app-loading b{letter-spacing:.01em}
+.app-crash>div{box-sizing:border-box}
+
+/* Medium desktop/tablet: prevent cards from looking offset when the side column drops. */
+@media(min-width:721px) and (max-width:1100px){
+  .studio-main.collaborative-layout,
+  .watch-area.collaborative-layout{
+    width:min(100% - 32px,var(--lc-room-max));
+  }
+  .studio-main.collaborative-layout .studio-side{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+  }
+  .studio-main.collaborative-layout .studio-side>*{min-width:0}
+  .people-sidebar{align-self:stretch}
+}
+
+/* Short desktop windows used by laptops: keep the hero and preview from colliding vertically. */
+@media(min-width:1101px) and (max-height:820px){
+  .home-nav{height:84px}
+  .home-content{
+    min-height:calc(100dvh - 132px);
+    padding-top:28px;
+    padding-bottom:78px;
+  }
+  .home-content h1{font-size:clamp(44px,3.8vw,62px);margin-top:18px;margin-bottom:16px}
+  .home-content .lede{margin-bottom:22px;font-size:14px}
+  .home-primary-action{min-height:78px;padding-top:13px;padding-bottom:13px}
+  .home-viewer-toggle{min-height:80px;padding-top:13px;padding-bottom:13px}
+  .home-content .benefit-row{margin-top:22px}
+  .home-visual.product-preview{width:min(51vw,860px)}
+  .home-shell>footer{bottom:12px;padding-top:12px}
+}
+
+/* Mobile pass: remove the remaining squeeze/overflow cases. */
+@media(max-width:760px){
+  .home-shell{overflow-x:hidden}
+  .home-nav,.how-v2-nav{width:100%}
+  .home-shell>footer{
+    width:100%;
+    left:auto;
+    right:auto;
+    transform:none;
+  }
+  .home-action-copy strong,.home-action-copy small{white-space:normal}
+  .home-viewer-form{margin-left:16px;margin-right:16px}
+  .home-viewer-action.expanded .home-viewer-form{margin-bottom:16px}
+  .home-viewer-action .room-code-error{margin-left:16px!important;margin-right:16px!important}
+  .home-content .benefit-row{align-items:center}
+
+  .how-v2-live-foot{justify-content:center}
+  .how-v2-live-foot span{white-space:nowrap}
+  .how-v2-section-heading{margin-bottom:24px}
+  .how-v2-step-grid article{min-height:0}
+  .how-v2-tech-list article{min-height:0}
+  .how-v2-faq-list summary{min-height:64px;padding:8px 0}
+
+  .studio-nav,.viewer-nav{
+    grid-template-columns:auto minmax(0,1fr) auto;
+    column-gap:8px;
+  }
+  .studio-nav>.brand,.viewer-nav>.brand{max-width:142px}
+  .room-head,.viewer-room{justify-self:center;max-width:100%}
+  .nav-status,.viewer-nav-actions{justify-self:end}
+  .studio-main.collaborative-layout,
+  .watch-area.collaborative-layout{
+    width:100%;
+    padding:10px;
+    margin:0;
+  }
+  .room-stage{width:100%}
+  .stage-placeholder,.video-empty{padding:18px 12px}
+  .studio-side{gap:9px}
+  .side-card,.connection-card{width:100%}
+  .people-sidebar,.people-sidebar.open{width:100%}
+  .people-list{padding-right:0}
+  .camera-dock-list{scroll-padding-inline:8px}
+  .camera-overlay,.camera-overlay.large{
+    max-height:calc(100dvh - 90px - env(safe-area-inset-bottom));
+    border-radius:13px;
+  }
+  .camera-overlay.large{top:68px}
+  .watch-heading button{flex:none}
+  .viewer-share-options{align-items:stretch}
+  .viewer-foot{
+    min-height:44px;
+    height:auto;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    flex-wrap:wrap;
+  }
+  .viewer-foot span:last-child{text-align:left}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat.wide{grid-column:span 2}
+  .toast-error{
+    left:10px;
+    right:10px;
+    width:auto;
+    max-width:none;
+    transform:none;
+  }
+}
+
+@media(max-width:520px){
+  .studio-nav .brand>span:last-child,
+  .viewer-nav .brand>span:last-child{display:none}
+  .studio-nav>.brand,.viewer-nav>.brand{width:34px}
+  .room-head span,.viewer-room span{font-size:8px}
+  .room-head b,.viewer-room b{max-width:112px}
+  .viewer-nav-actions>span{font-size:11px}
+  .home-content h1{overflow-wrap:normal}
+  .home-primary-action,.home-viewer-toggle{padding-left:14px;padding-right:14px}
+  .home-action-copy strong{font-size:15px}
+  .home-action-copy small{font-size:10px;line-height:1.4}
+  .home-content .benefit-row{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .home-content .benefit-row span{
+    border-right:0;
+    padding:0!important;
+    justify-content:flex-start;
+  }
+  .how-v2-nav .brand>span:last-child{display:none}
+  .how-v2-nav .brand{width:40px}
+  .how-v2-live-head{padding:0 14px}
+  .how-v2-live-foot{align-items:flex-start;flex-direction:column;gap:8px}
+  .how-v2-cta h2{font-size:21px}
+  .control-dock,.control-dock.collaborative-controls{grid-template-columns:1fr}
+  .go-live,.stop-live{grid-column:auto}
+  .viewer-share-options{grid-template-columns:1fr 1fr}
+  .viewer-share-options select{grid-column:1/-1}
+  .stats-grid{grid-template-columns:1fr}
+  .stat.wide{grid-column:auto}
+  .name-modal-actions{flex-direction:column-reverse}
+}
+
+@media(max-width:380px){
+  .home-shell{padding-left:14px;padding-right:14px}
+  .home-nav{height:68px}
+  .home-nav .brand>span:last-child{display:none}
+  .home-nav .brand{width:40px}
+  .home-content{padding-top:42px}
+  .home-content h1{font-size:38px}
+  .home-nav .secure-note{width:38px;height:38px}
+  .how-v2-nav{padding-left:14px;padding-right:14px}
+  .studio-nav,.viewer-nav{padding-left:8px;padding-right:8px}
+  .room-head b,.viewer-room b{max-width:96px;font-size:10px}
+  .people-heading>b{display:none}
+}
+
+/* Respect OS motion preferences for launch-grade accessibility. */
+@media(prefers-reduced-motion:reduce){
+  *,*:before,*:after{
+    scroll-behavior:auto!important;
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}
