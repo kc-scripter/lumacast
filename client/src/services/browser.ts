@@ -1,3 +1,15 @@
+export function safeSessionGet(key:string){
+  try{return sessionStorage.getItem(key);}catch{return null;}
+}
+
+export function safeSessionSet(key:string,value:string){
+  try{sessionStorage.setItem(key,value);return true;}catch{return false;}
+}
+
+export function safeSessionRemove(key:string){
+  try{sessionStorage.removeItem(key);}catch{}
+}
+
 export async function copyText(value:string){
   if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);return;}
   const input=document.createElement("textarea");
