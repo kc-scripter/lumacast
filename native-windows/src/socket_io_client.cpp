@@ -475,15 +475,20 @@ bool SocketIoClient::ConnectPolling() {
 
     std::string handshake;
     DWORD status = 0;
-    if (!HttpGet(PollingPath(false), handshake, status) ||
-        status != 200 ||
-        handshake.empty() ||
-        handshake[0] != '0') {
+    const bool handshakeOk = HttpGet(PollingPath(false), handshake, status);
+    if (!handshakeOk || status != 200 || handshake.empty() || handshake[0] != '0') {
         SocketEvent event;
         event.type = SocketEventType::Error;
-        event.error = status == 0
-            ? L"Não foi possível conectar ao servidor."
-            : L"O servidor recusou a conexão.";
+
+        if (!handshakeOk) {
+            event.error = ErrorMessage(L"Falha HTTP no signaling", GetLastError());
+        } else if (status != 200) {
+            event.error = L"Signaling respondeu HTTP " + std::to_wstring(status) + L".";
+        } else {
+            const std::string prefix = handshake.substr(0, std::min<size_t>(handshake.size(), 96));
+            event.error = L"Resposta inválida do signaling: " + Utf8ToWide(prefix);
+        }
+
         Notify(std::move(event));
         return false;
     }
