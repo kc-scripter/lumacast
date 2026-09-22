@@ -81,10 +81,15 @@ public:
 
 private:
     void Run();
-    bool ConnectWebSocket();
-    void ReceiveLoop();
-    bool ReceiveMessage(std::string& message);
+    bool ConnectPolling();
+    void PollLoop();
+
+    bool HttpGet(std::wstring_view path, std::string& body, DWORD& statusCode);
+    bool HttpPost(std::wstring_view path, std::string_view body, DWORD& statusCode);
+    std::wstring PollingPath(bool includeSession) const;
+
     bool SendText(std::string_view text);
+    void HandlePayload(std::string_view payload);
     void HandlePacket(std::string_view packet);
     void HandleSocketEventPacket(std::string_view packet);
     void HandleAckPacket(std::string_view packet);
@@ -97,13 +102,15 @@ private:
     std::atomic<bool> running_{false};
     std::atomic<bool> connected_{false};
     std::atomic<int> nextAckId_{1};
+    std::atomic<unsigned long long> requestCounter_{1};
 
     std::mutex sendMutex_;
     std::mutex handleMutex_;
 
+    std::string sessionId_;
     HINTERNET session_ = nullptr;
     HINTERNET connection_ = nullptr;
-    HINTERNET webSocket_ = nullptr;
+    HINTERNET activePollRequest_ = nullptr;
 };
 
 } // namespace lunira
