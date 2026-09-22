@@ -3,6 +3,7 @@ project(LuniraScreenNative LANGUAGES CXX)
 
 add_executable(LuniraScreen WIN32
   src/main.cpp
+  src/socket_io_client.cpp
 )
 
 target_compile_features(LuniraScreen PRIVATE cxx_std_20)
@@ -36,4 +37,5 @@ target_link_libraries(LuniraScreen PRIVATE
   d2d1
   dwrite
   dwmapi
+  winhttp
 )
