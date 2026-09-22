@@ -32,6 +32,7 @@ configure_file(
 
 add_executable(LuniraScreen WIN32
   src/main.cpp
+  src/ui_layout.cpp
   src/socket_io_client.cpp
   src/livekit_media_client.cpp
   src/camera_capture.cpp
