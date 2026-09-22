@@ -5,14 +5,14 @@
 namespace lunira::ui {
 
 struct Tokens {
-    static constexpr float Sidebar = 288.0f;
-    static constexpr float Outer = 24.0f;
-    static constexpr float Gap = 16.0f;
+    static constexpr float Sidebar = 272.0f;
+    static constexpr float Outer = 20.0f;
+    static constexpr float Gap = 14.0f;
     static constexpr float SmallGap = 10.0f;
-    static constexpr float HeaderHeight = 56.0f;
-    static constexpr float ControlDockHeight = 82.0f;
-    static constexpr float CameraCollapsed = 44.0f;
-    static constexpr float CameraExpanded = 148.0f;
+    static constexpr float HeaderHeight = 52.0f;
+    static constexpr float ControlDockHeight = 86.0f;
+    static constexpr float CameraCollapsed = 42.0f;
+    static constexpr float CameraExpanded = 130.0f;
     static constexpr float RadiusSmall = 10.0f;
     static constexpr float Radius = 14.0f;
     static constexpr float RadiusLarge = 20.0f;

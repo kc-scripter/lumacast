@@ -49,33 +49,31 @@ HomeLayout MakeHomeLayout(float width, float height) noexcept {
     HomeLayout layout;
     layout.sidebar = Rect(0.0f, 0.0f, Tokens::Sidebar, height);
     layout.content = Rect(
-        Tokens::Sidebar + Tokens::Outer,
-        Tokens::Outer,
-        width - Tokens::Outer,
-        height - Tokens::Outer);
+        Tokens::Sidebar + 28.0f,
+        26.0f,
+        width - 28.0f,
+        height - 26.0f);
 
     const float contentWidth = Width(layout.content);
-    const float formWidth = std::clamp(contentWidth * 0.35f, 360.0f, 430.0f);
-    const float topHeight = std::clamp(
-        Height(layout.content) * 0.47f,
-        300.0f,
-        360.0f);
+    const float contentHeight = Height(layout.content);
+    const float formWidth = std::clamp(contentWidth * 0.36f, 370.0f, 440.0f);
+    const float topHeight = std::clamp(contentHeight * 0.48f, 330.0f, 382.0f);
 
     layout.hero = Rect(
         layout.content.left,
         layout.content.top,
-        layout.content.right - formWidth - Tokens::Gap,
+        layout.content.right - formWidth - 22.0f,
         layout.content.top + topHeight);
 
     layout.form = Rect(
-        layout.hero.right + Tokens::Gap,
+        layout.hero.right + 22.0f,
         layout.content.top,
         layout.content.right,
         layout.content.top + topHeight);
 
     layout.preview = Rect(
         layout.content.left,
-        layout.content.top + topHeight + Tokens::Gap,
+        layout.content.top + topHeight + 18.0f,
         layout.content.right,
         layout.content.bottom);
 
@@ -93,18 +91,14 @@ RoomLayout MakeRoomLayout(
     layout.sidebar = Rect(0.0f, 0.0f, Tokens::Sidebar, height);
 
     if (focused) {
-        layout.screen = Rect(
-            Tokens::Sidebar + 16.0f,
-            16.0f,
-            width - 16.0f,
-            height - 16.0f);
+        layout.screen = Rect(14.0f, 14.0f, width - 14.0f, height - 14.0f);
         return layout;
     }
 
     const float left = Tokens::Sidebar + Tokens::Outer;
     const float right = width - Tokens::Outer;
-    const float top = Tokens::Outer;
-    const float bottom = height - Tokens::Outer;
+    const float top = 18.0f;
+    const float bottom = height - 18.0f;
 
     layout.header = Rect(
         left,
@@ -118,25 +112,43 @@ RoomLayout MakeRoomLayout(
         right,
         bottom);
 
-    const float expanded = hasCameras
-        ? Tokens::CameraExpanded
-        : 78.0f;
-    const float cameraHeight = Lerp(
-        Tokens::CameraCollapsed,
-        expanded,
-        cameraReveal);
+    float cameraHeight = 0.0f;
+    if (hasCameras) {
+        cameraHeight = Lerp(
+            Tokens::CameraCollapsed,
+            Tokens::CameraExpanded,
+            cameraReveal);
+        layout.cameras = Rect(
+            left,
+            layout.controls.top - Tokens::Gap - cameraHeight,
+            right,
+            layout.controls.top - Tokens::Gap);
+    }
 
-    layout.cameras = Rect(
-        left,
-        layout.controls.top - Tokens::Gap - cameraHeight,
-        right,
-        layout.controls.top - Tokens::Gap);
+    const float stageTop = layout.header.bottom + 12.0f;
+    const float stageBottom = hasCameras
+        ? layout.cameras.top - 12.0f
+        : layout.controls.top - 14.0f;
 
+    const D2D1_RECT_F stageRegion = Rect(left, stageTop, right, stageBottom);
+    const float regionWidth = Width(stageRegion);
+    const float regionHeight = Height(stageRegion);
+    constexpr float aspect = 16.0f / 9.0f;
+
+    float screenWidth = regionWidth;
+    float screenHeight = screenWidth / aspect;
+    if (screenHeight > regionHeight) {
+        screenHeight = regionHeight;
+        screenWidth = screenHeight * aspect;
+    }
+
+    const float cx = (stageRegion.left + stageRegion.right) * 0.5f;
+    const float cy = (stageRegion.top + stageRegion.bottom) * 0.5f;
     layout.screen = Rect(
-        left,
-        layout.header.bottom + 12.0f,
-        right,
-        layout.cameras.top - 12.0f);
+        cx - screenWidth * 0.5f,
+        cy - screenHeight * 0.5f,
+        cx + screenWidth * 0.5f,
+        cy + screenHeight * 0.5f);
 
     return layout;
 }
