@@ -37,14 +37,26 @@ struct SignalProbe {
     std::condition_variable cv;
     bool connected = false;
     bool failed = false;
+    std::wstring error;
     std::optional<lunira::SocketEvent> ack;
 
     void OnEvent(lunira::SocketEvent event) {
         std::scoped_lock lock(mutex);
         if (event.type == lunira::SocketEventType::Connected) connected = true;
         else if (event.type == lunira::SocketEventType::Ack) ack = std::move(event);
-        else if (event.type == lunira::SocketEventType::Error) failed = true;
+        else if (event.type == lunira::SocketEventType::Error) {
+            failed = true;
+            error = std::move(event.error);
+        }
         cv.notify_all();
+    }
+
+    void Reset() {
+        std::scoped_lock lock(mutex);
+        connected = false;
+        failed = false;
+        error.clear();
+        ack.reset();
     }
 
     bool WaitConnected(std::chrono::seconds timeout) {
@@ -102,6 +114,40 @@ struct MediaProbe {
     }
 };
 
+bool ConnectSignal(
+    lunira::SocketIoClient& client,
+    SignalProbe& probe,
+    std::string_view label) {
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        probe.Reset();
+
+        const bool started = client.Start(
+            [&probe](lunira::SocketEvent event) {
+                probe.OnEvent(std::move(event));
+            });
+
+        if (started && probe.WaitConnected(40s)) {
+            std::cout << label << " signaling: ok (attempt " << attempt << ")\n";
+            return true;
+        }
+
+        std::wstring error;
+        {
+            std::scoped_lock lock(probe.mutex);
+            error = probe.error;
+        }
+
+        client.Stop();
+        std::cerr << label << " signaling attempt " << attempt << " failed";
+        if (!error.empty()) std::cerr << ": " << WideToUtf8(error);
+        std::cerr << "\n";
+
+        if (attempt < 3) std::this_thread::sleep_for(5s);
+    }
+
+    return false;
+}
+
 std::optional<lunira::SocketEvent> RequestLiveKitToken(
     lunira::SocketIoClient& client,
     SignalProbe& probe,
@@ -123,9 +169,7 @@ int main() {
     SignalProbe ownerProbe;
     SignalProbe viewerProbe;
 
-    if (!ownerSignal.Start([&](lunira::SocketEvent event) { ownerProbe.OnEvent(std::move(event)); }) ||
-        !ownerProbe.WaitConnected(40s)) {
-        std::cerr << "owner signaling connect failed\n";
+    if (!ConnectSignal(ownerSignal, ownerProbe, "owner")) {
         return 1;
     }
 
@@ -156,9 +200,7 @@ int main() {
         return 2;
     }
 
-    if (!viewerSignal.Start([&](lunira::SocketEvent event) { viewerProbe.OnEvent(std::move(event)); }) ||
-        !viewerProbe.WaitConnected(20s)) {
-        std::cerr << "viewer signaling connect failed\n";
+    if (!ConnectSignal(viewerSignal, viewerProbe, "viewer")) {
         ownerSignal.Stop();
         return 3;
     }
