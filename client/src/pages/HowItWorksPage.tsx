@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+import { navigate } from "../services/navigation";
 
 const steps=[
   {
@@ -50,7 +51,7 @@ export function HowItWorksPage(){
       <Logo/>
       <div className="how-v2-nav-actions">
         <span className="how-v2-secure"><LockKeyhole/>Conexão protegida</span>
-        <button type="button" className="how-back" onClick={()=>location.assign("/")}><ArrowLeft/>Voltar ao início</button>
+        <button type="button" className="how-back" onClick={()=>navigate("/")}><ArrowLeft/>Voltar ao início</button>
       </div>
     </header>
 
@@ -60,7 +61,7 @@ export function HowItWorksPage(){
         <h1>Você compartilha.<br/><em>O LumaCast cuida do resto.</em></h1>
         <p>Crie uma sala, mande o código e comece quando quiser. Por trás da interface, o LumaCast separa tela, áudio, câmeras e estado da sala para manter tudo sincronizado em tempo real.</p>
         <div className="how-v2-hero-actions">
-          <button type="button" className="how-v2-primary" onClick={()=>location.assign("/")}><MonitorPlay/>Criar uma sala<ArrowRight/></button>
+          <button type="button" className="how-v2-primary" onClick={()=>navigate("/")}><MonitorPlay/>Criar uma sala<ArrowRight/></button>
           <span><ShieldCheck/>Sem instalação e sem cadastro</span>
         </div>
       </div>
@@ -205,12 +206,12 @@ export function HowItWorksPage(){
         <h2>Crie uma sala. O resto acontece em segundos.</h2>
         <p>Escolha seu nome, copie o código e comece a compartilhar.</p>
       </div>
-      <button type="button" onClick={()=>location.assign("/")}>Começar agora <ArrowRight/></button>
+      <button type="button" onClick={()=>navigate("/")}>Começar agora <ArrowRight/></button>
     </section>
 
     <footer className="how-footer how-v2-footer">
       <span>© {new Date().getFullYear()} LumaCast</span>
-      <button type="button" onClick={()=>location.assign("/")}><ArrowLeft/>Voltar ao início</button>
+      <button type="button" onClick={()=>navigate("/")}><ArrowLeft/>Voltar ao início</button>
     </footer>
   </main>;
 }
