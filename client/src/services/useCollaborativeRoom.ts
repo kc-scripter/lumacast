@@ -1,5 +1,5 @@
 import AgoraRTC,{type IAgoraRTCClient,type IAgoraRTCRemoteUser,type ILocalAudioTrack,type ILocalVideoTrack} from "agora-rtc-sdk-ng";
-import { Room,RoomEvent,Track,type RemoteTrack,type RemoteTrackPublication } from "livekit-client";
+import { Room,RoomEvent,Track,type Participant,type RemoteTrack,type RemoteTrackPublication,type TrackPublication,type TrackPublishOptions,type VideoCaptureOptions } from "livekit-client";
 import { useCallback,useEffect,useRef,useState } from "react";
 import { connectSocket } from "./socket";
 import { displayConstraints,readAgoraStats } from "./webrtc";
@@ -19,11 +19,23 @@ const captureConstraints=(quality:Quality,settings:MediaTrackSettings):ExtendedM
   const size=videoSize(quality,settings);
   return{width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:60,max:60}};
 };
+const cameraPresetConfig=(preset:CameraPreset)=>preset==="480p60"
+  ?{width:854,height:480,fps:60,maxBitrate:1_200_000}
+  :{width:1280,height:720,fps:40,maxBitrate:1_800_000};
+const cameraCaptureOptions=(preset:CameraPreset):VideoCaptureOptions=>{
+  const {width,height,fps}=cameraPresetConfig(preset);
+  return{resolution:{width,height},frameRate:{ideal:fps,max:fps}};
+};
+const cameraPublishOptions=(preset:CameraPreset):TrackPublishOptions=>{
+  const {fps,maxBitrate}=cameraPresetConfig(preset);
+  return{source:Track.Source.Camera,simulcast:true,degradationPreference:"maintain-framerate",videoEncoding:{maxBitrate,maxFramerate:fps,priority:"high"}};
+};
 
 export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
-  const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
+  const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),cameraPresetRef=useRef<CameraPreset>("720p40"),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
   const startingRef=useRef(false),fallbackPromiseRef=useRef<Promise<boolean>|null>(null),screenAudioBusyRef=useRef(false),screenAudioMutedRef=useRef(false);
-  const [roomId,setRoomId]=useState(requestedRoomId||""),[credentials,setCredentials]=useState<AgoraCredentials|null>(null),[roomState,setRoomState]=useState<RoomState>(initial),[ready,setReady]=useState(false),[status,setStatus]=useState("Conectando"),[error,setError]=useState(""),[stats,setStats]=useState<StreamStats|null>(null),[cameras,setCameras]=useState<Camera[]>([]),[cameraOn,setCameraOn]=useState(false),[cameraPreset,setCameraPreset]=useState<CameraPreset>("720p40"),[switching,setSwitching]=useState(false),[muted,setMuted]=useState(false),[localScreenActive,setLocalScreenActive]=useState(false);
+  const [roomId,setRoomId]=useState(requestedRoomId||""),[credentials,setCredentials]=useState<AgoraCredentials|null>(null),[roomState,setRoomState]=useState<RoomState>(initial),[ready,setReady]=useState(false),[status,setStatus]=useState("Conectando"),[error,setError]=useState(""),[stats,setStats]=useState<StreamStats|null>(null),[cameras,setCameras]=useState<Camera[]>([]),[cameraOn,setCameraOn]=useState(false),[cameraPreset,setCameraPresetState]=useState<CameraPreset>("720p40"),[switching,setSwitching]=useState(false),[muted,setMuted]=useState(false),[localScreenActive,setLocalScreenActive]=useState(false);
+  const setCameraPreset=useCallback((preset:CameraPreset)=>{cameraPresetRef.current=preset;setCameraPresetState(preset);},[]);
   const updateState=useCallback((next:Partial<RoomState>)=>{stateRef.current={...stateRef.current,...next};setRoomState(stateRef.current);},[]);
   const putCamera=useCallback((camera:Camera)=>setCameras(current=>[...current.filter(item=>item.identity!==camera.identity),camera]),[]);
   const removeCamera=useCallback((identity:string)=>setCameras(current=>current.filter(item=>item.identity!==identity)),[]);
@@ -95,14 +107,24 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         livekitAudioRef.current.get(publication.trackSid)?.remove();
         livekitAudioRef.current.delete(publication.trackSid);
       };
+      const onTrackMuted=(publication:TrackPublication,participant:Participant)=>{
+        if(publication.source===Track.Source.Camera&&participant.identity!==socketIdRef.current)removeCamera(participant.identity);
+      };
+      const onTrackUnmuted=(publication:TrackPublication,participant:Participant)=>{
+        const media=publication.track?.mediaStreamTrack;
+        if(publication.source===Track.Source.Camera&&participant.identity!==socketIdRef.current&&valid(media))putCamera({identity:participant.identity,track:media,local:false});
+      };
       room.on(RoomEvent.TrackSubscribed,onSubscribed);
       room.on(RoomEvent.TrackUnsubscribed,onUnsubscribed);
+      room.on(RoomEvent.TrackMuted,onTrackMuted);
+      room.on(RoomEvent.TrackUnmuted,onTrackUnmuted);
+      room.on(RoomEvent.TrackUnpublished,(publication,participant)=>{if(publication.source===Track.Source.Camera)removeCamera(participant.identity);});
       room.on(RoomEvent.ParticipantDisconnected,participant=>removeCamera(participant.identity));
       try{
         await room.connect(ack.livekitUrl,ack.livekitToken);
         livekitRef.current=room;
         if(cameraRef.current&&!valid(cameraRef.current)){cameraRef.current=null;setCameraOn(false);removeCamera(socketIdRef.current);}
-        if(valid(cameraRef.current))await room.localParticipant.publishTrack(cameraRef.current!,{source:Track.Source.Camera});
+        if(valid(cameraRef.current))await room.localParticipant.publishTrack(cameraRef.current!,cameraPublishOptions(cameraPresetRef.current));
         if(stateRef.current.activeScreenSharerId===socketIdRef.current){
           for(const track of screenLivekitTracksRef.current.filter(valid)){
             if(track.kind==="video"&&stateRef.current.screenProvider!=="livekit")continue;
@@ -273,23 +295,30 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     try{
       const room=await ensureLivekit();
       if(cameraOn){
-        await room.localParticipant.setCameraEnabled(false);
+        const track=cameraRef.current;
         cameraRef.current=null;
         removeCamera(socketIdRef.current);
         setCameraOn(false);
+        if(track){
+          try{await room.localParticipant.unpublishTrack(track,true);}
+          catch{await room.localParticipant.setCameraEnabled(false);}
+        }else await room.localParticipant.setCameraEnabled(false);
       }else{
-        const width=cameraPreset==="480p60"?854:1280,height=cameraPreset==="480p60"?480:720,fps=cameraPreset==="480p60"?60:40;
-        const publication=await room.localParticipant.setCameraEnabled(true,{resolution:{width,height},frameRate:{ideal:fps,max:fps}});
+        const preset=cameraPresetRef.current,{fps}=cameraPresetConfig(preset);
+        const publication=await room.localParticipant.setCameraEnabled(true,cameraCaptureOptions(preset),cameraPublishOptions(preset));
         const track=publication?.track?.mediaStreamTrack;
         if(!valid(track))throw new Error("A câmera não forneceu vídeo ativo.");
+        const settings=track.getSettings();
+        console.info("LumaCast camera preset",{preset,requested:cameraPresetConfig(preset),actual:{width:settings.width,height:settings.height,frameRate:settings.frameRate}});
+        if(settings.frameRate&&settings.frameRate<fps-5)console.warn(`Camera limitada pelo dispositivo/navegador a ${Math.round(settings.frameRate)} FPS (solicitado ${fps}).`);
         cameraRef.current=track;
         putCamera({identity:socketIdRef.current,track,local:true});
         setCameraOn(true);
         track.addEventListener("ended",()=>{if(cameraRef.current===track){cameraRef.current=null;removeCamera(socketIdRef.current);setCameraOn(false);connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:screenLivekitTracksRef.current.some(item=>item.kind==="audio"&&valid(item))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});}},{once:true});
       }
       connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:!cameraOn||screenLivekitTracksRef.current.some(track=>track.kind==="audio"&&valid(track))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});
-    }catch(cause){console.error("LiveKit camera error",cause);setError("Não foi possível ativar a câmera.");}
-  },[cameraOn,cameraPreset,ensureLivekit,putCamera,removeCamera]);
+    }catch(cause){console.error("LiveKit camera error",cause);setError(cameraOn?"Não foi possível desativar a câmera.":"Não foi possível ativar a câmera.");}
+  },[cameraOn,ensureLivekit,putCamera,removeCamera]);
   const toggleScreenAudio=useCallback(async()=>{
     if(screenAudioBusyRef.current)return;
     const source=streamRef.current?.getAudioTracks().find(valid);
