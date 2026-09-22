@@ -1,0 +1,54 @@
+name: Windows Desktop Check
+
+on:
+  pull_request:
+    paths:
+      - "desktop/**"
+      - ".github/workflows/windows-desktop.yml"
+      - ".github/workflows/windows-desktop-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      LUNIRA_WEB_URL: https://example.invalid
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Package Windows installer
+        working-directory: desktop
+        run: npm run dist -- --x64
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "desktop/release/*.exe" -ErrorAction SilentlyContinue
+          if (-not $files) {
+            throw "electron-builder não gerou nenhum .exe."
+          }
+          $files | ForEach-Object {
+            Write-Host "$($_.Name) - $([math]::Round($_.Length / 1MB, 2)) MB"
+          }
+
+      - name: Upload test installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lunira-Screen-Windows-PR
+          path: desktop/release/*.exe
+          if-no-files-found: error
+          retention-days: 7
