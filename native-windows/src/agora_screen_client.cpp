@@ -11,13 +11,13 @@ namespace {
 void EnsureAgoraLogDirectory() {
     wchar_t localAppData[MAX_PATH]{};
     const DWORD localLength = GetEnvironmentVariableW(
-        L"LOCALAPPDATA", localAppData, static_cast<DWORD>(std::size(localAppData)));
-    if (localLength == 0 || localLength >= std::size(localAppData)) return;
+        L"LOCALAPPDATA", localAppData, MAX_PATH);
+    if (localLength == 0 || localLength >= MAX_PATH) return;
 
     wchar_t exePath[MAX_PATH]{};
     const DWORD exeLength = GetModuleFileNameW(
-        nullptr, exePath, static_cast<DWORD>(std::size(exePath)));
-    if (exeLength == 0 || exeLength >= std::size(exePath)) return;
+        nullptr, exePath, MAX_PATH);
+    if (exeLength == 0 || exeLength >= MAX_PATH) return;
 
     std::wstring exeName(exePath, exeLength);
     const size_t slash = exeName.find_last_of(L"\\/");
