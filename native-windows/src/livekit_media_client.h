@@ -45,6 +45,14 @@ public:
 
     bool IsConnected() const noexcept;
 
+    bool StartLocalCamera(int width, int height);
+    bool PushLocalCameraFrame(
+        const std::uint8_t* bgra,
+        size_t bytes,
+        int width,
+        int height);
+    void StopLocalCamera();
+
 private:
     void ConnectWorker(std::wstring url, std::wstring token);
     void Notify(MediaEvent event);
@@ -72,6 +80,11 @@ private:
     std::atomic<bool> stopping_{false};
     std::atomic<bool> connected_{false};
     bool initialized_ = false;
+
+    std::shared_ptr<livekit::VideoSource> localCameraSource_;
+    std::shared_ptr<livekit::LocalVideoTrack> localCameraTrack_;
+    int localCameraWidth_ = 0;
+    int localCameraHeight_ = 0;
 };
 
 } // namespace lunira
