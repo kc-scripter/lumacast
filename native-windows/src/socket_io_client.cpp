@@ -430,7 +430,7 @@ bool SocketIoClient::ConnectWebSocket() {
         return false;
     }
 
-    WinHttpSetTimeouts(session_, 8000, 8000, 8000, 0);
+    WinHttpSetTimeouts(session_, 10000, 30000, 30000, 0);
 
     connection_ = WinHttpConnect(
         session_,
@@ -463,11 +463,10 @@ bool SocketIoClient::ConnectWebSocket() {
         return false;
     }
 
-    const DWORD upgrade = 0;
     if (!WinHttpSetOption(
             request,
             WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET,
-            const_cast<DWORD*>(&upgrade),
+            nullptr,
             0)) {
         const DWORD error = GetLastError();
         WinHttpCloseHandle(request);
