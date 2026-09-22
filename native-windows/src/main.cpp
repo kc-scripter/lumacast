@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 
 #include <algorithm>
+#include <cstring>
 #include <array>
 #include <string>
 #include <string_view>
