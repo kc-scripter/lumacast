@@ -629,3 +629,164 @@
   margin-left:0!important;
   margin-right:0!important;
 }
+
+
+/* Home desktop composition v3 — one shared grid for perfect column alignment. */
+@media(min-width:1101px){
+  .home-shell{
+    display:grid!important;
+    grid-template-columns:minmax(460px,.88fr) minmax(0,1.12fr);
+    grid-template-rows:112px minmax(0,1fr) 72px;
+    column-gap:clamp(38px,4.2vw,82px);
+    min-height:100vh;
+    min-height:100dvh;
+    padding-left:clamp(48px,5.2vw,92px)!important;
+    padding-right:clamp(48px,5.2vw,92px)!important;
+    overflow:hidden!important;
+    background:
+      radial-gradient(ellipse at 15% 8%,#7049ff1e 0,transparent 31%),
+      radial-gradient(ellipse at 78% 45%,#5d43d51a 0,transparent 35%),
+      radial-gradient(ellipse at 56% 108%,#d866c40b 0,transparent 34%),
+      linear-gradient(180deg,#0b0c15 0%,#090a11 58%,#090a10 100%)!important;
+  }
+
+  .home-shell>.home-nav{
+    grid-column:1/-1;
+    grid-row:1;
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+    align-self:stretch;
+  }
+
+  .home-shell>.home-content{
+    grid-column:1;
+    grid-row:2;
+    width:100%!important;
+    max-width:650px;
+    min-height:0!important;
+    margin:0;
+    padding:clamp(24px,4vh,52px) 0!important;
+    align-self:center;
+    justify-self:start;
+  }
+
+  .home-shell>.home-visual-zone{
+    grid-column:2;
+    grid-row:2;
+    position:relative!important;
+    inset:auto!important;
+    top:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    left:auto!important;
+    width:100%!important;
+    max-width:980px;
+    margin:0!important;
+    transform:none!important;
+    align-self:center;
+    justify-self:end;
+  }
+
+  .home-shell>.home-visual-zone .home-visual.product-preview{
+    position:relative!important;
+    inset:auto!important;
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    transform:none!important;
+  }
+
+  .home-shell>footer{
+    grid-column:1/-1;
+    grid-row:3;
+    position:relative!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:100%;
+    margin:0!important;
+    padding:18px 0 0!important;
+    align-self:start;
+  }
+
+  /* Lock all important left/right edges to the same grid lines. */
+  .home-nav>.brand,
+  .home-content>.eyebrow,
+  .home-content>h1,
+  .home-content>.lede,
+  .home-content>.home-action-stack,
+  .home-content>.benefit-row{
+    margin-left:0!important;
+  }
+  .home-nav-links{
+    margin-right:0!important;
+  }
+
+  /* Slightly calmer background texture; depth comes from fixed light fields, not noise. */
+  .home-ambient::before{
+    background-image:
+      linear-gradient(#ffffff08 1px,transparent 1px),
+      linear-gradient(90deg,#ffffff07 1px,transparent 1px);
+    background-size:128px 128px;
+    mask-image:radial-gradient(ellipse at 60% 48%,#000 0 26%,transparent 76%);
+    opacity:.10!important;
+  }
+  .home-ambient::after{
+    content:"";
+    position:absolute;
+    inset:10% 5% 12%;
+    background:
+      linear-gradient(115deg,transparent 28%,#8e72ff08 48%,transparent 68%),
+      radial-gradient(ellipse at 72% 48%,#8b6cff0a 0,transparent 44%);
+    filter:blur(12px);
+    opacity:.9;
+  }
+  .home-ambient>i:nth-child(1){
+    left:-190px;
+    top:13%;
+    background:#7f52ff12;
+  }
+  .home-ambient>i:nth-child(2){
+    right:4%;
+    top:12%;
+    background:#7657ff12;
+  }
+  .home-ambient>i:nth-child(3){
+    right:20%;
+    bottom:-180px;
+    background:#d65bb40a;
+  }
+}
+
+/* Keep the same grid balanced on shorter desktop windows. */
+@media(min-width:1101px) and (max-height:760px){
+  .home-shell{
+    grid-template-rows:88px minmax(0,1fr) 54px;
+  }
+  .home-shell>.home-content{
+    padding:14px 0!important;
+  }
+  .home-shell>.home-content h1{
+    margin-top:16px;
+    margin-bottom:16px;
+    font-size:clamp(44px,4vw,66px);
+  }
+  .home-shell>.home-content .lede{
+    margin-bottom:22px;
+    line-height:1.55;
+  }
+  .home-shell>.home-content .home-primary-action{
+    min-height:78px;
+  }
+  .home-shell>.home-content .home-viewer-toggle{
+    min-height:82px;
+  }
+  .home-shell>.home-content .benefit-row{
+    margin-top:20px;
+  }
+  .home-shell>footer{
+    padding-top:12px!important;
+  }
+}
