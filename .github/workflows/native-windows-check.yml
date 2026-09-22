@@ -83,6 +83,60 @@ jobs:
             }
           }
 
+      - name: Agora loader diagnostics
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $release = Resolve-Path "native-windows/build/Release"
+          $sdkRoot = Resolve-Path "native-windows/build/_deps/agora-sdk/Agora_Native_SDK_for_Windows_FULL/sdk/x86_64"
+
+          Write-Host "=== Agora SDK DLL inventory ==="
+          Get-ChildItem "$sdkRoot/*.dll" |
+            Sort-Object Name |
+            ForEach-Object { Write-Host ("SDK_DLL {0} {1}" -f $_.Name, $_.Length) }
+
+          Write-Host "=== Release DLL inventory ==="
+          Get-ChildItem "$release/*.dll" |
+            Sort-Object Name |
+            ForEach-Object { Write-Host ("RELEASE_DLL {0} {1}" -f $_.Name, $_.Length) }
+
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+
+          if (-not $dumpbin) {
+            throw "dumpbin.exe não encontrado no runner."
+          }
+
+          Write-Host "DUMPBIN $($dumpbin.FullName)"
+          @(
+            "LuniraAgoraRoundtrip.exe",
+            "agora_rtc_sdk.dll",
+            "libaosl.dll",
+            "libagora_screen_capture_extension.dll",
+            "libagora-wgc.dll",
+            "libagora_video_encoder_extension.dll",
+            "video_enc.dll",
+            "video_dec.dll"
+          ) | ForEach-Object {
+            $path = Join-Path $release $_
+            if (Test-Path $path) {
+              Write-Host "=== DEPENDENTS $_ ==="
+              & $dumpbin.FullName /nologo /dependents $path
+            } else {
+              Write-Host "MISSING_RELEASE $_"
+            }
+          }
+
+          Write-Host "=== Direct loader probe ==="
+          & "$release/LuniraAgoraRoundtrip.exe"
+          $code = [int32]$LASTEXITCODE
+          $hex = [BitConverter]::ToUInt32([BitConverter]::GetBytes($code), 0)
+          Write-Host ("AGORA_ROUNDTRIP_EXIT decimal={0} hex=0x{1:X8}" -f $code, $hex)
+          exit 0
+
       - name: Cross-compatible camera roundtrip
         shell: pwsh
         run: |
@@ -103,7 +157,10 @@ jobs:
           }
 
           & "native-windows/build/Release/LuniraAgoraRoundtrip.exe"
-          if ($LASTEXITCODE -ne 0) {
+          $agoraExit = [int32]$LASTEXITCODE
+          $agoraHex = [BitConverter]::ToUInt32([BitConverter]::GetBytes($agoraExit), 0)
+          Write-Host ("Agora roundtrip exit code: {0} (0x{1:X8})" -f $agoraExit, $agoraHex)
+          if ($agoraExit -ne 0) {
             throw "Falhou o fluxo real: token do backend -> fonte sintética Agora -> pixels no receptor nativo."
           }
 
