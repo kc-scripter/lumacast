@@ -32,13 +32,29 @@ const cameraPublishOptions=(preset:CameraPreset):TrackPublishOptions=>{
 };
 
 export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
-  const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),cameraPresetRef=useRef<CameraPreset>("720p40"),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
+  const videoRef=useRef<HTMLVideoElement>(null),streamRef=useRef<MediaStream|null>(null),subscriberRef=useRef<IAgoraRTCClient|null>(null),screenClientRef=useRef<IAgoraRTCClient|null>(null),screenTracksRef=useRef<(ILocalVideoTrack|ILocalAudioTrack)[]>([]),livekitRef=useRef<Room|null>(null),livekitPromiseRef=useRef<Promise<Room>|null>(null),livekitAudioRef=useRef<Map<string,HTMLMediaElement>>(new Map()),screenLivekitTracksRef=useRef<MediaStreamTrack[]>([]),credentialsRef=useRef<AgoraCredentials|null>(null),screenCredentialsRef=useRef<AgoraCredentials|null>(null),roomIdRef=useRef(requestedRoomId||""),stateRef=useRef<RoomState>(initial),cameraRef=useRef<MediaStreamTrack|null>(null),cameraPresetRef=useRef<CameraPreset>("720p40"),cameraRestartingRef=useRef(false),cameraPresetSwitchRef=useRef<Promise<void>|null>(null),fallbackTimerRef=useRef<ReturnType<typeof setTimeout>|null>(null),publishingRef=useRef(false),stoppingRef=useRef(false),socketIdRef=useRef(""),screenConfigRef=useRef<{quality:Quality;fps:FrameRate}>({quality:"1080p",fps:30});
   const startingRef=useRef(false),fallbackPromiseRef=useRef<Promise<boolean>|null>(null),screenAudioBusyRef=useRef(false),screenAudioMutedRef=useRef(false);
   const [roomId,setRoomId]=useState(requestedRoomId||""),[credentials,setCredentials]=useState<AgoraCredentials|null>(null),[roomState,setRoomState]=useState<RoomState>(initial),[ready,setReady]=useState(false),[status,setStatus]=useState("Conectando"),[error,setError]=useState(""),[stats,setStats]=useState<StreamStats|null>(null),[cameras,setCameras]=useState<Camera[]>([]),[cameraOn,setCameraOn]=useState(false),[cameraPreset,setCameraPresetState]=useState<CameraPreset>("720p40"),[switching,setSwitching]=useState(false),[muted,setMuted]=useState(false),[localScreenActive,setLocalScreenActive]=useState(false);
-  const setCameraPreset=useCallback((preset:CameraPreset)=>{cameraPresetRef.current=preset;setCameraPresetState(preset);},[]);
   const updateState=useCallback((next:Partial<RoomState>)=>{stateRef.current={...stateRef.current,...next};setRoomState(stateRef.current);},[]);
   const putCamera=useCallback((camera:Camera)=>setCameras(current=>[...current.filter(item=>item.identity!==camera.identity),camera]),[]);
   const removeCamera=useCallback((identity:string)=>setCameras(current=>current.filter(item=>item.identity!==identity)),[]);
+  const bindCameraTrack=useCallback((track:MediaStreamTrack,preset:CameraPreset)=>{
+    const {fps}=cameraPresetConfig(preset),settings=track.getSettings();
+    cameraRef.current=track;
+    putCamera({identity:socketIdRef.current,track,local:true});
+    setCameraOn(true);
+    console.info("LumaCast camera preset",{preset,requested:cameraPresetConfig(preset),actual:{width:settings.width,height:settings.height,frameRate:settings.frameRate}});
+    if(settings.frameRate&&settings.frameRate<fps-5)console.warn(`Camera limitada pelo dispositivo/navegador a ${Math.round(settings.frameRate)} FPS (solicitado ${fps}).`);
+    track.addEventListener("ended",()=>{
+      if(cameraRestartingRef.current)return;
+      if(cameraRef.current===track){
+        cameraRef.current=null;
+        removeCamera(socketIdRef.current);
+        setCameraOn(false);
+        connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:screenLivekitTracksRef.current.some(item=>item.kind==="audio"&&valid(item))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});
+      }
+    },{once:true});
+  },[putCamera,removeCamera]);
   const clearVideo=useCallback(()=>{if(videoRef.current)videoRef.current.srcObject=null;setStats(null);},[]);
   const showVideo=useCallback((track:MediaStreamTrack)=>{if(!videoRef.current)return;videoRef.current.srcObject=new MediaStream([track]);void videoRef.current.play().catch(()=>undefined);},[]);
   const renew=useCallback(async(client:IAgoraRTCClient,screen=false)=>{const ack=await emitAck<TokenAck>("renew-agora-token",{roomId:roomIdRef.current,screen});if(!ack.ok||!ack.agoraToken)throw new Error(ack.error||"Token Agora inválido.");await client.renewToken(ack.agoraToken);},[]);
@@ -124,7 +140,17 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
         await room.connect(ack.livekitUrl,ack.livekitToken);
         livekitRef.current=room;
         if(cameraRef.current&&!valid(cameraRef.current)){cameraRef.current=null;setCameraOn(false);removeCamera(socketIdRef.current);}
-        if(valid(cameraRef.current))await room.localParticipant.publishTrack(cameraRef.current!,cameraPublishOptions(cameraPresetRef.current));
+        if(valid(cameraRef.current)){
+          const preset=cameraPresetRef.current,previousTrack=cameraRef.current;
+          cameraRestartingRef.current=true;
+          try{
+            previousTrack.stop();
+            const cameraPublication=await room.localParticipant.setCameraEnabled(true,cameraCaptureOptions(preset),cameraPublishOptions(preset));
+            const nextCameraTrack=cameraPublication?.track?.mediaStreamTrack;
+            if(!valid(nextCameraTrack))throw new Error("A câmera não forneceu vídeo ativo após a reconexão.");
+            bindCameraTrack(nextCameraTrack,preset);
+          }finally{cameraRestartingRef.current=false;}
+        }
         if(stateRef.current.activeScreenSharerId===socketIdRef.current){
           for(const track of screenLivekitTracksRef.current.filter(valid)){
             if(track.kind==="video"&&stateRef.current.screenProvider!=="livekit")continue;
@@ -140,7 +166,56 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     })();
     livekitPromiseRef.current=pending;
     try{return await pending;}finally{if(livekitPromiseRef.current===pending)livekitPromiseRef.current=null;}
-  },[clearVideo,putCamera,removeCamera,showVideo]);
+  },[bindCameraTrack,clearVideo,putCamera,removeCamera,showVideo]);
+  const applyCameraPreset=useCallback(async()=>{
+    if(cameraPresetSwitchRef.current)return cameraPresetSwitchRef.current;
+    const pending=(async()=>{
+      while(valid(cameraRef.current)){
+        const preset=cameraPresetRef.current,room=livekitRef.current;
+        if(!room||room.state==="disconnected")return;
+        const publication=room.localParticipant.getTrackPublication(Track.Source.Camera);
+        const localTrack=publication?.videoTrack;
+        if(!localTrack)return;
+        cameraRestartingRef.current=true;
+        try{
+          // LiveKit 2.22.x recomputes sender encodings during restartTrack using publishOptions.
+          // Updating both before restart keeps the same publication while applying the new
+          // resolution/FPS/bitrate profile to capture and encoder.
+          localTrack.publishOptions=cameraPublishOptions(preset);
+          await localTrack.restartTrack(cameraCaptureOptions(preset));
+          const nextTrack=localTrack.mediaStreamTrack;
+          if(!valid(nextTrack))throw new Error("A câmera não forneceu vídeo após trocar o preset.");
+          bindCameraTrack(nextTrack,preset);
+          setError("");
+        }catch(cause){
+          console.warn("LiveKit seamless camera preset switch failed; recreating camera track",cause);
+          try{
+            const currentPublication=room.localParticipant.getTrackPublication(Track.Source.Camera);
+            if(currentPublication?.track)await room.localParticipant.unpublishTrack(currentPublication.track,true);
+            const recreated=await room.localParticipant.setCameraEnabled(true,cameraCaptureOptions(preset),cameraPublishOptions(preset));
+            const nextTrack=recreated?.track?.mediaStreamTrack;
+            if(!valid(nextTrack))throw new Error("A câmera não forneceu vídeo após recriar a faixa.");
+            bindCameraTrack(nextTrack,preset);
+            setError("");
+          }catch(fallbackCause){
+            console.error("LiveKit camera preset fallback failed",fallbackCause);
+            setError("Não foi possível trocar a qualidade da câmera.");
+            return;
+          }
+        }finally{
+          cameraRestartingRef.current=false;
+        }
+        if(cameraPresetRef.current===preset)break;
+      }
+    })();
+    cameraPresetSwitchRef.current=pending;
+    try{await pending;}finally{if(cameraPresetSwitchRef.current===pending)cameraPresetSwitchRef.current=null;}
+  },[bindCameraTrack]);
+  const setCameraPreset=useCallback((preset:CameraPreset)=>{
+    cameraPresetRef.current=preset;
+    setCameraPresetState(preset);
+    if(valid(cameraRef.current))void applyCameraPreset();
+  },[applyCameraPreset]);
   const publishScreenAudioLivekit=useCallback(async(stream:MediaStream)=>{
     const audio=stream.getAudioTracks().find(valid);
     if(!audio)return false;
@@ -293,32 +368,30 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
   },[tuneAgoraSender]);
   const toggleCamera=useCallback(async()=>{
     try{
+      if(cameraPresetSwitchRef.current)await cameraPresetSwitchRef.current;
       const room=await ensureLivekit();
       if(cameraOn){
         const track=cameraRef.current;
+        cameraRestartingRef.current=true;
         cameraRef.current=null;
         removeCamera(socketIdRef.current);
         setCameraOn(false);
-        if(track){
-          try{await room.localParticipant.unpublishTrack(track,true);}
-          catch{await room.localParticipant.setCameraEnabled(false);}
-        }else await room.localParticipant.setCameraEnabled(false);
+        try{
+          if(track){
+            try{await room.localParticipant.unpublishTrack(track,true);}
+            catch{await room.localParticipant.setCameraEnabled(false);}
+          }else await room.localParticipant.setCameraEnabled(false);
+        }finally{cameraRestartingRef.current=false;}
       }else{
-        const preset=cameraPresetRef.current,{fps}=cameraPresetConfig(preset);
+        const preset=cameraPresetRef.current;
         const publication=await room.localParticipant.setCameraEnabled(true,cameraCaptureOptions(preset),cameraPublishOptions(preset));
         const track=publication?.track?.mediaStreamTrack;
         if(!valid(track))throw new Error("A câmera não forneceu vídeo ativo.");
-        const settings=track.getSettings();
-        console.info("LumaCast camera preset",{preset,requested:cameraPresetConfig(preset),actual:{width:settings.width,height:settings.height,frameRate:settings.frameRate}});
-        if(settings.frameRate&&settings.frameRate<fps-5)console.warn(`Camera limitada pelo dispositivo/navegador a ${Math.round(settings.frameRate)} FPS (solicitado ${fps}).`);
-        cameraRef.current=track;
-        putCamera({identity:socketIdRef.current,track,local:true});
-        setCameraOn(true);
-        track.addEventListener("ended",()=>{if(cameraRef.current===track){cameraRef.current=null;removeCamera(socketIdRef.current);setCameraOn(false);connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:screenLivekitTracksRef.current.some(item=>item.kind==="audio"&&valid(item))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});}},{once:true});
+        bindCameraTrack(track,preset);
       }
       connectSocket().emit("livekit-media-active",{roomId:roomIdRef.current,active:!cameraOn||screenLivekitTracksRef.current.some(track=>track.kind==="audio"&&valid(track))||!!streamRef.current&&stateRef.current.screenProvider==="livekit"});
     }catch(cause){console.error("LiveKit camera error",cause);setError(cameraOn?"Não foi possível desativar a câmera.":"Não foi possível ativar a câmera.");}
-  },[cameraOn,ensureLivekit,putCamera,removeCamera]);
+  },[bindCameraTrack,cameraOn,ensureLivekit,removeCamera]);
   const toggleScreenAudio=useCallback(async()=>{
     if(screenAudioBusyRef.current)return;
     const source=streamRef.current?.getAudioTracks().find(valid);
