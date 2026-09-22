@@ -205,12 +205,35 @@ void AgoraScreenClient::onJoinChannelSuccess(const char*, agora::rtc::uid_t, int
     Notify({AgoraEventType::Connected});
 }
 
+void AgoraScreenClient::onError(int err, const char* msg) {
+    AgoraEvent event;
+    event.type = AgoraEventType::Error;
+    event.error = L"Agora SDK " + std::to_wstring(err);
+    if (msg && *msg) {
+        event.error += L": " + Utf8ToWide(msg);
+    }
+    event.code = err;
+    Notify(std::move(event));
+}
+
 void AgoraScreenClient::onConnectionStateChanged(
     agora::rtc::CONNECTION_STATE_TYPE state,
     agora::rtc::CONNECTION_CHANGED_REASON_TYPE reason) {
+    AgoraEvent diagnostic;
+    diagnostic.type = AgoraEventType::ConnectionState;
+    diagnostic.code = static_cast<int>(state);
+    diagnostic.detail = static_cast<int>(reason);
+    Notify(std::move(diagnostic));
+
     if (state == agora::rtc::CONNECTION_STATE_FAILED) {
-        Notify({AgoraEventType::Error, 0, 0, {},
-            L"A conexão Agora falhou (" + std::to_wstring(static_cast<int>(reason)) + L")."});
+        AgoraEvent error;
+        error.type = AgoraEventType::Error;
+        error.error = L"A conexão Agora falhou (estado " +
+            std::to_wstring(static_cast<int>(state)) + L", motivo " +
+            std::to_wstring(static_cast<int>(reason)) + L").";
+        error.code = static_cast<int>(state);
+        error.detail = static_cast<int>(reason);
+        Notify(std::move(error));
     } else if (state == agora::rtc::CONNECTION_STATE_DISCONNECTED && !stopping_.load()) {
         Notify({AgoraEventType::Disconnected});
     }
