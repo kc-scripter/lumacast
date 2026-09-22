@@ -7,5 +7,6 @@ import "./collaboration.css";
 import "./product.css";
 import "./performance.css";
 import "./launch-polish.css";
+import "./release-finish.css";
 import "./mobile-compat.css";
 createRoot(document.getElementById("root")!).render(<StrictMode><ErrorBoundary><App/></ErrorBoundary></StrictMode>);
