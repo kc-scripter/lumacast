@@ -45,7 +45,7 @@ app.use((_req,res,next)=>{
   next();
 });
 app.use(cors(corsOptions));
-app.use(rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",legacyHeaders:false}));
+app.use("/api",rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",legacyHeaders:false}));
 app.get("/api/health",(_req,res)=>{
   const issues=runtimeIssues();
   res.setHeader("Cache-Control","no-store");
