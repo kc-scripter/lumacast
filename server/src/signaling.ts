@@ -9,7 +9,19 @@ const reply=(ack:unknown,payload:Record<string,unknown>)=>{if(typeof ack==="func
 const limiter=new Map<string,{start:number;count:number}>();
 const limiterCleanup=setInterval(()=>{const cutoff=Date.now()-120_000;for(const [key,value] of limiter)if(value.start<cutoff)limiter.delete(key);},60_000);
 limiterCleanup.unref();
-function allowed(socket:Socket,limit=140,windowMs=10_000,scope="general"){const now=Date.now(),key=`${scope}:${socket.handshake.address}`;let entry=limiter.get(key);if(!entry||now-entry.start>windowMs)entry={start:now,count:0};entry.count++;limiter.set(key,entry);return entry.count<=limit;}
+const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS||0);
+const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:0;
+const maxParticipantsRaw=Number(process.env.MAX_ROOM_PARTICIPANTS||50);
+const maxParticipants=Number.isInteger(maxParticipantsRaw)&&maxParticipantsRaw>=1&&maxParticipantsRaw<=500?maxParticipantsRaw:50;
+function rateAddress(socket:Socket){
+  if(proxyHops<=0)return socket.handshake.address;
+  const raw=socket.handshake.headers["x-forwarded-for"];
+  const value=Array.isArray(raw)?raw.join(","):raw;
+  const forwarded=value?.split(",").map(item=>item.trim()).filter(Boolean)||[];
+  if(!forwarded.length)return socket.handshake.address;
+  return forwarded[Math.max(0,forwarded.length-proxyHops)]||socket.handshake.address;
+}
+function allowed(socket:Socket,limit=140,windowMs=10_000,scope="general"){const now=Date.now(),key=`${scope}:${rateAddress(socket)}`;let entry=limiter.get(key);if(!entry||now-entry.start>windowMs)entry={start:now,count:0};entry.count++;limiter.set(key,entry);return entry.count<=limit;}
 const livekitActive=(room:Room)=>room.ownerLivekitActive||[...room.participants.values()].some(p=>p.livekitActive)||room.live&&room.screenProvider==="livekit";
 const state=(room:Room)=>({live:room.live,count:room.participants.size,activeScreenSharerId:room.activeScreenSharerId,activeScreenUid:room.activeScreenUid,activeScreenSharerName:room.activeScreenSharerId===room.ownerId?room.ownerName:room.participants.get(room.activeScreenSharerId||"")?.displayName||null,screenProvider:room.screenProvider,livekitActive:livekitActive(room),ownerName:room.ownerName,participants:[{id:room.ownerId,displayName:room.ownerName},...[...room.participants.values()].map(p=>({id:p.socketId,displayName:p.displayName}))]});
 
@@ -51,6 +63,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
         const old=reconnectToken?[...room.participants.values()].find(p=>secretMatches(reconnectToken,p.tokenHash)):undefined;
         let participant=room.participants.get(socket.id);
         if(!participant){
+          if(!old&&room.participants.size>=maxParticipants)return reply(ack,{ok:false,error:"Esta sala atingiu o limite de participantes."});
           if(old){
             if(old.disconnectTimer)clearTimeout(old.disconnectTimer);
             room.participants.delete(old.socketId);
