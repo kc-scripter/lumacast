@@ -1,13 +1,114 @@
 /* Lunira Screen brand refresh and readability pass. Imported last. */
-.brand{gap:10px}
-.brand-name{display:inline-flex;align-items:baseline;gap:5px;color:#f0eef6;font-family:Manrope,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.035em;white-space:nowrap}
-.brand-name>span{color:#9c7cff}
+/* Global logo lockup: isolated from page-level button styles. */
+.brand{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  min-height:40px;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:inherit;
+  text-decoration:none!important;
+  line-height:1;
+  flex:none;
+}
+.brand-mark{
+  position:relative;
+  width:38px!important;
+  height:38px!important;
+  flex:0 0 38px;
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden;
+  border:1px solid #9b86ff33!important;
+  border-radius:12px!important;
+  background:
+    radial-gradient(circle at 28% 20%,#c1b4ff55 0,transparent 28%),
+    linear-gradient(145deg,#8b69ff 0%,#714ff0 56%,#5d3cda 100%)!important;
+  box-shadow:
+    0 8px 22px #5f42db30,
+    inset 0 1px #ffffff3d!important;
+}
+.brand-mark::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:10px;
+  border:1px solid #ffffff12;
+  pointer-events:none;
+}
+.brand-mark svg{
+  position:relative;
+  z-index:1;
+  width:19px!important;
+  height:19px!important;
+  stroke-width:2.15;
+  color:#fff;
+  filter:drop-shadow(0 1px 2px #24126755);
+}
+.brand-mark>i{
+  position:absolute;
+  top:7px;
+  right:7px;
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:#ddd6ff;
+  box-shadow:0 0 8px #ffffff99;
+  opacity:.9;
+}
+.brand-mark-small{
+  width:28px!important;
+  height:28px!important;
+  flex-basis:28px;
+  border-radius:8px!important;
+}
+.brand-mark-small::before{border-radius:7px}
+.brand-mark-small svg{width:14px!important;height:14px!important}
+.brand-mark-small>i{top:5px;right:5px;width:3px;height:3px}
+
+.brand-name{
+  display:inline-flex!important;
+  align-items:baseline!important;
+  gap:4px!important;
+  margin:0!important;
+  padding:0!important;
+  transform:none!important;
+  color:#f2eff8!important;
+  font-family:Manrope,sans-serif!important;
+  font-size:20px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  letter-spacing:-.035em!important;
+  white-space:nowrap;
+}
+.brand-name-main{color:#f4f1fa}
+.brand-name-accent{
+  color:#9d7fff!important;
+  text-shadow:0 0 18px #7756ff22;
+}
+@media(hover:hover){
+  .brand:hover .brand-mark{
+    transform:translateY(-1px);
+    box-shadow:0 10px 26px #5f42db3b,inset 0 1px #ffffff48!important;
+  }
+}
+@media(max-width:520px){
+  .brand{gap:8px!important}
+  .brand-mark{width:36px!important;height:36px!important;flex-basis:36px}
+  .brand-name{font-size:18px!important}
+}
+
 
 .room-product-preview{overflow:hidden;border:1px solid #554078;border-radius:20px;background:#0c0e14;box-shadow:0 34px 95px #0008,0 0 70px #7155ff0c;color:#eff0f5}
 .rpp-browser{height:31px;padding:0 14px;border-bottom:1px solid #222531;background:#10121a;display:flex;align-items:center;gap:6px}
 .rpp-browser i{width:7px;height:7px;border-radius:50%}.rpp-browser i:nth-child(1){background:#ff5264}.rpp-browser i:nth-child(2){background:#ffc241}.rpp-browser i:nth-child(3){background:#28c768}
 .rpp-appbar{height:55px;padding:0 14px;border-bottom:1px solid #222531;background:#0f1118;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.rpp-brand{display:flex;align-items:center;gap:8px;min-width:0}.rpp-brand>span{width:28px;height:28px;border-radius:8px;background:linear-gradient(145deg,#8b68ff,#6544e9);color:white;display:grid;place-items:center;flex:none}.rpp-brand svg{width:14px;height:14px}.rpp-brand b{font:800 10px Manrope;white-space:nowrap}.rpp-brand em{font-style:normal;color:#a88cff}
+.rpp-brand{display:flex;align-items:center;gap:8px;min-width:0}.rpp-brand b{font:800 10px Manrope;white-space:nowrap}.rpp-brand em{font-style:normal;color:#a88cff}
 .rpp-statuses{display:flex;align-items:center;gap:6px;min-width:0}.rpp-statuses>span{height:25px;padding:0 8px;border:1px solid #2c2f3c;border-radius:999px;background:#12141b;color:#b8bbc8;display:flex;align-items:center;gap:5px;font-size:7px;font-weight:700;white-space:nowrap}.rpp-statuses i{width:5px;height:5px;border-radius:50%;background:#7b7f90}.rpp-statuses .rpp-online i{background:#45dda2;box-shadow:0 0 0 3px #45dda212}.rpp-statuses svg{width:10px;height:10px}.rpp-statuses .rpp-avatar{width:28px;padding:0;border-radius:8px;border-color:#3c3154;background:#241b38;color:#c5b0ff;justify-content:center}
 .rpp-workspace{min-height:430px;padding:10px;background:#090b10;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:10px}
 .rpp-stage-card{min-width:0;overflow:hidden;border:1px solid #292c38;border-radius:13px;background:#0e1016;display:grid;grid-template-rows:62px minmax(0,1fr)}

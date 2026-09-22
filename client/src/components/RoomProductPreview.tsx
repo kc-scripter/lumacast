@@ -1,3 +1,4 @@
+import { BrandMark } from "./Logo";
 import {
   BarChart3,
   ChevronDown,
@@ -18,7 +19,7 @@ export function RoomProductPreview({className="",compact=false}:Props){
   return <aside className={`room-product-preview ${compact?"compact":""} ${className}`.trim()} aria-label="Prévia ilustrativa da interface atual da sala Lunira Screen">
     <div className="rpp-browser" aria-hidden="true"><i/><i/><i/></div>
     <div className="rpp-appbar">
-      <div className="rpp-brand"><span><MonitorUp/></span><b>Lunira <em>Screen</em></b></div>
+      <div className="rpp-brand"><BrandMark small/><b>Lunira <em>Screen</em></b></div>
       <div className="rpp-statuses">
         <span className="rpp-ready"><i/>PRONTO</span>
         <span className="rpp-online"><i/>Conectado</span>
