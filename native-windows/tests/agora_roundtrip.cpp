@@ -118,17 +118,30 @@ struct VideoProbe {
     int height = 0;
     size_t bytes = 0;
     std::wstring error;
+    int lastState = -1;
+    int lastReason = -1;
+    int sdkError = 0;
 
     void OnEvent(lunira::AgoraEvent event) {
         std::scoped_lock lock(mutex);
         if (event.type == lunira::AgoraEventType::Connected) connected = true;
-        else if (event.type == lunira::AgoraEventType::ScreenFrame) {
+        else if (event.type == lunira::AgoraEventType::ConnectionState) {
+            lastState = event.code;
+            lastReason = event.detail;
+            std::cerr << "Agora receiver state=" << lastState
+                      << " reason=" << lastReason << "\n";
+        } else if (event.type == lunira::AgoraEventType::ScreenFrame) {
             width = event.width;
             height = event.height;
             bytes = event.bgra.size();
         } else if (event.type == lunira::AgoraEventType::Error) {
             failed = true;
+            sdkError = event.code;
+            lastReason = event.detail;
             error = std::move(event.error);
+            std::cerr << "Agora receiver error code=" << sdkError
+                      << " reason=" << lastReason
+                      << " message=" << WideToUtf8(error) << "\n";
         }
         cv.notify_all();
     }
@@ -152,22 +165,51 @@ public:
         cv.notify_all();
     }
     void onConnectionStateChanged(agora::rtc::CONNECTION_STATE_TYPE state,
-                                  agora::rtc::CONNECTION_CHANGED_REASON_TYPE) override {
+                                  agora::rtc::CONNECTION_CHANGED_REASON_TYPE reason) override {
+        std::scoped_lock lock(mutex);
+        lastState = static_cast<int>(state);
+        lastReason = static_cast<int>(reason);
+        std::cerr << "Agora publisher state=" << lastState
+                  << " reason=" << lastReason << "\n";
         if (state == agora::rtc::CONNECTION_STATE_FAILED) {
-            std::scoped_lock lock(mutex);
             failed = true;
-            cv.notify_all();
         }
+        cv.notify_all();
+    }
+
+    void onError(int err, const char* msg) override {
+        std::scoped_lock lock(mutex);
+        sdkError = err;
+        errorMessage = msg ? msg : "";
+        std::cerr << "Agora publisher error=" << err;
+        if (msg && *msg) std::cerr << " message=" << msg;
+        std::cerr << "\n";
+        failed = true;
+        cv.notify_all();
     }
     bool Wait() {
         std::unique_lock lock(mutex);
         return cv.wait_for(lock, 20s, [&] { return joined || failed; }) && joined;
     }
+
+    void PrintFinal() {
+        std::scoped_lock lock(mutex);
+        std::cerr << "Agora publisher final state=" << lastState
+                  << " reason=" << lastReason
+                  << " sdkError=" << sdkError;
+        if (!errorMessage.empty()) std::cerr << " message=" << errorMessage;
+        std::cerr << "\n";
+    }
+
 private:
     std::mutex mutex;
     std::condition_variable cv;
     bool joined = false;
     bool failed = false;
+    int lastState = -1;
+    int lastReason = -1;
+    int sdkError = 0;
+    std::string errorMessage;
 };
 
 int PublishSynthetic(const lunira::AgoraCredentials& credentials) {
@@ -208,8 +250,15 @@ int PublishSynthetic(const lunira::AgoraCredentials& credentials) {
     options.publishCameraTrack = false;
     options.publishCustomVideoTrack = true;
     options.customVideoTrackId = 0;
-    if (engine->joinChannel(token.c_str(), channel.c_str(), credentials.uid, options) != 0 ||
-        !handler.Wait()) {
+    const int joinResult =
+        engine->joinChannel(token.c_str(), channel.c_str(), credentials.uid, options);
+    std::cerr << "Agora publisher joinChannel return=" << joinResult
+              << " uid=" << credentials.uid
+              << " channel=" << channel
+              << " appIdLen=" << appId.size()
+              << " tokenLen=" << token.size() << "\n";
+    if (joinResult != 0 || !handler.Wait()) {
+        handler.PrintFinal();
         media->release();
         agora::rtc::IRtcEngine::release(nullptr);
         return 24;
@@ -253,7 +302,7 @@ int RunPublisherProcess(const lunira::AgoraCredentials& credentials) {
     STARTUPINFOW startup{sizeof(startup)};
     PROCESS_INFORMATION process{};
     if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE,
-            CREATE_NO_WINDOW, nullptr, nullptr, &startup, &process)) return -1;
+            0, nullptr, nullptr, &startup, &process)) return -1;
     WaitForSingleObject(process.hProcess, 30000);
     DWORD exitCode = 99;
     GetExitCodeProcess(process.hProcess, &exitCode);
@@ -345,7 +394,10 @@ int main(int argc, char** argv) {
     if (!receiver.StartViewer(receiverCredentials,
             [&](lunira::AgoraEvent event) { videoProbe.OnEvent(std::move(event)); }) ||
         !videoProbe.WaitConnected()) {
-        std::cerr << "Agora receiver failed: " << WideToUtf8(videoProbe.error) << "\n";
+        std::cerr << "Agora receiver failed: " << WideToUtf8(videoProbe.error)
+                  << " state=" << videoProbe.lastState
+                  << " reason=" << videoProbe.lastReason
+                  << " sdkError=" << videoProbe.sdkError << "\n";
         return 6;
     }
 
