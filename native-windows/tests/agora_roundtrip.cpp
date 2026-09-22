@@ -313,6 +313,10 @@ int RunPublisherProcess(const lunira::AgoraCredentials& credentials) {
 } // namespace
 
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "--loader-probe") {
+        return 0;
+    }
+
     if (argc == 6 && std::string_view(argv[1]) == "--publish") {
         lunira::AgoraCredentials credentials;
         credentials.appId = Utf8ToWide(argv[2]);
