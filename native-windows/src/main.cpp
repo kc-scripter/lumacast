@@ -9,6 +9,7 @@
 
 #include "socket_io_client.h"
 #include "livekit_media_client.h"
+#include "camera_capture.h"
 
 #include <algorithm>
 #include <atomic>
@@ -262,6 +263,7 @@ private:
             }
             break;
         case WM_DESTROY:
+            StopLocalCameraCapture(false);
             media_.Stop();
             socket_.Stop();
             PostQuitMessage(0);
@@ -1597,18 +1599,164 @@ private:
         InvalidateRect(hwnd_, nullptr, FALSE);
     }
 
+    void SetLocalLiveKitMediaActive(bool active) {
+        if (!socket_.IsConnected() || roomCode_.empty()) return;
+        if (livekitMediaAnnounced_ == active) return;
+
+        std::string payload = "{\"roomId\":";
+        payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+        payload += ",\"active\":";
+        payload += active ? "true" : "false";
+        payload += "}";
+
+        if (socket_.Emit("livekit-media-active", payload)) {
+            livekitMediaAnnounced_ = active;
+        }
+    }
+
+    bool StartCachedLiveKitMedia() {
+        if (mediaConnected_ || mediaStarting_) return true;
+        if (cachedLivekitUrl_.empty() || cachedLivekitToken_.empty()) return false;
+
+        mediaStarting_ = true;
+        const bool started = media_.Start(
+            cachedLivekitUrl_,
+            cachedLivekitToken_,
+            [this](lunira::MediaEvent mediaEvent) {
+                QueueMediaEvent(std::move(mediaEvent));
+            });
+
+        if (!started) {
+            mediaStarting_ = false;
+            cachedLivekitUrl_.clear();
+            cachedLivekitToken_.clear();
+            roomNotice_ = L"Não foi possível iniciar a conexão de mídia.";
+            return false;
+        }
+
+        roomNotice_ = L"Conectando câmeras…";
+        return true;
+    }
+
+    void EnsureLiveKitMedia() {
+        if (mediaConnected_ || mediaStarting_) return;
+        if (!socket_.IsConnected() || roomCode_.empty()) return;
+
+        if (StartCachedLiveKitMedia()) return;
+        if (livekitAckId_ >= 0) return;
+
+        std::string payload = "{\"roomId\":";
+        payload += lunira::SocketIoClient::JsonQuote(roomCode_);
+        payload += "}";
+
+        livekitAckId_ = socket_.EmitWithAck("get-livekit-token", payload);
+        if (livekitAckId_ < 0) {
+            roomNotice_ = L"Não foi possível pedir acesso à mídia.";
+            return;
+        }
+
+        roomNotice_ = L"Preparando mídia da sala…";
+    }
+
+    void StartLocalCameraCapture() {
+        if (!mediaConnected_ || cameraCapture_.IsRunning() || cameraOn_) return;
+
+        const std::wstring identity = selfSocketId_;
+        if (identity.empty()) {
+            cameraEnablePending_ = false;
+            roomNotice_ = L"Não foi possível identificar sua sessão para publicar a câmera.";
+            return;
+        }
+
+        cameraPublishFailed_.store(false);
+        cameraEnablePending_ = true;
+        roomNotice_ = L"Abrindo câmera do Windows…";
+
+        const bool started = cameraCapture_.Start(
+            [this, identity](lunira::CapturedCameraFrame frame) {
+                if (frame.width <= 0 || frame.height <= 0 || frame.bgra.empty()) return;
+
+                if (!media_.PushLocalCameraFrame(
+                        frame.bgra.data(),
+                        frame.bgra.size(),
+                        frame.width,
+                        frame.height)) {
+                    if (!cameraPublishFailed_.exchange(true)) {
+                        lunira::MediaEvent error;
+                        error.type = lunira::MediaEventType::CameraError;
+                        error.error = L"Não foi possível publicar a câmera no LiveKit.";
+                        QueueMediaEvent(std::move(error));
+                    }
+                    return;
+                }
+
+                lunira::MediaEvent preview;
+                preview.type = lunira::MediaEventType::CameraFrame;
+                preview.identity = identity;
+                preview.width = frame.width;
+                preview.height = frame.height;
+                preview.bgra = std::move(frame.bgra);
+                QueueMediaEvent(std::move(preview));
+            },
+            [this](std::wstring errorText) {
+                if (!cameraPublishFailed_.exchange(true)) {
+                    lunira::MediaEvent error;
+                    error.type = lunira::MediaEventType::CameraError;
+                    error.error = std::move(errorText);
+                    QueueMediaEvent(std::move(error));
+                }
+            });
+
+        if (!started) {
+            cameraEnablePending_ = false;
+            roomNotice_ = L"Não foi possível abrir a câmera.";
+        }
+    }
+
+    void StopLocalCameraCapture(bool notifyServer = true) {
+        cameraEnablePending_ = false;
+        cameraPublishFailed_.store(false);
+
+        cameraCapture_.Stop();
+        media_.StopLocalCamera();
+
+        cameraOn_ = false;
+        if (!selfSocketId_.empty()) {
+            cameraFrames_.erase(selfSocketId_);
+            if (selectedCameraIdentity_ == selfSocketId_) {
+                selectedCameraIdentity_.clear();
+                cameraOverlayLarge_ = false;
+            }
+        }
+
+        if (notifyServer) {
+            SetLocalLiveKitMediaActive(systemAudioOn_);
+        }
+    }
+
     void HandleMediaEvent(lunira::MediaEvent event) {
         switch (event.type) {
         case lunira::MediaEventType::Connected:
             mediaConnected_ = true;
-            if (roomNotice_ == L"Conectando câmeras…") roomNotice_.clear();
+            mediaStarting_ = false;
+            if (roomNotice_ == L"Conectando câmeras…" ||
+                roomNotice_ == L"Preparando mídia da sala…") {
+                roomNotice_.clear();
+            }
+            if (cameraEnablePending_ && !cameraOn_) {
+                StartLocalCameraCapture();
+            }
             break;
 
         case lunira::MediaEventType::Disconnected:
             mediaConnected_ = false;
+            mediaStarting_ = false;
             cameraFrames_.clear();
             selectedCameraIdentity_.clear();
-            roomNotice_ = L"Conexão de câmeras encerrada.";
+            if (cameraOn_ || cameraEnablePending_) {
+                StopLocalCameraCapture(false);
+                roomNotice_ = L"Conexão de mídia encerrada.";
+            }
             break;
 
         case lunira::MediaEventType::CameraFrame: {
@@ -1621,6 +1769,15 @@ private:
             cache.bgra = std::move(event.bgra);
             cache.dirty = true;
             if (sizeChanged) cache.bitmap.Reset();
+
+            if (!selfSocketId_.empty() &&
+                event.identity == selfSocketId_ &&
+                !cameraOn_) {
+                cameraOn_ = true;
+                cameraEnablePending_ = false;
+                roomNotice_.clear();
+                SetLocalLiveKitMediaActive(true);
+            }
             break;
         }
 
@@ -1632,40 +1789,33 @@ private:
             }
             break;
 
+        case lunira::MediaEventType::CameraError:
+            StopLocalCameraCapture(true);
+            roomNotice_ = event.error.empty()
+                ? L"Não foi possível usar a câmera."
+                : std::move(event.error);
+            break;
+
         case lunira::MediaEventType::Error:
             mediaConnected_ = false;
+            mediaStarting_ = false;
+            cachedLivekitUrl_.clear();
+            cachedLivekitToken_.clear();
+            if (cameraOn_ || cameraEnablePending_) {
+                StopLocalCameraCapture(false);
+            }
             roomNotice_ = event.error.empty()
-                ? L"Não foi possível receber as câmeras."
+                ? L"Não foi possível conectar à mídia da sala."
                 : std::move(event.error);
             break;
         }
-    }
-
-    void RequestLiveKitMedia() {
-        if (!socket_.IsConnected() || roomCode_.empty()) return;
-
-        media_.Stop();
-        mediaConnected_ = false;
-        cameraFrames_.clear();
-        selectedCameraIdentity_.clear();
-
-        std::string payload = "{\"roomId\":";
-        payload += lunira::SocketIoClient::JsonQuote(roomCode_);
-        payload += "}";
-
-        livekitAckId_ = socket_.EmitWithAck("get-livekit-token", payload);
-        if (livekitAckId_ < 0) {
-            roomNotice_ = L"Não foi possível pedir acesso às câmeras.";
-            return;
-        }
-
-        roomNotice_ = L"Conectando câmeras…";
     }
 
     void HandleSocketEvent(const lunira::SocketEvent& event) {
         switch (event.type) {
         case lunira::SocketEventType::Connected:
             networkConnected_ = true;
+            if (!event.socketId.empty()) selfSocketId_ = event.socketId;
             roomNotice_.clear();
             SendPendingRoomRequest();
             break;
@@ -1675,20 +1825,14 @@ private:
                 livekitAckId_ = -1;
                 if (!event.ok || event.livekitUrl.empty() || event.livekitToken.empty()) {
                     roomNotice_ = event.error.empty()
-                        ? L"Não foi possível acessar as câmeras."
+                        ? L"Não foi possível acessar a mídia."
                         : event.error;
                     break;
                 }
 
-                const bool started = media_.Start(
-                    event.livekitUrl,
-                    event.livekitToken,
-                    [this](lunira::MediaEvent mediaEvent) {
-                        QueueMediaEvent(std::move(mediaEvent));
-                    });
-                if (!started) {
-                    roomNotice_ = L"Não foi possível iniciar o receptor de câmeras.";
-                }
+                cachedLivekitUrl_ = event.livekitUrl;
+                cachedLivekitToken_ = event.livekitToken;
+                StartCachedLiveKitMedia();
                 break;
             }
 
@@ -1720,17 +1864,53 @@ private:
             sharing_ = roomState_.live;
             pendingAction_ = PendingAction::None;
             pendingAckId_ = -1;
+            livekitAckId_ = -1;
+            cachedLivekitUrl_.clear();
+            cachedLivekitToken_.clear();
+            livekitMediaAnnounced_ = false;
             homeError_.clear();
             roomNotice_.clear();
             page_ = Page::Room;
             focusedField_ = Field::None;
-            RequestLiveKitMedia();
+
+            if (selfSocketId_.empty()) {
+                if (ownsRoom_ && !roomState_.participants.empty()) {
+                    selfSocketId_ = roomState_.participants.front().id;
+                } else {
+                    for (auto it = roomState_.participants.rbegin();
+                         it != roomState_.participants.rend();
+                         ++it) {
+                        if (it->displayName == displayName_) {
+                            selfSocketId_ = it->id;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (roomState_.livekitActive) {
+                EnsureLiveKitMedia();
+            }
             break;
 
         case lunira::SocketEventType::RoomState:
             roomState_ = event.room;
             sharing_ = roomState_.live;
-            roomNotice_.clear();
+            if (roomState_.livekitActive) {
+                EnsureLiveKitMedia();
+            } else if (!cameraOn_ &&
+                       !cameraEnablePending_ &&
+                       !systemAudioOn_ &&
+                       mediaConnected_) {
+                media_.Stop();
+                mediaConnected_ = false;
+                mediaStarting_ = false;
+                cameraFrames_.clear();
+                selectedCameraIdentity_.clear();
+            }
+            if (roomNotice_ != L"Abrindo câmera do Windows…") {
+                roomNotice_.clear();
+            }
             break;
 
         case lunira::SocketEventType::BroadcastStarted:
@@ -1744,8 +1924,12 @@ private:
             break;
 
         case lunira::SocketEventType::RoomExpired:
+            StopLocalCameraCapture(false);
             media_.Stop();
             mediaConnected_ = false;
+            mediaStarting_ = false;
+            cachedLivekitUrl_.clear();
+            cachedLivekitToken_.clear();
             cameraFrames_.clear();
             roomNotice_.clear();
             homeError_ = L"A sala expirou.";
@@ -1757,6 +1941,15 @@ private:
 
         case lunira::SocketEventType::Disconnected:
             networkConnected_ = false;
+            StopLocalCameraCapture(false);
+            media_.Stop();
+            mediaConnected_ = false;
+            mediaStarting_ = false;
+            livekitAckId_ = -1;
+            cachedLivekitUrl_.clear();
+            cachedLivekitToken_.clear();
+            livekitMediaAnnounced_ = false;
+            selfSocketId_.clear();
             if (page_ == Page::Home) {
                 homeError_ = L"Conexão com o servidor encerrada. Tente novamente.";
             } else {
@@ -1792,8 +1985,10 @@ private:
             focusedField_ = Field::None;
             break;
         case 16:
+            StopLocalCameraCapture(true);
             media_.Stop();
             mediaConnected_ = false;
+            mediaStarting_ = false;
             cameraFrames_.clear();
             page_ = Page::Home;
             focusedField_ = Field::None;
@@ -1845,7 +2040,16 @@ private:
             fps_ = 60;
             break;
         case 6:
-            roomNotice_ = L"Câmera local entra na próxima subetapa.";
+            if (cameraOn_ || cameraCapture_.IsRunning()) {
+                StopLocalCameraCapture(true);
+                roomNotice_.clear();
+            } else {
+                cameraEnablePending_ = true;
+                EnsureLiveKitMedia();
+                if (mediaConnected_) {
+                    StartLocalCameraCapture();
+                }
+            }
             break;
         case 7:
             roomNotice_ = L"Transmissão nativa entra na próxima etapa.";
@@ -1904,8 +2108,17 @@ private:
     lunira::RoomSnapshot roomState_;
     lunira::SocketIoClient socket_;
     lunira::LiveKitMediaClient media_;
+    lunira::CameraCapture cameraCapture_;
     int livekitAckId_ = -1;
     bool mediaConnected_ = false;
+    bool mediaStarting_ = false;
+    bool cameraEnablePending_ = false;
+    bool systemAudioOn_ = false;
+    bool livekitMediaAnnounced_ = false;
+    std::atomic<bool> cameraPublishFailed_{false};
+    std::wstring selfSocketId_;
+    std::wstring cachedLivekitUrl_;
+    std::wstring cachedLivekitToken_;
 
     std::mutex mediaQueueMutex_;
     std::vector<lunira::MediaEvent> pendingMediaEvents_;
