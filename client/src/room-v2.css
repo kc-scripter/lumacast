@@ -328,3 +328,491 @@
     max-width:40vw;
   }
 }
+
+
+/* Room viewport fit — keep the room as a single-screen app, not a scrolling page. */
+.studio-shell,
+.viewer-shell{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100vh;
+  min-height:0!important;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+@supports(height:100dvh){
+  .studio-shell,
+  .viewer-shell{height:100dvh}
+}
+
+.studio-shell>.room-v2-nav,
+.viewer-shell>.room-v2-nav{
+  flex:0 0 68px;
+  min-height:68px;
+  height:68px;
+}
+.studio-shell>.browser-compat-notice,
+.viewer-shell>.browser-compat-notice{
+  flex:0 0 auto;
+  margin-top:8px;
+  margin-bottom:0;
+}
+
+.studio-main.room-v2-layout,
+.watch-area.room-v2-layout{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:hidden;
+  width:min(var(--lc-room-max,1680px),calc(100% - 24px))!important;
+  max-width:var(--lc-room-max,1680px)!important;
+  margin:0 auto!important;
+  padding:12px 0!important;
+  align-items:stretch!important;
+}
+
+.room-v2-layout .studio-stage,
+.room-v2-layout .watch-main{
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+.room-v2-layout .studio-stage{
+  display:flex;
+  flex-direction:column;
+}
+.room-v2-layout .watch-main{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.screen-stage-frame{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.screen-stage-toolbar,
+.screen-stage-meta{
+  flex:none;
+}
+.screen-stage-media{
+  min-height:0;
+  display:flex;
+  overflow:hidden;
+}
+.screen-stage-media>.room-stage{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+}
+.screen-stage-frame .room-stage-screen{
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+}
+.screen-stage-frame .broadcast-screen,
+.screen-stage-frame .video-stage{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%!important;
+  width:100%;
+  aspect-ratio:auto!important;
+  max-height:none!important;
+  margin:0!important;
+}
+.screen-stage-frame .camera-dock{
+  flex:0 0 auto;
+  margin-top:8px;
+}
+.screen-stage-frame .camera-dock-list{
+  max-height:118px;
+}
+
+.room-v2-layout .studio-side{
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr);
+  align-content:start;
+}
+.room-v2-layout .studio-controls-card{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+.room-v2-layout .studio-controls-card .side-controls{
+  flex:1 1 auto;
+  min-height:0;
+  align-content:start;
+}
+.room-v2-layout .side-card{
+  min-height:0;
+}
+
+.viewer-shell>.viewer-foot{
+  flex:0 0 34px;
+  min-height:34px;
+  height:34px;
+  padding-top:0;
+  padding-bottom:0;
+}
+.viewer-shell .watch-main>.screen-stage-frame{
+  flex:1 1 auto;
+  min-height:0;
+}
+.viewer-shell .collaborative-controls,
+.viewer-shell .viewer-share-options,
+.viewer-shell .reconnect-line,
+.viewer-shell .back-home{
+  flex:0 0 auto;
+}
+.viewer-shell .collaborative-controls{
+  margin-top:0!important;
+}
+.viewer-shell .viewer-share-options{
+  margin-top:0!important;
+}
+
+/* Keep two columns on laptop/tablet widths instead of dropping the sidebar below the stage. */
+@media(min-width:761px) and (max-width:1100px){
+  .room-v2-layout{
+    grid-template-columns:minmax(0,1fr) 260px!important;
+  }
+  .room-v2-layout .studio-side{
+    width:260px!important;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    order:initial!important;
+  }
+}
+
+/* Compact vertically on short laptop windows so all controls remain visible. */
+@media(min-width:761px) and (max-height:850px){
+  .studio-shell>.room-v2-nav,
+  .viewer-shell>.room-v2-nav{
+    flex-basis:60px;
+    min-height:60px;
+    height:60px;
+  }
+  .studio-main.room-v2-layout,
+  .watch-area.room-v2-layout{
+    padding:8px 0!important;
+    gap:10px!important;
+  }
+  .screen-stage-toolbar{
+    min-height:58px;
+    padding:8px 11px;
+  }
+  .screen-stage-icon{
+    width:34px;
+    height:34px;
+  }
+  .screen-focus-button{
+    min-height:36px;
+  }
+  .screen-stage-media{
+    padding:8px 8px 0;
+  }
+  .screen-stage-meta{
+    min-height:48px;
+    padding:7px 8px;
+  }
+  .screen-sharer-summary{
+    padding:6px 8px;
+  }
+  .room-v2-layout .studio-side{
+    gap:7px;
+  }
+  .room-v2-layout .side-card{
+    padding:10px 11px;
+  }
+  .room-v2-layout .card-title{
+    gap:8px;
+  }
+  .room-v2-layout .card-title>span{
+    width:30px;
+    height:30px;
+  }
+  .room-v2-layout .card-title small{
+    display:none;
+  }
+  .room-v2-layout .share-code{
+    height:38px;
+    margin-top:10px;
+  }
+  .room-v2-layout .invite-card>p{
+    margin-top:6px;
+    font-size:8px;
+  }
+  .room-v2-layout .settings-card label{
+    margin-top:9px;
+  }
+  .room-v2-layout .select-wrap{
+    margin-top:5px;
+  }
+  .room-v2-layout .select-wrap select{
+    height:35px;
+    font-size:10px;
+  }
+  .room-v2-layout .select-wrap svg{
+    top:9px;
+  }
+  .room-v2-layout .segmented{
+    margin-top:5px;
+    padding:3px;
+  }
+  .room-v2-layout .segmented button{
+    height:27px;
+    font-size:9px;
+  }
+  .room-v2-layout .control-dock{
+    gap:6px;
+    margin-top:9px;
+  }
+  .room-v2-layout .control-dock button{
+    height:38px;
+    font-size:10px;
+  }
+  .screen-stage-frame .camera-dock-list{
+    max-height:96px;
+  }
+  .screen-stage-frame .camera-dock-card{
+    flex-basis:150px;
+  }
+}
+
+/* Very short desktop windows: prioritize the media surface and essential controls. */
+@media(min-width:761px) and (max-height:700px){
+  .room-v2-layout .invite-card>p{
+    display:none;
+  }
+  .screen-stage-live-tag{
+    display:none;
+  }
+  .screen-stage-toolbar{
+    min-height:50px;
+  }
+  .screen-stage-meta{
+    min-height:42px;
+  }
+  .screen-stage-frame .camera-dock-head{
+    height:30px;
+  }
+  .screen-stage-frame .camera-dock-card{
+    flex-basis:128px;
+  }
+  .screen-stage-frame .camera-dock-card>span{
+    height:20px;
+  }
+}
+
+/* Mobile: no page scroll. Stage gets the available height; controls stay in a compact lower area. */
+@media(max-width:760px){
+  .studio-shell>.room-v2-nav,
+  .viewer-shell>.room-v2-nav{
+    flex:0 0 58px;
+    min-height:58px;
+    height:58px;
+  }
+  .studio-main.room-v2-layout,
+  .watch-area.room-v2-layout{
+    width:100%!important;
+    padding:
+      7px max(8px,var(--lc-safe-right,0px))
+      max(7px,var(--lc-safe-bottom,0px))
+      max(8px,var(--lc-safe-left,0px))!important;
+    display:flex!important;
+    flex-direction:column;
+    gap:7px!important;
+  }
+  .room-v2-layout .studio-stage,
+  .room-v2-layout .watch-main{
+    flex:1 1 auto;
+    min-height:0;
+  }
+  .room-v2-layout .studio-side{
+    flex:0 0 auto;
+    width:100%!important;
+    height:auto;
+    max-height:245px;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    gap:6px!important;
+    overflow:hidden;
+  }
+  .room-v2-layout .invite-card{
+    grid-column:1;
+    grid-row:1;
+  }
+  .room-v2-layout .settings-card{
+    grid-column:2;
+    grid-row:1;
+  }
+  .room-v2-layout .studio-controls-card{
+    grid-column:1/-1;
+    grid-row:2;
+  }
+  .room-v2-layout .side-card{
+    padding:8px!important;
+  }
+  .room-v2-layout .card-title{
+    gap:6px;
+  }
+  .room-v2-layout .card-title>span{
+    width:28px;
+    height:28px;
+  }
+  .room-v2-layout .card-title b{
+    font-size:10px;
+  }
+  .room-v2-layout .card-title small,
+  .room-v2-layout .invite-card>p{
+    display:none;
+  }
+  .room-v2-layout .share-code{
+    height:34px;
+    margin-top:7px;
+  }
+  .room-v2-layout .share-code span{
+    font-size:11px;
+  }
+  .room-v2-layout .settings-card label{
+    margin-top:6px;
+    font-size:7px;
+  }
+  .room-v2-layout .select-wrap{
+    margin-top:3px;
+  }
+  .room-v2-layout .select-wrap select{
+    height:30px;
+    padding-inline:8px 24px;
+    font-size:9px!important;
+  }
+  .room-v2-layout .select-wrap svg{
+    right:7px;
+    top:7px;
+    width:13px;
+  }
+  .room-v2-layout .segmented{
+    margin-top:3px;
+    padding:2px;
+  }
+  .room-v2-layout .segmented button{
+    height:24px;
+    font-size:8px;
+  }
+  .room-v2-layout .studio-controls-card .side-controls{
+    margin-top:6px;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .room-v2-layout .studio-controls-card .side-controls button{
+    min-width:0;
+    width:auto;
+    height:34px;
+    font-size:9px;
+  }
+  .room-v2-layout .studio-controls-card .side-controls .go-live,
+  .room-v2-layout .studio-controls-card .side-controls .stop-live{
+    min-width:0;
+  }
+  .screen-stage-toolbar{
+    min-height:52px;
+    padding:7px 8px;
+  }
+  .screen-stage-icon{
+    width:32px;
+    height:32px;
+  }
+  .screen-stage-identity small{
+    display:none;
+  }
+  .screen-stage-media{
+    padding:6px 6px 0;
+  }
+  .screen-stage-meta{
+    min-height:42px;
+    padding:6px;
+  }
+  .screen-sharer-summary{
+    padding:5px 7px;
+  }
+  .screen-sharer-summary small{
+    display:none;
+  }
+  .screen-quality-badge{
+    padding:5px 7px;
+  }
+  .screen-stage-frame .camera-dock{
+    margin-top:5px;
+  }
+  .screen-stage-frame .camera-dock-head{
+    height:28px;
+  }
+  .screen-stage-frame .camera-dock-list{
+    max-height:76px;
+    padding-bottom:5px;
+  }
+  .screen-stage-frame .camera-dock-card{
+    flex-basis:112px;
+  }
+  .screen-stage-frame .camera-dock-card>span{
+    height:19px;
+  }
+  .viewer-shell>.viewer-foot{
+    display:none;
+  }
+  .viewer-shell .collaborative-controls{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px;
+  }
+  .viewer-shell .collaborative-controls button{
+    min-width:0;
+    width:auto;
+    height:34px;
+    font-size:9px;
+  }
+  .viewer-shell .viewer-share-options{
+    display:grid;
+    grid-template-columns:1fr 1fr 58px 58px;
+    gap:5px;
+  }
+  .viewer-shell .viewer-share-options select,
+  .viewer-shell .viewer-share-options button{
+    min-width:0;
+    min-height:34px;
+    height:34px;
+    font-size:9px!important;
+  }
+}
+
+/* Very narrow phones: keep essentials, reduce decorative chrome first. */
+@media(max-width:420px){
+  .room-v2-layout .studio-side{
+    max-height:232px;
+  }
+  .room-v2-layout .card-title>span{
+    display:none;
+  }
+  .room-v2-layout .share-code button{
+    width:36px;
+  }
+  .screen-stage-title-line>b{
+    max-width:34vw;
+  }
+  .screen-quality-badge{
+    max-width:34%;
+  }
+}
