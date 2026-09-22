@@ -50,6 +50,8 @@ struct SocketEvent {
     std::wstring agoraChannel;
     std::wstring agoraToken;
     int agoraUid = 0;
+    std::wstring livekitUrl;
+    std::wstring livekitToken;
     std::wstring error;
     RoomSnapshot room;
 };
