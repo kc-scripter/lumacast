@@ -2,6 +2,8 @@
 
 Transmissão de tela em tempo real no navegador com WebRTC. O vídeo da tela usa Agora como rota principal; câmeras, áudio colaborativo e fallback usam LiveKit.
 
+Produção: `https://lunira-screen.onrender.com`
+
 ## Requisitos
 
 - Node.js 20 ou superior
@@ -51,9 +53,9 @@ Sem Redis configurado, as salas vivem em memória. Com `UPSTASH_REDIS_REST_URL` 
 
 ```env
 PORT=3001
-PUBLIC_URL=https://app.example.com
-CLIENT_ORIGIN=https://app.example.com
-VITE_SIGNALING_URL=https://api.example.com
+PUBLIC_URL=https://lunira-screen.onrender.com
+CLIENT_ORIGIN=https://lunira-screen.onrender.com
+# VITE_SIGNALING_URL pode ficar ausente em produção porque frontend e signaling usam a mesma origem.
 
 AGORA_APP_ID=...
 AGORA_APP_CERTIFICATE=...
@@ -80,7 +82,7 @@ Se o backend estiver atrás de um reverse proxy confiável, configure `TRUST_PRO
 
 `GET /api/health` retorna HTTP 200 somente quando a configuração RTC mínima está presente. Credenciais ausentes ou formato inválido resultam em HTTP 503 e uma lista apenas com os nomes das variáveis problemáticas — nunca os valores secretos.
 
-Use esse endpoint como readiness/health check do serviço em produção.
+Use `https://lunira-screen.onrender.com/api/health` como readiness/health check do serviço em produção.
 
 ## Teste com dois computadores
 
