@@ -28,6 +28,7 @@
 
 /* Landing page rework — minimal, clean and faithful to the real broadcaster UI. */
 .home-shell{
+  min-height:100vh;
   min-height:100dvh;
   overflow:hidden;
   position:relative;
@@ -65,6 +66,7 @@
 
 .home-content{
   width:min(40.5%,650px);
+  min-height:calc(100vh - 175px);
   min-height:calc(100dvh - 175px);
   padding:54px 0 105px;
   display:flex;
