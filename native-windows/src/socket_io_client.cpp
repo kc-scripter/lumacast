@@ -637,7 +637,7 @@ bool SocketIoClient::HttpPost(
     return statusCode == 200 && (response.empty() || response == "ok");
 }
 
-std::wstring SocketIoClient::PollingPath(bool includeSession) const {
+std::wstring SocketIoClient::PollingPath(bool includeSession) {
     std::wstring path = kBasePath;
 
     if (includeSession && !sessionId_.empty()) {
