@@ -1,103 +1,61 @@
 # Lunira Screen para Windows
 
-O cliente desktop usa Electron/Chromium e conecta **ao mesmo site e ao mesmo backend** da versão web. Não existem salas separadas para o aplicativo: códigos, participantes, Agora, LiveKit e Socket.IO continuam sendo os mesmos.
+O cliente Windows usa **Microsoft Edge WebView2**, em vez de empacotar um Chromium inteiro com Electron.
 
-## Por que essa arquitetura
+Isso mantém o app compatível com a versão web — mesmas salas, mesmo Socket.IO, Agora e LiveKit — mas reduz drasticamente o tamanho do instalador.
 
-- mantém compatibilidade imediata entre app e navegador;
-- evita duplicar a lógica de sala/transmissão;
-- atualizações da interface web chegam ao app sem precisar recriar todo o cliente;
-- no Windows, o Electron controla a seleção de tela/janela e pode fornecer áudio de sistema por loopback;
-- o renderer continua sem Node.js (`contextIsolation`, `sandbox` e `nodeIntegration: false`).
+## URL usada pelo app
 
-## Desenvolvimento
-
-Com a versão web rodando em `http://localhost:5173`:
-
-```powershell
-cd desktop
-npm install
-npm start
-```
-
-Para testar apontando para um deploy:
-
-```powershell
-$env:LUNIRA_WEB_URL="https://seu-dominio.com"
-npm start
-```
-
-Também é possível usar:
-
-```powershell
-npm start -- --app-url=https://seu-dominio.com
-```
-
-## Gerar instalador Windows
-
-A URL do site é gravada no `config.json` do pacote durante o build:
-
-```powershell
-cd desktop
-npm install
-$env:LUNIRA_WEB_URL="https://seu-dominio.com"
-npm run dist
-```
-
-O instalador NSIS é gerado em `desktop/release/`.
-
-Para gerar uma versão portátil:
-
-```powershell
-$env:LUNIRA_WEB_URL="https://seu-dominio.com"
-npm run dist:portable
-```
-
-## Compatibilidade com salas web
-
-Exemplo:
-
-1. Usuário A abre o aplicativo Windows e cria `ABCD2345`.
-2. Usuário B abre a URL web e entra com `ABCD2345`.
-3. Ambos entram na mesma sala porque o aplicativo usa exatamente o mesmo signaling.
-4. O inverso também funciona: uma sala criada no navegador pode ser acessada pelo app.
-
-Opcionalmente o executável aceita `--room=ABCD2345` para abrir diretamente uma sala.
-
-## Captura no Windows
-
-Quando a página chama `navigator.mediaDevices.getDisplayMedia()`, o processo principal do Electron:
-
-1. verifica que a solicitação veio da origem configurada do Lunira Screen;
-2. enumera telas e janelas via `desktopCapturer`;
-3. mostra o seletor próprio do aplicativo;
-4. entrega a fonte escolhida ao Chromium;
-5. quando o site pediu áudio, habilita loopback do sistema no Windows.
-
-O restante do pipeline permanece o mesmo do site (Agora principal + LiveKit para áudio/câmera/fallback).
-
-
-## Build automático no GitHub
-
-O workflow `.github/workflows/windows-desktop.yml` gera o instalador em um runner Windows.
-
-Para releases automáticas, configure uma variável do repositório:
+Por padrão:
 
 ```text
-Settings > Secrets and variables > Actions > Variables
-LUNIRA_WEB_URL=https://seu-dominio.com
+https://lumacast-live-kc.onrender.com/
 ```
 
-Depois publique uma GitHub Release usando uma tag semântica, por exemplo `v1.2.0`. O workflow:
+A URL pode ser substituída no build pela variável `LUNIRA_WEB_URL`, ou em desenvolvimento por:
 
-1. usa a versão da tag no instalador;
-2. instala as dependências do desktop;
-3. gera o instalador NSIS x64;
-4. salva o `.exe` como artifact da execução;
-5. anexa o `.exe` à própria GitHub Release.
+```powershell
+LuniraScreen.exe --app-url=http://localhost:5173
+```
 
-Também é possível executar o workflow manualmente em **Actions > Windows Desktop > Run workflow**, informando a URL pública e a versão.
+Se a página não carregar, o aplicativo mostra um erro com **Tentar novamente** e **Abrir no navegador** em vez de ficar em uma tela preta.
 
-### Assinatura
+## Captura de tela
 
-O build atual não possui certificado de code signing. O executável funciona, mas o Windows SmartScreen pode exibir um aviso de editor desconhecido. Para distribuição pública sem esse aviso, será necessário adicionar um certificado de assinatura de código ao pipeline.
+O WebView2 usa Chromium/Edge e suporta `getDisplayMedia()`. O seletor de compartilhamento é o do próprio WebView2/Windows. Câmera e microfone são permitidos somente para a origem configurada do Lunira Screen.
+
+## Build local
+
+Requisitos:
+
+- Windows 10/11 x64
+- .NET Framework 4.8 targeting pack
+- Inno Setup 6
+- Microsoft Edge WebView2 Runtime
+
+```powershell
+cd desktop
+.\scripts\build.ps1 -Version 1.0.0 -WebUrl "https://lumacast-live-kc.onrender.com/"
+```
+
+O instalador sai em:
+
+```text
+desktop/release/Lunira-Screen-1.0.0-x64.exe
+```
+
+## GitHub Actions
+
+O PR executa um build real em `windows-latest` e publica o instalador como artifact.
+
+Em releases, a tag define a versão do app. Exemplo:
+
+```text
+v1.2.0 -> Lunira-Screen-1.2.0-x64.exe
+```
+
+A variável opcional de repositório `LUNIRA_WEB_URL` pode apontar o app para um domínio novo sem alterar o código.
+
+## Peso
+
+O WebView2 Runtime não é incluído dentro do instalador. Windows 11 e instalações modernas do Edge normalmente já possuem o runtime. Por isso o pacote fica muito menor que a versão Electron, que precisava levar Chromium junto.
