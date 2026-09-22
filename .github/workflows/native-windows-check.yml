@@ -31,6 +31,14 @@ jobs:
         shell: pwsh
         run: cmake --build native-windows/build --config Release --parallel
 
+      - name: Updater helper self-test
+        shell: pwsh
+        run: |
+          & "native-windows/build/Release/LuniraUpdater.exe" --self-test
+          if ($LASTEXITCODE -ne 0) {
+            throw "LuniraUpdater self-test falhou."
+          }
+
       - name: Report executable size
         shell: pwsh
         run: |
@@ -184,6 +192,7 @@ jobs:
           $stage = "native-windows/package"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "$source/LuniraScreen.exe" $stage
+          Copy-Item "$source/LuniraUpdater.exe" $stage
           Copy-Item "$source/livekit.dll" $stage
           Copy-Item "$source/livekit_ffi.dll" $stage
           @(

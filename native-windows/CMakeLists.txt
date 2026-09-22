@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 project(LuniraScreenNative LANGUAGES CXX RC)
 
+set(LUNIRA_VERSION "0.8.0" CACHE STRING "LuniraScreen application version")
+
 find_program(LUNIRA_POWERSHELL NAMES pwsh powershell REQUIRED)
 set(LUNIRA_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${LUNIRA_GENERATED_DIR}")
@@ -35,6 +37,7 @@ add_executable(LuniraScreen WIN32
   src/camera_capture.cpp
   src/agora_screen_client.cpp
   src/system_audio_capture.cpp
+  src/updater.cpp
   "${LUNIRA_GENERATED_DIR}/resources.rc"
 )
 
@@ -44,6 +47,7 @@ target_compile_definitions(LuniraScreen PRIVATE
   _UNICODE
   WIN32_LEAN_AND_MEAN
   NOMINMAX
+  LUNIRA_APP_VERSION="${LUNIRA_VERSION}"
 )
 
 if(MSVC)
@@ -76,7 +80,32 @@ target_link_libraries(LuniraScreen PRIVATE
   mfuuid
   ole32
   uuid
+  bcrypt
 )
+
+add_executable(LuniraUpdater WIN32
+  src/updater_main.cpp
+)
+
+target_compile_features(LuniraUpdater PRIVATE cxx_std_20)
+target_compile_definitions(LuniraUpdater PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+)
+
+if(MSVC)
+  target_compile_options(LuniraUpdater PRIVATE /W4 /permissive- /EHsc /utf-8)
+  target_link_options(LuniraUpdater PRIVATE
+    $<$<CONFIG:Release>:/OPT:REF>
+    $<$<CONFIG:Release>:/OPT:ICF>
+  )
+  set_property(TARGET LuniraUpdater PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+target_link_libraries(LuniraUpdater PRIVATE shell32)
 
 
 add_executable(LuniraSignalingSmoke

@@ -1,0 +1,111 @@
+name: Native Windows Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versão sem o prefixo v, por exemplo 0.8.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}".Trim()
+            $tag = "v$version"
+          } else {
+            $tag = "${{ github.ref_name }}"
+            $version = $tag.TrimStart("v")
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+([+-][0-9A-Za-z.-]+)?$') {
+            throw "Versão inválida: $version"
+          }
+
+          "LUNIRA_RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "LUNIRA_RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S native-windows -B native-windows/build -A x64 -DLUNIRA_VERSION="$env:LUNIRA_RELEASE_VERSION"
+
+      - name: Build Release
+        shell: pwsh
+        run: cmake --build native-windows/build --config Release --parallel
+
+      - name: Updater helper self-test
+        shell: pwsh
+        run: |
+          & "native-windows/build/Release/LuniraUpdater.exe" --self-test
+          if ($LASTEXITCODE -ne 0) {
+            throw "LuniraUpdater self-test falhou."
+          }
+
+      - name: Stage package
+        shell: pwsh
+        run: |
+          $source = "native-windows/build/Release"
+          $stage = "native-windows/package"
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          Copy-Item "$source/LuniraScreen.exe" $stage
+          Copy-Item "$source/LuniraUpdater.exe" $stage
+          Copy-Item "$source/livekit.dll" $stage
+          Copy-Item "$source/livekit_ffi.dll" $stage
+
+          @(
+            "agora_rtc_sdk.dll",
+            "libaosl.dll",
+            "libagora-ffmpeg.dll",
+            "libagora-soundtouch.dll",
+            "libagora-fdkaac.dll",
+            "libagora_screen_capture_extension.dll",
+            "libagora-wgc.dll",
+            "libagora_video_encoder_extension.dll",
+            "video_enc.dll",
+            "video_dec.dll"
+          ) | ForEach-Object { Copy-Item "$source/$_" $stage }
+
+      - name: Build archive and checksum
+        shell: pwsh
+        run: |
+          $zip = "LuniraScreen-Native.zip"
+          Remove-Item $zip -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path "native-windows/package/*" -DestinationPath $zip -CompressionLevel Optimal
+
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  LuniraScreen-Native.zip" |
+            Set-Content "LuniraScreen-Native.sha256" -NoNewline -Encoding ascii
+
+          Write-Host "SHA256 $hash"
+          Write-Host "Package $((Get-Item $zip).Length) bytes"
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:LUNIRA_RELEASE_TAG
+          gh release view $tag --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag "LuniraScreen-Native.zip" "LuniraScreen-Native.sha256" --clobber --repo "${{ github.repository }}"
+          } else {
+            gh release create $tag "LuniraScreen-Native.zip" "LuniraScreen-Native.sha256" --target "${{ github.sha }}" --title "LuniraScreen $tag" --generate-notes --latest --repo "${{ github.repository }}"
+          }

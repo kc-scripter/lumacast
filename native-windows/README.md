@@ -43,3 +43,17 @@ native-windows/build/Release/LuniraScreen.exe
 O diretório Release também contém somente as DLLs do Agora e LiveKit necessárias
 para executar o aplicativo. O workflow `Native Windows App` publica esse conjunto
 como o artefato `LuniraScreen-Native`.
+
+
+## Atualização automática
+
+O cliente Windows verifica o GitHub Releases ao iniciar e também oferece Verificar atualizações em Ajustes. Quando uma versão mais nova existe:
+
+1. baixa LuniraScreen-Native.zip;
+2. baixa e valida LuniraScreen-Native.sha256;
+3. verifica SHA-256 localmente;
+4. inicia LuniraUpdater.exe;
+5. fecha o aplicativo, substitui os arquivos com rollback básico em caso de falha;
+6. abre o LuniraScreen novamente.
+
+As releases do app nativo são geradas pelo workflow Native Windows Release. O número de versão é compilado em LUNIRA_APP_VERSION.

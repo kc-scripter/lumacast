@@ -12,6 +12,7 @@
 #include "camera_capture.h"
 #include "agora_screen_client.h"
 #include "system_audio_capture.h"
+#include "updater.h"
 
 #include <algorithm>
 #include <atomic>
@@ -38,6 +39,7 @@ constexpr wchar_t kWindowTitle[] = L"LuniraScreen";
 constexpr UINT kSocketEventMessage = WM_APP + 42;
 constexpr UINT kMediaEventMessage = WM_APP + 43;
 constexpr UINT kAgoraEventMessage = WM_APP + 44;
+constexpr UINT kUpdateEventMessage = WM_APP + 45;
 
 D2D1_COLOR_F Hex(unsigned rgb, float alpha = 1.0f) {
     return D2D1::ColorF(
@@ -139,6 +141,7 @@ public:
 
         ShowWindow(hwnd_, SW_SHOW);
         UpdateWindow(hwnd_);
+        StartUpdateCheck(false);
         return true;
     }
 
@@ -258,6 +261,12 @@ private:
         case kAgoraEventMessage:
             HandleQueuedAgoraEvents();
             return 0;
+        case kUpdateEventMessage: {
+            std::unique_ptr<lunira::UpdateEvent> event(
+                reinterpret_cast<lunira::UpdateEvent*>(lParam));
+            if (event) HandleUpdateEvent(std::move(*event));
+            return 0;
+        }
         case WM_SETCURSOR:
             if (LOWORD(lParam) == HTCLIENT && (hover_ == 20 || hover_ == 22)) {
                 SetCursor(LoadCursorW(nullptr, IDC_IBEAM));
@@ -269,6 +278,7 @@ private:
             }
             break;
         case WM_DESTROY:
+            updater_.Stop();
             StopSystemAudioCapture(false);
             StopLocalCameraCapture(false);
             media_.Stop();
@@ -1602,7 +1612,6 @@ private:
     }
 
     void DrawSettings(float rail, float top, float width, float height) {
-        (void)height;
         const float left = rail + 34;
         const float right = width - 34;
 
@@ -1610,20 +1619,88 @@ private:
         Text(L"Preferências do aplicativo Windows.",
              Rect(left, top + 70, right, top + 94), body_.Get(), mutedBrush_.Get());
 
-        const float cardW = std::min(620.0f, right - left);
-        const D2D1_RECT_F card = Rect(left, top + 120, left + cardW, top + 335);
-        Card(card);
+        const float cardW = std::min(660.0f, right - left);
+        const D2D1_RECT_F performance = Rect(left, top + 120, left + cardW, top + 326);
+        Card(performance);
 
-        Text(L"Desempenho", Rect(card.left + 18, card.top + 18, card.right - 18, card.top + 43),
+        Text(L"Desempenho",
+             Rect(performance.left + 18, performance.top + 18, performance.right - 18, performance.top + 43),
              strong_.Get(), textBrush_.Get());
         Text(L"A interface nativa só redesenha quando algo muda.",
-             Rect(card.left + 18, card.top + 50, card.right - 18, card.top + 72),
+             Rect(performance.left + 18, performance.top + 50, performance.right - 18, performance.top + 72),
              body_.Get(), mutedBrush_.Get());
 
-        SettingRow(Rect(card.left + 18, card.top + 92, card.right - 18, card.top + 136),
+        SettingRow(Rect(performance.left + 18, performance.top + 92, performance.right - 18, performance.top + 136),
                    L"Animações sutis", L"Sem animações contínuas pesadas", true);
-        SettingRow(Rect(card.left + 18, card.top + 144, card.right - 18, card.top + 188),
+        SettingRow(Rect(performance.left + 18, performance.top + 144, performance.right - 18, performance.top + 188),
                    L"Aceleração por GPU", L"Direct2D para a interface", true);
+
+        const float updateTop = performance.bottom + 24.0f;
+        const float updateBottom = std::min(height - 28.0f, updateTop + 208.0f);
+        const D2D1_RECT_F updateCard = Rect(left, updateTop, left + cardW, updateBottom);
+        Card(updateCard);
+
+        Text(L"Atualizações",
+             Rect(updateCard.left + 18, updateCard.top + 18, updateCard.right - 18, updateCard.top + 43),
+             strong_.Get(), textBrush_.Get());
+
+        const std::wstring versionLine =
+            L"Versão instalada: " + lunira::UpdaterClient::CurrentVersion();
+        Text(versionLine,
+             Rect(updateCard.left + 18, updateCard.top + 48, updateCard.right - 18, updateCard.top + 70),
+             body_.Get(), mutedBrush_.Get());
+
+        ID2D1Brush* stateBrush = updateAvailable_
+            ? violet2Brush_.Get()
+            : (updateDownloading_ ? amberBrush_.Get() : greenBrush_.Get());
+        renderTarget_->FillEllipse(
+            D2D1::Ellipse(
+                D2D1::Point2F(updateCard.left + 22, updateCard.top + 92),
+                4.0f, 4.0f),
+            stateBrush);
+
+        Text(updateStatus_.empty() ? L"Verificação automática ativada." : std::wstring_view(updateStatus_),
+             Rect(updateCard.left + 34, updateCard.top + 80, updateCard.right - 18, updateCard.top + 105),
+             body_.Get(), textBrush_.Get());
+
+        if (updateDownloading_ && updateProgress_ >= 0) {
+            const D2D1_RECT_F track = Rect(
+                updateCard.left + 18,
+                updateCard.top + 116,
+                updateCard.right - 18,
+                updateCard.top + 122);
+            const auto trackRr = D2D1::RoundedRect(track, 3, 3);
+            renderTarget_->FillRoundedRectangle(trackRr, panel3Brush_.Get());
+            const float fraction = std::clamp(updateProgress_ / 100.0f, 0.0f, 1.0f);
+            const auto progressRr = D2D1::RoundedRect(
+                Rect(track.left, track.top, track.left + (track.right - track.left) * fraction, track.bottom),
+                3, 3);
+            renderTarget_->FillRoundedRectangle(progressRr, violetBrush_.Get());
+        }
+
+        const D2D1_RECT_F action = Rect(
+            updateCard.left + 18,
+            updateCard.bottom - 58,
+            updateCard.right - 18,
+            updateCard.bottom - 14);
+        AddHit(18, action);
+
+        std::wstring actionLabel;
+        if (updater_.IsBusy()) {
+            actionLabel = updateDownloading_
+                ? L"Baixando atualização…"
+                : L"Verificando…";
+        } else if (updateAvailable_) {
+            actionLabel = L"Baixar e atualizar para " + updateLatestVersion_;
+        } else {
+            actionLabel = L"Verificar atualizações";
+        }
+
+        if (updateAvailable_) {
+            PrimaryButton(action, actionLabel, false, hover_ == 18);
+        } else {
+            Button(action, actionLabel, false, hover_ == 18);
+        }
     }
 
     void SettingRow(const D2D1_RECT_F& rect, std::wstring_view title, std::wstring_view subtitle, bool on) {
@@ -2647,6 +2724,123 @@ private:
         InvalidateRect(hwnd_, nullptr, FALSE);
     }
 
+
+    void QueueUpdateEvent(lunira::UpdateEvent event) {
+        auto* heapEvent = new (std::nothrow) lunira::UpdateEvent(std::move(event));
+        if (!heapEvent) return;
+        if (!PostMessageW(
+                hwnd_,
+                kUpdateEventMessage,
+                0,
+                reinterpret_cast<LPARAM>(heapEvent))) {
+            delete heapEvent;
+        }
+    }
+
+    lunira::UpdaterClient::Callback UpdateCallback() {
+        return [this](lunira::UpdateEvent event) {
+            QueueUpdateEvent(std::move(event));
+        };
+    }
+
+    void StartUpdateCheck(bool manual) {
+        if (updater_.IsBusy()) {
+            if (manual) updateStatus_ = L"Uma verificação já está em andamento.";
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
+        }
+
+        if (manual) {
+            updateStatus_ = L"Verificando atualizações…";
+            updateAvailable_ = false;
+            updateDownloading_ = false;
+            updateProgress_ = -1;
+            InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+
+        if (!updater_.Check(UpdateCallback()) && manual) {
+            updateStatus_ = L"Não foi possível iniciar a verificação.";
+            InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+    }
+
+    void StartUpdateDownload() {
+        if (!updateAvailable_ || updater_.IsBusy()) return;
+
+        updateDownloading_ = true;
+        updateProgress_ = 0;
+        updateStatus_ = L"Preparando download…";
+        InvalidateRect(hwnd_, nullptr, FALSE);
+
+        if (!updater_.DownloadAndInstall(UpdateCallback())) {
+            updateDownloading_ = false;
+            updateProgress_ = -1;
+            updateStatus_ = L"Não foi possível iniciar o download.";
+            InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+    }
+
+    void HandleUpdateEvent(lunira::UpdateEvent event) {
+        switch (event.type) {
+        case lunira::UpdateEventType::Checking:
+            updateStatus_ = event.message.empty()
+                ? L"Verificando atualizações…"
+                : std::move(event.message);
+            updateDownloading_ = false;
+            updateProgress_ = -1;
+            break;
+
+        case lunira::UpdateEventType::UpToDate:
+            updateAvailable_ = false;
+            updateDownloading_ = false;
+            updateProgress_ = -1;
+            updateLatestVersion_.clear();
+            updateStatus_ = event.message.empty()
+                ? L"Você está usando a versão mais recente."
+                : std::move(event.message);
+            break;
+
+        case lunira::UpdateEventType::Available:
+            updateAvailable_ = true;
+            updateDownloading_ = false;
+            updateProgress_ = -1;
+            updateLatestVersion_ = std::move(event.version);
+            updateStatus_ = event.message.empty()
+                ? L"Nova versão disponível."
+                : std::move(event.message);
+            break;
+
+        case lunira::UpdateEventType::Downloading:
+            updateDownloading_ = true;
+            if (!event.version.empty()) updateLatestVersion_ = std::move(event.version);
+            updateProgress_ = event.progress;
+            updateStatus_ = event.message.empty()
+                ? L"Baixando atualização…"
+                : std::move(event.message);
+            break;
+
+        case lunira::UpdateEventType::Installing:
+            updateDownloading_ = false;
+            updateProgress_ = 100;
+            updateStatus_ = event.message.empty()
+                ? L"Reiniciando para concluir a atualização…"
+                : std::move(event.message);
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+            return;
+
+        case lunira::UpdateEventType::Error:
+            updateDownloading_ = false;
+            updateProgress_ = -1;
+            updateStatus_ = event.message.empty()
+                ? L"Falha ao verificar atualizações."
+                : std::move(event.message);
+            break;
+        }
+
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+
     void Click(int px, int py) {
         const int id = HitTest(ToDip(px), ToDip(py));
 
@@ -2761,6 +2955,10 @@ private:
         case 9:
             statsOn_ = !statsOn_;
             break;
+        case 18:
+            if (updateAvailable_) StartUpdateDownload();
+            else StartUpdateCheck(true);
+            break;
         case 10:
             camerasOpen_ = !camerasOpen_;
             break;
@@ -2813,6 +3011,12 @@ private:
     lunira::CameraCapture cameraCapture_;
     lunira::SystemAudioCapture systemAudioCapture_;
     lunira::AgoraScreenClient agora_;
+    lunira::UpdaterClient updater_;
+    bool updateAvailable_ = false;
+    bool updateDownloading_ = false;
+    int updateProgress_ = -1;
+    std::wstring updateLatestVersion_;
+    std::wstring updateStatus_ = L"Verificação automática ativada.";
     int livekitAckId_ = -1;
     bool mediaConnected_ = false;
     bool mediaStarting_ = false;
