@@ -1,76 +1,19 @@
 import {
   ArrowRight,
-  BarChart3,
-  ChevronDown,
-  Clipboard,
-  Eye,
   LockKeyhole,
   MonitorPlay,
-  Radio,
   RadioTower,
   Users,
-  VideoOff,
   Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "../components/Logo";
 import { NameDialog } from "../components/NameDialog";
+import { RoomProductPreview } from "../components/RoomProductPreview";
 import { navigate } from "../services/navigation";
 import { safeSessionRemove,safeSessionSet } from "../services/browser";
 
 const normalizeRoomCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"").slice(0,8);
-
-function StudioPreview(){
-  return <aside className="home-visual product-preview" aria-label="Prévia ilustrativa da sala de transmissão LumaCast">
-    <div className="landing-preview">
-      <div className="landing-preview-chrome" aria-hidden="true"><i/><i/><i/></div>
-      <div className="landing-preview-appbar">
-        <div className="landing-preview-brand"><span><MonitorPlay/></span><b>Luma<span>Cast</span></b></div>
-        <div className="landing-preview-room"><small>SALA</small><strong>00000000</strong></div>
-        <div className="landing-preview-statuses">
-          <span className="preview-ready"><i/>PRONTO</span>
-          <span className="preview-online"><i/>Conectado</span>
-          <span className="preview-count"><Users/>0</span>
-        </div>
-      </div>
-
-      <div className="landing-preview-workspace">
-        <div className="landing-preview-stage">
-          <div className="landing-stage-empty">
-            <span><MonitorPlay/></span>
-            <b>Nenhuma tela sendo compartilhada</b>
-            <small>Qualquer participante pode começar a transmitir.</small>
-          </div>
-        </div>
-
-        <div className="landing-preview-card preview-invite">
-          <div className="preview-card-title"><span><Eye/></span><div><b>Convide espectadores</b><small>Compartilhe este link</small></div></div>
-          <div className="preview-code"><strong>00000000</strong><span><Clipboard/></span></div>
-          <p>O código também pode ser digitado na página inicial.</p>
-        </div>
-
-        <div className="landing-preview-card preview-people">
-          <div className="preview-people-title"><Users/><span>1 PESSOA NA SALA</span></div>
-          <div className="preview-person"><span>V</span><div><b>Você</b><small>Dono da sala</small></div><i/></div>
-        </div>
-
-        <div className="landing-preview-card preview-quality">
-          <div className="preview-card-title"><span><Radio/></span><div><b>Qualidade</b><small>Defina antes de iniciar</small></div></div>
-          <label>RESOLUÇÃO<div className="preview-select"><span>1080p Full HD</span><ChevronDown/></div></label>
-          <label>QUADROS POR SEGUNDO<div className="preview-segment"><span>30 FPS</span><span className="active">60 FPS</span></div></label>
-          <label>CÂMERA<div className="preview-select"><span>720p · 40 FPS</span><ChevronDown/></div></label>
-        </div>
-
-        <div className="landing-preview-card preview-controls">
-          <div className="preview-card-title"><span><MonitorPlay/></span><div><b>Controles</b><small>Tela, câmera e estatísticas</small></div></div>
-          <div className="preview-control"><VideoOff/>Câmera</div>
-          <div className="preview-control primary"><Radio/>Compartilhar tela</div>
-          <div className="preview-control"><BarChart3/>Estatísticas</div>
-        </div>
-      </div>
-    </div>
-  </aside>;
-}
 
 export function HomePage(){
   const [code,setCode]=useState("");
@@ -145,10 +88,10 @@ export function HomePage(){
       </div>
     </section>
 
-    <StudioPreview/>
+    <RoomProductPreview className="home-visual product-preview"/>
 
     <footer>
-      © {new Date().getFullYear()} LumaCast
+      © {new Date().getFullYear()} Lunira Screen
       <span>Privacidade <i>·</i> <button type="button" className="footer-link" onClick={()=>navigate("/termos")}>Termos</button> <i>·</i> <button type="button" className="footer-link" onClick={()=>navigate("/como-funciona")}>Como funciona</button></span>
     </footer>
 
