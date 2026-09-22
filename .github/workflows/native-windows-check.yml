@@ -75,7 +75,7 @@ jobs:
       - name: Upload native preview
         uses: actions/upload-artifact@v4
         with:
-          name: Lunira-Screen-Native-UI
+          name: LuniraScreen-Native
           path: native-windows/package/
           if-no-files-found: error
           retention-days: 7
