@@ -159,7 +159,7 @@ function configureSession(win) {
 
   ses.setDisplayMediaRequestHandler(async (request, callback) => {
     if (!sameAppOrigin(request.securityOrigin) || !request.videoRequested) {
-      callback(null);
+      callback({});
       return;
     }
 
@@ -172,7 +172,7 @@ function configureSession(win) {
 
       const selected = await chooseCaptureSource(sources);
       if (!selected) {
-        callback(null);
+        callback({});
         return;
       }
 
@@ -181,7 +181,7 @@ function configureSession(win) {
       callback(streams);
     } catch (error) {
       console.error("Display capture failed", error);
-      callback(null);
+      callback({});
     }
   });
 }
