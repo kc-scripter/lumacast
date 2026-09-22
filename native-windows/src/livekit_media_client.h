@@ -18,6 +18,7 @@ enum class MediaEventType {
     Disconnected,
     CameraFrame,
     CameraRemoved,
+    CameraError,
     Error
 };
 
