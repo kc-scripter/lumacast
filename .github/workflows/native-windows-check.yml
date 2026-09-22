@@ -40,6 +40,49 @@ jobs:
             throw "UI shell ficou maior que 5 MB; revisar dependências."
           }
 
+      - name: Production endpoint diagnostics
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+
+          function Probe([string]$url) {
+            try {
+              $r = Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 25
+              Write-Host "PROBE $url -> $($r.StatusCode)"
+              return $r
+            } catch {
+              $status = try { [int]$_.Exception.Response.StatusCode } catch { 0 }
+              Write-Host "PROBE $url -> $status / $($_.Exception.Message)"
+              return $null
+            }
+          }
+
+          $front = "https://lunira-screen.onrender.com"
+          $legacy = "https://lumacast-live-kc.onrender.com"
+
+          $home = Probe $front
+          Probe "$front/api/health" | Out-Null
+          Probe "$front/socket.io/?EIO=4&transport=polling&t=ci" | Out-Null
+          Probe "$legacy/api/health" | Out-Null
+          Probe "$legacy/socket.io/?EIO=4&transport=polling&t=ci" | Out-Null
+
+          if ($home) {
+            $matches = [regex]::Matches($home.Content, 'src="([^"]+\.js)"')
+            foreach ($match in $matches) {
+              $src = $match.Groups[1].Value
+              if ($src.StartsWith("/")) { $src = "$front$src" }
+              try {
+                $bundle = (Invoke-WebRequest -UseBasicParsing -Uri $src -TimeoutSec 25).Content
+                [regex]::Matches($bundle, 'https://[a-zA-Z0-9.-]+\.onrender\.com') |
+                  ForEach-Object { $_.Value } |
+                  Sort-Object -Unique |
+                  ForEach-Object { Write-Host "BUNDLE_RENDER_URL $_" }
+              } catch {
+                Write-Host "Could not inspect bundle $src"
+              }
+            }
+          }
+
       - name: Cross-compatible camera roundtrip
         shell: pwsh
         run: |
