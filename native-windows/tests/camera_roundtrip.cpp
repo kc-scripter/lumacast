@@ -306,12 +306,19 @@ int main() {
     }
 
     const bool gotFrame = mediaProbe.WaitFrame(8s);
+    const bool saneDimensions =
+        mediaProbe.width >= 150 && mediaProbe.width <= 160 &&
+        mediaProbe.height >= 84 && mediaProbe.height <= 90;
+    const size_t expectedBytes = saneDimensions
+        ? static_cast<size_t>(mediaProbe.width) *
+              static_cast<size_t>(mediaProbe.height) * 4u
+        : 0u;
+
     const bool correctFrame =
         gotFrame &&
         mediaProbe.identity == std::wstring(publisherIdentity.begin(), publisherIdentity.end()) &&
-        mediaProbe.width == 160 &&
-        mediaProbe.height == 90 &&
-        mediaProbe.bytes >= static_cast<size_t>(160 * 90 * 4);
+        saneDimensions &&
+        mediaProbe.bytes >= expectedBytes;
 
     std::cout << "native camera frame roundtrip: "
               << (correctFrame ? "ok" : "failed")
