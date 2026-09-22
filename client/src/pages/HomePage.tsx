@@ -90,9 +90,7 @@ export function HomePage(){
     </section>
 
     <div className="home-visual-zone">
-      <div className="home-floating-chip home-floating-chip-top" aria-hidden="true"><i/>Até 1080p · 60 FPS</div>
       <RoomProductPreview className="home-visual product-preview"/>
-      <div className="home-floating-chip home-floating-chip-bottom" aria-hidden="true"><i/>Baixa latência</div>
     </div>
 
     <footer>
