@@ -19,14 +19,26 @@ function(lunira_setup_agora out_root)
     file(MAKE_DIRECTORY "${_downloads}" "${_sdk_dir}")
     if(NOT EXISTS "${_archive}")
       message(STATUS "Downloading pinned Agora Windows SDK ${LUNIRA_AGORA_VERSION}")
-      file(DOWNLOAD "${_url}" "${_archive}"
-        SHOW_PROGRESS TLS_VERIFY ON
-        EXPECTED_HASH "SHA256=${LUNIRA_AGORA_WINDOWS_SHA256}"
-        STATUS _status)
-      list(GET _status 0 _code)
-      list(GET _status 1 _message)
-      if(NOT _code EQUAL 0)
-        message(FATAL_ERROR "Agora SDK download failed: ${_message}")
+      set(_download_ok FALSE)
+      foreach(_attempt RANGE 1 3)
+        file(REMOVE "${_archive}")
+        file(DOWNLOAD "${_url}" "${_archive}"
+          SHOW_PROGRESS TLS_VERIFY ON
+          EXPECTED_HASH "SHA256=${LUNIRA_AGORA_WINDOWS_SHA256}"
+          STATUS _status
+          TIMEOUT 120
+          INACTIVITY_TIMEOUT 30)
+        list(GET _status 0 _code)
+        list(GET _status 1 _message)
+        if(_code EQUAL 0)
+          set(_download_ok TRUE)
+          break()
+        endif()
+        message(WARNING "Agora SDK download attempt ${_attempt}/3 failed: ${_message}")
+        execute_process(COMMAND "${CMAKE_COMMAND}" -E sleep 3)
+      endforeach()
+      if(NOT _download_ok)
+        message(FATAL_ERROR "Agora SDK download failed after 3 attempts: ${_message}")
       endif()
     endif()
     file(REMOVE_RECURSE "${_sdk_dir}")
