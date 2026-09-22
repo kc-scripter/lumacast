@@ -28,6 +28,11 @@ assert.equal(JSON.stringify(saved).includes(ownerToken),false);
 
 const participantToken=newSecret();
 room.participants.set("participant",{socketId:"participant",displayName:"Security Guest",agoraUid:456,token:participantToken,tokenHash:hashSecret(participantToken),livekitActive:false});
+const longName="ABCDEFGHIJKLMNOPQRST";
+room.participants.set("long-name",{socketId:"long-name",displayName:longName,agoraUid:457,token:newSecret(),tokenHash:hashSecret(newSecret()),livekitActive:false});
+const deduplicated=store.nameFor(room,longName);
+assert.ok(deduplicated.length<=20);
+assert.notEqual(deduplicated,longName);
 savedOnce=new Promise(resolve=>{saveResolve=resolve;});
 store.persist(room);
 await savedOnce;
@@ -42,4 +47,4 @@ await new Promise((resolve,reject)=>{
   socket.once("connect_error",()=>{clearTimeout(timer);socket.disconnect();resolve();});
 });
 
-console.log(JSON.stringify({ok:true,hashedPersistence:true,originRejected:true}));
+console.log(JSON.stringify({ok:true,hashedPersistence:true,originRejected:true,displayNameBounded:true}));
