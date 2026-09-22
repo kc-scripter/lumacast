@@ -1,0 +1,300 @@
+/* Mobile compatibility layer
+   Final cross-browser corrections for dynamic browser chrome, safe areas,
+   virtual keyboards and narrow flex/grid layouts. Imported last on purpose. */
+
+:root{
+  --lc-safe-top:env(safe-area-inset-top,0px);
+  --lc-safe-right:env(safe-area-inset-right,0px);
+  --lc-safe-bottom:env(safe-area-inset-bottom,0px);
+  --lc-safe-left:env(safe-area-inset-left,0px);
+}
+
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+html,body,#root{
+  inline-size:100%;
+  max-inline-size:100%;
+  min-block-size:100%;
+}
+#root{min-block-size:100vh}
+@supports(height:100svh){
+  #root{min-block-size:100svh}
+}
+
+/* Scroll pages should stay stable when mobile browser chrome expands/collapses. */
+.home-shell,
+.how-page,
+.terms-page{
+  min-block-size:100vh;
+}
+@supports(height:100svh){
+  .home-shell,
+  .how-page,
+  .terms-page{
+    min-block-size:100svh;
+  }
+}
+
+/* Real-time room pages benefit from following the currently visible viewport. */
+.studio-shell,
+.viewer-shell{
+  min-block-size:100vh;
+}
+@supports(height:100dvh){
+  .studio-shell,
+  .viewer-shell{
+    min-block-size:100dvh;
+  }
+}
+
+img,video,canvas{
+  max-inline-size:100%;
+}
+
+@media(max-width:760px){
+  html{scrollbar-gutter:auto}
+  html,body{overflow-x:clip}
+
+  *,*::before,*::after{box-sizing:border-box}
+
+  /* Prevent mobile Safari/Chrome from zooming inputs and shifting the layout. */
+  input,
+  select,
+  textarea{
+    font-size:16px;
+  }
+
+  .home-shell,
+  .how-page,
+  .terms-page,
+  .studio-shell,
+  .viewer-shell{
+    inline-size:100%;
+    max-inline-size:100%;
+  }
+
+  /* Safe horizontal gutters for notches, rounded corners and edge-to-edge Android. */
+  .home-shell{
+    padding-left:max(16px,var(--lc-safe-left));
+    padding-right:max(16px,var(--lc-safe-right));
+  }
+  .home-nav{
+    padding-left:max(0px,var(--lc-safe-left));
+    padding-right:max(0px,var(--lc-safe-right));
+  }
+  .how-v2-nav,
+  .terms-nav{
+    padding-left:max(16px,var(--lc-safe-left));
+    padding-right:max(16px,var(--lc-safe-right));
+  }
+  .studio-nav,
+  .viewer-nav{
+    padding-left:max(10px,var(--lc-safe-left));
+    padding-right:max(10px,var(--lc-safe-right));
+  }
+
+  .studio-main.collaborative-layout,
+  .watch-area.collaborative-layout{
+    padding-left:max(10px,var(--lc-safe-left));
+    padding-right:max(10px,var(--lc-safe-right));
+    padding-bottom:max(10px,var(--lc-safe-bottom));
+  }
+
+  .home-content,
+  .how-v2-hero,
+  .how-v2-section,
+  .terms-hero,
+  .terms-layout,
+  .room-stage,
+  .room-stage-screen,
+  .studio-stage,
+  .watch-main,
+  .studio-side,
+  .people-sidebar,
+  .camera-dock,
+  .side-card,
+  .connection-card,
+  .stats-drawer,
+  .viewer-stats,
+  .name-modal form{
+    min-inline-size:0;
+    max-inline-size:100%;
+  }
+
+  .home-action-stack,
+  .home-primary-action,
+  .home-viewer-action,
+  .home-viewer-toggle,
+  .home-viewer-form,
+  .viewer-share-options,
+  .control-dock,
+  .share-code,
+  .select-wrap,
+  .segmented{
+    min-inline-size:0;
+    max-inline-size:100%;
+  }
+
+  .home-viewer-form input,
+  .select-wrap select,
+  .viewer-share-options select{
+    min-inline-size:0;
+    max-inline-size:100%;
+  }
+
+  /* Fixed UI must respect device safe areas. */
+  .camera-overlay,
+  .camera-overlay.large{
+    left:max(10px,var(--lc-safe-left));
+    right:max(10px,var(--lc-safe-right));
+    bottom:max(10px,var(--lc-safe-bottom));
+  }
+  .camera-overlay.large{
+    top:max(68px,var(--lc-safe-top));
+    max-height:calc(100dvh - max(88px,var(--lc-safe-top)) - max(10px,var(--lc-safe-bottom)));
+  }
+
+  .stats-drawer,
+  .viewer-stats{
+    left:max(10px,var(--lc-safe-left));
+    right:max(10px,var(--lc-safe-right));
+    bottom:max(10px,var(--lc-safe-bottom));
+    width:auto;
+    max-height:min(70dvh,calc(100dvh - 24px - var(--lc-safe-top) - var(--lc-safe-bottom)));
+  }
+
+  .toast-error{
+    left:max(10px,var(--lc-safe-left));
+    right:max(10px,var(--lc-safe-right));
+    bottom:max(12px,var(--lc-safe-bottom));
+  }
+
+  .name-modal{
+    min-height:100vh;
+    padding:
+      max(14px,var(--lc-safe-top))
+      max(14px,var(--lc-safe-right))
+      max(14px,var(--lc-safe-bottom))
+      max(14px,var(--lc-safe-left));
+    overflow-y:auto;
+  }
+  @supports(height:100dvh){
+    .name-modal{min-height:100dvh}
+  }
+
+  .viewer-foot{
+    height:auto;
+    min-height:44px;
+    padding-left:max(12px,var(--lc-safe-left));
+    padding-right:max(12px,var(--lc-safe-right));
+    padding-bottom:max(10px,var(--lc-safe-bottom));
+  }
+
+  .home-shell>footer,
+  .how-v2-footer,
+  .terms-footer{
+    padding-bottom:max(14px,var(--lc-safe-bottom));
+  }
+
+  /* Avoid long labels forcing grid/flex tracks wider than the viewport. */
+  .room-head,
+  .viewer-room,
+  .nav-status,
+  .viewer-nav-actions,
+  .card-title,
+  .card-title>div,
+  .person-row,
+  .person-row>div,
+  .camera-dock-head>span,
+  .camera-dock-card>span,
+  .watch-heading,
+  .watch-heading>div{
+    min-inline-size:0;
+  }
+
+  .room-head b,
+  .viewer-room b,
+  .card-title b,
+  .card-title small,
+  .camera-dock-head small{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* Use actual visible viewport for media limits instead of legacy 100vh. */
+  .broadcast-screen,
+  .video-stage{
+    max-height:none;
+  }
+
+  /* Touch targets remain usable without inflating every compact icon button. */
+  .home-primary-action,
+  .home-viewer-toggle,
+  .how-v2-primary,
+  .terms-nav button,
+  .how-v2 .how-back,
+  .control-dock button,
+  .viewer-share-options button,
+  .viewer-share-options select{
+    min-block-size:44px;
+  }
+}
+
+/* Small Android phones and older 360px CSS viewports. */
+@media(max-width:390px){
+  .studio-nav,
+  .viewer-nav{
+    grid-template-columns:40px minmax(0,1fr) 40px;
+    column-gap:5px;
+  }
+  .studio-nav>.brand,
+  .viewer-nav>.brand{
+    width:40px;
+    max-width:40px;
+  }
+  .room-head b,
+  .viewer-room b{
+    max-width:min(26vw,92px);
+  }
+  .home-nav-links>a{
+    max-width:116px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .home-primary-action,
+  .home-viewer-toggle{
+    padding-left:12px;
+    padding-right:12px;
+  }
+  .home-action-copy small{
+    overflow-wrap:anywhere;
+  }
+}
+
+/* Landscape phones: shorten chrome and prioritize the room/media area. */
+@media(max-width:900px) and (max-height:560px) and (orientation:landscape){
+  .studio-nav,
+  .viewer-nav,
+  .how-v2-nav,
+  .terms-nav{
+    height:56px;
+  }
+  .studio-main.collaborative-layout,
+  .watch-area.collaborative-layout{
+    padding-top:6px;
+    gap:8px;
+  }
+  .camera-overlay.large{
+    top:max(60px,var(--lc-safe-top));
+  }
+  .name-modal{
+    align-items:flex-start;
+  }
+  .name-modal form{
+    margin:auto;
+    max-height:calc(100dvh - var(--lc-safe-top) - var(--lc-safe-bottom) - 16px);
+  }
+}
