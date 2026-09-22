@@ -15,31 +15,36 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     env:
-      LUNIRA_WEB_URL: https://example.invalid
+      LUNIRA_WEB_URL: https://lumacast-live-kc.onrender.com/
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: 22
+          dotnet-version: "8.0.x"
 
-      - name: Install desktop dependencies
-        working-directory: desktop
-        run: npm install --no-audit --no-fund
+      - name: Ensure Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+          }
 
-      - name: Package Windows installer
+      - name: Build lightweight Windows app
+        shell: pwsh
         working-directory: desktop
-        run: npm run dist -- --x64
+        run: .\scripts\build.ps1 -Version "1.0.0" -WebUrl $env:LUNIRA_WEB_URL
 
       - name: Verify installer
         shell: pwsh
         run: |
           $files = Get-ChildItem "desktop/release/*.exe" -ErrorAction SilentlyContinue
           if (-not $files) {
-            throw "electron-builder não gerou nenhum .exe."
+            throw "O instalador Windows não foi gerado."
           }
           $files | ForEach-Object {
             Write-Host "$($_.Name) - $([math]::Round($_.Length / 1MB, 2)) MB"
