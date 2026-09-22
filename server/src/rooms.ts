@@ -76,7 +76,7 @@ export class RoomStore{
   findByParticipant(id:string){return [...this.rooms.values()].find(room=>room.participants.has(id));}
   isMember(room:Room,id:string){return room.ownerId===id||room.participants.has(id);}
   getUid(room:Room,id:string){return room.ownerId===id?room.ownerUid:room.participants.get(id)?.agoraUid;}
-  reclaim(room:Room,token:unknown,id:string){if(!secretMatches(token,room.ownerTokenHash))return false;if(room.ownerDisconnectTimer)clearTimeout(room.ownerDisconnectTimer);room.ownerDisconnectTimer=undefined;const old=room.ownerId;room.ownerId=id;room.ownerToken=token;if(room.activeScreenSharerId===old){if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);room.screenDisconnectTimer=undefined;room.activeScreenSharerId=id;}this.persist(room);return true;}
+  reclaim(room:Room,token:unknown,id:string){if(!validSecret(token)||!secretMatches(token,room.ownerTokenHash))return false;if(room.ownerDisconnectTimer)clearTimeout(room.ownerDisconnectTimer);room.ownerDisconnectTimer=undefined;const old=room.ownerId;room.ownerId=id;room.ownerToken=token;if(room.activeScreenSharerId===old){if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);room.screenDisconnectTimer=undefined;room.activeScreenSharerId=id;}this.persist(room);return true;}
   remove(id:string){const room=this.rooms.get(id);if(!room)return;if(room.ownerDisconnectTimer)clearTimeout(room.ownerDisconnectTimer);if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);for(const participant of room.participants.values())if(participant.disconnectTimer)clearTimeout(participant.disconnectTimer);this.rooms.delete(id);if(this.persistence)this.queue(id,()=>this.persistence!.delete(id));}
   count(){return this.rooms.size;}
 }
