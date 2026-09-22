@@ -36,6 +36,20 @@ jobs:
             throw "UI shell ficou maior que 5 MB; revisar dependências."
           }
 
+      - name: Cross-client signaling smoke
+        shell: pwsh
+        run: |
+          $exe = "native-windows/build/Release/LuniraSignalingSmoke.exe"
+          & $exe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Primeira tentativa falhou; aguardando possível cold start do Render..."
+            Start-Sleep -Seconds 8
+            & $exe
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "O cliente nativo não conseguiu criar + entrar na mesma sala do backend web."
+          }
+
       - name: Upload native preview
         uses: actions/upload-artifact@v4
         with:
