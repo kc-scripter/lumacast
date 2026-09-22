@@ -98,3 +98,31 @@ target_link_libraries(LuniraLiveKitSmoke PRIVATE
 )
 
 lunira_copy_livekit_runtime(LuniraLiveKitSmoke "${LUNIRA_LIVEKIT_ROOT}")
+
+
+add_executable(LuniraCameraRoundtrip
+  tests/camera_roundtrip.cpp
+  src/socket_io_client.cpp
+  src/livekit_media_client.cpp
+)
+
+target_compile_features(LuniraCameraRoundtrip PRIVATE cxx_std_20)
+target_compile_definitions(LuniraCameraRoundtrip PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+)
+
+if(MSVC)
+  target_compile_options(LuniraCameraRoundtrip PRIVATE /W4 /permissive- /EHsc /utf-8)
+  set_property(TARGET LuniraCameraRoundtrip PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+target_link_libraries(LuniraCameraRoundtrip PRIVATE
+  LiveKit::livekit
+  winhttp
+)
+
+lunira_copy_livekit_runtime(LuniraCameraRoundtrip "${LUNIRA_LIVEKIT_ROOT}")
