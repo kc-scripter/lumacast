@@ -281,6 +281,8 @@ SocketEvent ParseAck(int ackId, std::string_view json) {
     event.agoraChannel = FindString(json, "agoraChannel");
     event.agoraToken = FindString(json, "agoraToken");
     event.agoraUid = FindInt(json, "agoraUid");
+    event.livekitUrl = FindString(json, "livekitUrl");
+    event.livekitToken = FindString(json, "livekitToken");
     event.error = FindString(json, "error");
     event.room = ParseRoom(json);
     return event;
