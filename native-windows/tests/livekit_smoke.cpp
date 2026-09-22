@@ -109,7 +109,7 @@ int main() {
         return 4;
     }
 
-    livekit::initialize(livekit::LogLevel::Warning);
+    livekit::initialize(livekit::LogLevel::Warn);
 
     auto room = std::make_unique<livekit::Room>();
     livekit::RoomOptions options;
