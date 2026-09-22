@@ -523,3 +523,94 @@
     transition:none!important;
   }
 }
+
+
+/* Home interaction v2 — prioritize perfectly smooth hover. */
+.home-floating-chip{
+  display:none!important;
+}
+
+.home-primary-action,
+.home-viewer-action,
+.home-viewer-toggle,
+.home-action-icon,
+.home-action-arrow{
+  will-change:auto!important;
+}
+
+.home-primary-action{
+  transition:transform 160ms cubic-bezier(.22,1,.36,1),border-color 160ms ease!important;
+}
+.home-viewer-action{
+  transition:transform 160ms cubic-bezier(.22,1,.36,1),border-color 160ms ease!important;
+}
+.home-action-icon,
+.home-action-arrow{
+  transition:transform 160ms cubic-bezier(.22,1,.36,1),color 160ms ease!important;
+}
+
+/* Disable decorative sweep on hover; it was causing extra paint work. */
+.home-primary-action::before,
+.home-primary-action::after{
+  transition:none!important;
+}
+.home-primary-action:hover::before,
+.home-primary-action:hover::after{
+  transform:none!important;
+  left:-38%!important;
+  opacity:0!important;
+}
+
+@media(hover:hover){
+  .home-primary-action:hover{
+    transform:translate3d(0,-2px,0)!important;
+    border-color:#bba4ff!important;
+    box-shadow:0 16px 45px #5d3be02b,inset 0 1px #ffffff24!important;
+    background-position:0 0!important;
+    filter:none!important;
+  }
+  .home-primary-action:hover .home-action-icon{
+    transform:translate3d(0,-1px,0)!important;
+  }
+  .home-primary-action:hover .home-action-arrow{
+    transform:translate3d(4px,0,0)!important;
+  }
+
+  .home-viewer-action:hover{
+    transform:translate3d(0,-2px,0)!important;
+    border-color:#3c4052!important;
+    box-shadow:none!important;
+    background:linear-gradient(135deg,#11131d,#0e1018)!important;
+    filter:none!important;
+  }
+  .home-viewer-action:hover .home-viewer-toggle .home-action-icon{
+    transform:translate3d(0,-1px,0)!important;
+  }
+  .home-viewer-action:not(.expanded):hover .home-action-arrow{
+    transform:translate3d(4px,0,0)!important;
+  }
+
+  .home-content .benefit-row span:hover{
+    transform:none!important;
+    color:#adb0c0!important;
+  }
+  .home-content .benefit-row span:hover svg{
+    transform:none!important;
+    filter:none!important;
+  }
+}
+
+/* Keep the preview static after its entry animation to avoid competing compositor work. */
+.home-visual-zone .home-visual.product-preview{
+  animation:homePreviewEnter .52s .06s cubic-bezier(.16,1,.3,1) both!important;
+}
+
+/* Benefit row is the single source for latency / quality claims. */
+.home-content .benefit-row{
+  align-items:center;
+}
+.home-content .benefit-row span{
+  min-height:22px;
+  display:inline-flex;
+  align-items:center;
+}
