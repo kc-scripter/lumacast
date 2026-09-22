@@ -9,4 +9,5 @@ import "./performance.css";
 import "./launch-polish.css";
 import "./release-finish.css";
 import "./mobile-compat.css";
+import "./room-v2.css";
 createRoot(document.getElementById("root")!).render(<StrictMode><ErrorBoundary><App/></ErrorBoundary></StrictMode>);
