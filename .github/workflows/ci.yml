@@ -40,3 +40,4 @@ jobs:
           done
           curl --fail --silent http://localhost:3001/api/health
           npm run test:signal
+          npm run test:load -- --rooms 2 --users 12

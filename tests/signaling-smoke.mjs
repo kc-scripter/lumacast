@@ -19,9 +19,8 @@ const state2=once(host,"room-state");
 const joined2=await ack(viewer2,"join-room",{roomId:created.roomId,displayName:"Smoke Viewer 2"});
 assert.equal(joined2.ok,true);assert.equal((await state2).count,2);
 
-const lockedState=once(viewer2,"room-state");
 const lock=await ack(viewer1,"request-screen-share",{roomId:created.roomId});
-assert.equal(lock.ok,true);assert.equal((await lockedState).activeScreenSharerId,viewer1.id);
+assert.equal(lock.ok,true);assert.equal(lock.activeScreenSharerId,viewer1.id);
 
 const started=once(host,"broadcast-started");
 viewer1.emit("broadcast-started",{roomId:created.roomId});
