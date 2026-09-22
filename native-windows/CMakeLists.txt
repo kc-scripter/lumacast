@@ -4,6 +4,7 @@ project(LuniraScreenNative LANGUAGES CXX)
 add_executable(LuniraScreen WIN32
   src/main.cpp
   src/socket_io_client.cpp
+  src/livekit_media_client.cpp
 )
 
 target_compile_features(LuniraScreen PRIVATE cxx_std_20)
@@ -68,6 +69,9 @@ include(LuniraLiveKit)
 lunira_setup_livekit(LUNIRA_LIVEKIT_ROOT)
 list(PREPEND CMAKE_PREFIX_PATH "${LUNIRA_LIVEKIT_ROOT}")
 find_package(LiveKit CONFIG REQUIRED)
+
+target_link_libraries(LuniraScreen PRIVATE LiveKit::livekit)
+lunira_copy_livekit_runtime(LuniraScreen "${LUNIRA_LIVEKIT_ROOT}")
 
 add_executable(LuniraLiveKitSmoke
   tests/livekit_smoke.cpp
