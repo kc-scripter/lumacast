@@ -307,7 +307,7 @@ export function HowItWorksPage(){
 
     <footer className="how-footer how-v2-footer">
       <span>© {new Date().getFullYear()} LumaCast</span>
-      <button type="button" onClick={()=>navigate("/")}><ArrowLeft/>Voltar ao início</button>
+      <div className="how-v2-footer-actions"><button type="button" onClick={()=>navigate("/termos")}>Termos</button><button type="button" onClick={()=>navigate("/")}><ArrowLeft/>Voltar ao início</button></div>
     </footer>
   </main>;
 }
