@@ -225,7 +225,7 @@ int main() {
 
     std::this_thread::sleep_for(600ms);
 
-    for (int frameIndex = 0; frameIndex < 20 && !mediaProbe.gotFrame; ++frameIndex) {
+    for (int frameIndex = 0; frameIndex < 20; ++frameIndex) {
         auto frame = livekit::VideoFrame::create(
             160,
             90,
