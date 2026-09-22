@@ -51,6 +51,7 @@ app.get("/api/health",(_req,res)=>{
   res.setHeader("Cache-Control","no-store");
   res.status(issues.length?503:200).json({ok:issues.length===0,service:"lumacast-signaling",issues});
 });
+app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
