@@ -50,6 +50,33 @@ jobs:
             throw "O cliente nativo não conseguiu criar + entrar na mesma sala do backend web."
           }
 
+      - name: LiveKit native media smoke
+        shell: pwsh
+        run: |
+          $exe = "native-windows/build/Release/LuniraLiveKitSmoke.exe"
+          & $exe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Primeira conexão LiveKit falhou; aguardando possível cold start..."
+            Start-Sleep -Seconds 8
+            & $exe
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "O cliente nativo não conseguiu conectar ao mesmo LiveKit usado pela versão web."
+          }
+
+      - name: Report LiveKit runtime size
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "native-windows/build/Release/*.dll" -ErrorAction SilentlyContinue
+          if (-not $files) {
+            throw "As DLLs do LiveKit não foram copiadas para o build."
+          }
+          $total = ($files | Measure-Object -Property Length -Sum).Sum
+          $files | ForEach-Object {
+            Write-Host "$($_.Name): $([math]::Round($_.Length / 1MB, 2)) MB"
+          }
+          Write-Host "LiveKit runtime total: $([math]::Round($total / 1MB, 2)) MB"
+
       - name: Upload native preview
         uses: actions/upload-artifact@v4
         with:
