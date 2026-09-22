@@ -75,3 +75,29 @@ Quando a página chama `navigator.mediaDevices.getDisplayMedia()`, o processo pr
 5. quando o site pediu áudio, habilita loopback do sistema no Windows.
 
 O restante do pipeline permanece o mesmo do site (Agora principal + LiveKit para áudio/câmera/fallback).
+
+
+## Build automático no GitHub
+
+O workflow `.github/workflows/windows-desktop.yml` gera o instalador em um runner Windows.
+
+Para releases automáticas, configure uma variável do repositório:
+
+```text
+Settings > Secrets and variables > Actions > Variables
+LUNIRA_WEB_URL=https://seu-dominio.com
+```
+
+Depois publique uma GitHub Release usando uma tag semântica, por exemplo `v1.2.0`. O workflow:
+
+1. usa a versão da tag no instalador;
+2. instala as dependências do desktop;
+3. gera o instalador NSIS x64;
+4. salva o `.exe` como artifact da execução;
+5. anexa o `.exe` à própria GitHub Release.
+
+Também é possível executar o workflow manualmente em **Actions > Windows Desktop > Run workflow**, informando a URL pública e a versão.
+
+### Assinatura
+
+O build atual não possui certificado de code signing. O executável funciona, mas o Windows SmartScreen pode exibir um aviso de editor desconhecido. Para distribuição pública sem esse aviso, será necessário adicionar um certificado de assinatura de código ao pipeline.
