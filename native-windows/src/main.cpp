@@ -428,54 +428,59 @@ private:
         constexpr float top = 60.0f;
         constexpr float rail = 66.0f;
 
-        Fill(Rect(0, 0, width, top), panelBrush_.Get());
-        Line(0, top, width, top, borderSoftBrush_.Get(), 1.0f);
-
-        DrawBrand();
-
         if (page_ == Page::Home) {
+            Fill(Rect(0, 0, width, top), panelBrush_.Get());
+            Line(0, top, width, top, borderSoftBrush_.Get(), 1.0f);
+            DrawBrand();
             DrawHomeTopRight(width);
             DrawHome(top, width, height);
             return;
         }
 
+        if (page_ == Page::Room) {
+            DrawRoom(0.0f, 0.0f, width, height);
+            if (!selectedCameraIdentity_.empty()) {
+                DrawCameraOverlay(width, height);
+            }
+            return;
+        }
+
+        Fill(Rect(0, 0, width, top), panelBrush_.Get());
+        Line(0, top, width, top, borderSoftBrush_.Get(), 1.0f);
+        DrawBrand();
         DrawTopRight(width);
         Fill(Rect(0, top, rail, height), panelBrush_.Get());
         Line(rail, top, rail, height, borderSoftBrush_.Get(), 1.0f);
         DrawRail(top, rail, height);
-
-        if (page_ == Page::Settings) {
-            DrawSettings(rail, top, width, height);
-        } else {
-            DrawRoom(rail, top, width, height);
-            if (!selectedCameraIdentity_.empty()) {
-                DrawCameraOverlay(width, height);
-            }
-        }
+        DrawSettings(rail, top, width, height);
     }
 
     void DrawBrand() {
-        AddHit(16, Rect(12, 8, 194, 52));
+        AddHit(16, Rect(12, 8, 232, 54));
 
-        const auto glow = D2D1::RoundedRect(Rect(13, 9, 55, 51), 12, 12);
+        const auto glow = D2D1::RoundedRect(Rect(14, 9, 58, 53), 13, 13);
         renderTarget_->FillRoundedRectangle(glow, violetGlowBrush_.Get());
 
-        const auto mark = D2D1::RoundedRect(Rect(16, 12, 52, 48), 10, 10);
+        const auto mark = D2D1::RoundedRect(Rect(16, 11, 56, 51), 11, 11);
         renderTarget_->FillRoundedRectangle(mark, violetBrush_.Get());
 
-        const auto monitor = D2D1::RoundedRect(Rect(25, 21, 43, 34), 2, 2);
+        const auto monitor = D2D1::RoundedRect(Rect(25, 21, 47, 36), 3, 3);
         renderTarget_->DrawRoundedRectangle(monitor, textBrush_.Get(), 1.8f);
-        Line(34, 34, 34, 39, textBrush_.Get(), 1.6f);
-        Line(29, 39, 39, 39, textBrush_.Get(), 1.6f);
-        Line(34, 29, 34, 23.5f, textBrush_.Get(), 1.5f);
-        Line(31.5f, 26, 34, 23.5f, textBrush_.Get(), 1.5f);
-        Line(36.5f, 26, 34, 23.5f, textBrush_.Get(), 1.5f);
+        Line(36, 36, 36, 41, textBrush_.Get(), 1.6f);
+        Line(31, 41, 41, 41, textBrush_.Get(), 1.6f);
+
+        Line(36, 31, 36, 24, textBrush_.Get(), 1.6f);
+        Line(32.5f, 27.5f, 36, 24, textBrush_.Get(), 1.6f);
+        Line(39.5f, 27.5f, 36, 24, textBrush_.Get(), 1.6f);
 
         renderTarget_->FillEllipse(
-            D2D1::Ellipse(D2D1::Point2F(44, 19), 3.0f, 3.0f),
-            violet2Brush_.Get());
+            D2D1::Ellipse(D2D1::Point2F(49, 18), 2.6f, 2.6f),
+            textBrush_.Get());
+        Line(49, 13.8f, 49, 16.0f, textBrush_.Get(), 1.2f);
+        Line(44.8f, 18, 47.0f, 18, textBrush_.Get(), 1.2f);
 
-        Text(L"LuniraScreen", Rect(64, 17, 192, 45), title_.Get(), textBrush_.Get());
+        Text(L"LuniraScreen", Rect(70, 14, 224, 39), title_.Get(), textBrush_.Get());
+        Text(L"Compartilhe o agora.", Rect(71, 38, 224, 55), tiny_.Get(), mutedBrush_.Get());
     }
 
     void DrawTopRight(float width) {
@@ -816,23 +821,223 @@ private:
         }
     }
 
-    void DrawRoom(float rail, float top, float width, float height) {
-        const float pad = 14.0f;
-        const float side = 280.0f;
-        const float gap = 12.0f;
-        const float contentLeft = rail + pad;
-        const float contentTop = top + pad;
-        const float contentRight = width - pad;
-        const float contentBottom = height - pad;
+    void DrawRoom(float, float, float width, float height) {
+        const float sidebar = 294.0f;
+        const float outerPad = 16.0f;
+        const float headerH = 72.0f;
+        const float actionH = 96.0f;
 
-        if (focused_) {
-            DrawStage(Rect(contentLeft, contentTop, contentRight, contentBottom));
-            return;
+        Fill(Rect(0, 0, sidebar, height), panelBrush_.Get());
+        Line(sidebar, 0, sidebar, height, borderSoftBrush_.Get(), 1.0f);
+
+        DrawBrand();
+        DrawRoomSidebar(Rect(0, 64, sidebar, height));
+        DrawRoomHeader(Rect(sidebar, 0, width, headerH));
+
+        const float stageBottom = height - actionH - 10.0f;
+        DrawStage(Rect(
+            sidebar + outerPad,
+            headerH + 8.0f,
+            width - outerPad,
+            stageBottom));
+
+        DrawRoomActionBar(Rect(
+            sidebar + outerPad,
+            height - actionH,
+            width - outerPad,
+            height - 8.0f));
+    }
+
+    void DrawRoomSidebar(const D2D1_RECT_F& area) {
+        const float left = area.left + 16.0f;
+        const float right = area.right - 16.0f;
+
+        const D2D1_RECT_F home = Rect(left, area.top + 14, right, area.top + 62);
+        AddHit(16, home);
+        PrimaryButton(home, L"+  Criar / entrar em sala", false, hover_ == 16);
+
+        const D2D1_RECT_F current = Rect(left, area.top + 80, right, area.top + 126);
+        const auto currentRr = D2D1::RoundedRect(current, 12, 12);
+        renderTarget_->FillRoundedRectangle(currentRr, violetPanelBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(currentRr, violetBrush_.Get(), 1.0f);
+        DrawMonitor(current.left + 16, current.top + 15, violet2Brush_.Get());
+        Text(L"Sala atual", Rect(current.left + 46, current.top + 12, current.right - 12, current.bottom - 8),
+             bodyStrong_.Get(), textBrush_.Get());
+
+        const D2D1_RECT_F settings = Rect(left, area.top + 136, right, area.top + 180);
+        AddHit(1, settings);
+        Button(settings, L"Configurações", false, hover_ == 1);
+
+        const D2D1_RECT_F roomCard = Rect(left, area.top + 204, right, area.top + 426);
+        const auto card = D2D1::RoundedRect(roomCard, 16, 16);
+        renderTarget_->FillRoundedRectangle(card, panel2Brush_.Get());
+        renderTarget_->DrawRoundedRectangle(card, borderBrush_.Get(), 1.0f);
+
+        Text(L"Sala privada", Rect(roomCard.left + 16, roomCard.top + 14, roomCard.right - 16, roomCard.top + 38),
+             strong_.Get(), textBrush_.Get());
+
+        renderTarget_->FillEllipse(
+            D2D1::Ellipse(D2D1::Point2F(roomCard.left + 20, roomCard.top + 54), 4.0f, 4.0f),
+            networkConnected_ ? greenBrush_.Get() : amberBrush_.Get());
+        Text(networkConnected_ ? L"Conectado" : L"Reconectando",
+             Rect(roomCard.left + 32, roomCard.top + 43, roomCard.right - 16, roomCard.top + 66),
+             tiny_.Get(), networkConnected_ ? greenBrush_.Get() : amberBrush_.Get());
+
+        const D2D1_RECT_F code = Rect(roomCard.left + 16, roomCard.top + 78, roomCard.right - 16, roomCard.top + 124);
+        const auto codeRr = D2D1::RoundedRect(code, 11, 11);
+        renderTarget_->FillRoundedRectangle(codeRr, stageBrush_.Get());
+        renderTarget_->DrawRoundedRectangle(codeRr, borderBrush_.Get(), 1.0f);
+        Text(roomCode_.empty() ? L"—" : std::wstring_view(roomCode_),
+             Rect(code.left + 14, code.top + 12, code.right - 54, code.bottom - 8),
+             strong_.Get(), textBrush_.Get());
+
+        const D2D1_RECT_F copy = Rect(code.right - 40, code.top + 6, code.right - 6, code.bottom - 6);
+        AddHit(3, copy);
+        const auto copyRr = D2D1::RoundedRect(copy, 9, 9);
+        renderTarget_->FillRoundedRectangle(copyRr, hover_ == 3 ? violet2Brush_.Get() : violetPanelBrush_.Get());
+        CenterText(L"⧉", copy, strong_.Get(), hover_ == 3 ? textBrush_.Get() : violet2Brush_.Get());
+
+        const std::wstring participantText =
+            std::to_wstring(roomState_.participants.size()) +
+            (roomState_.participants.size() == 1 ? L" participante" : L" participantes");
+        Text(participantText,
+             Rect(roomCard.left + 16, roomCard.top + 138, roomCard.right - 16, roomCard.top + 160),
+             body_.Get(), mutedBrush_.Get());
+
+        Text(L"QUALIDADE DA TELA",
+             Rect(roomCard.left + 16, roomCard.top + 170, roomCard.right - 16, roomCard.top + 188),
+             tinyBold_.Get(), dimBrush_.Get());
+
+        const float middle = (roomCard.left + roomCard.right) * 0.5f;
+        const D2D1_RECT_F fps30 = Rect(roomCard.left + 16, roomCard.top + 194, middle - 4, roomCard.top + 230);
+        const D2D1_RECT_F fps60 = Rect(middle + 4, roomCard.top + 194, roomCard.right - 16, roomCard.top + 230);
+        AddHit(4, fps30);
+        AddHit(5, fps60);
+        ToggleButton(fps30, L"30 FPS", fps_ == 30, hover_ == 4);
+        ToggleButton(fps60, L"60 FPS", fps_ == 60, hover_ == 5);
+
+        const D2D1_RECT_F invite = Rect(left, area.top + 442, right, area.top + 488);
+        AddHit(3, invite);
+        Button(invite, copied_ ? L"Convite copiado" : L"Copiar convite", copied_, hover_ == 3);
+
+        const float profileTop = area.bottom - 76.0f;
+        Line(left, profileTop - 12, right, profileTop - 12, borderSoftBrush_.Get(), 1.0f);
+        const auto avatar = D2D1::Ellipse(D2D1::Point2F(left + 20, profileTop + 18), 18, 18);
+        renderTarget_->FillEllipse(avatar, violetPanelBrush_.Get());
+        renderTarget_->DrawEllipse(avatar, violetBrush_.Get(), 1.0f);
+        const std::wstring initial = displayName_.empty() ? L"?" : displayName_.substr(0, 1);
+        CenterText(initial, Rect(left + 2, profileTop, left + 38, profileTop + 36),
+                   strong_.Get(), violet2Brush_.Get());
+
+        Text(displayName_.empty() ? L"Participante" : std::wstring_view(displayName_),
+             Rect(left + 48, profileTop + 2, right - 10, profileTop + 24),
+             bodyStrong_.Get(), textBrush_.Get());
+        Text(networkConnected_ ? L"Online" : L"Offline",
+             Rect(left + 48, profileTop + 24, right - 10, profileTop + 44),
+             tiny_.Get(), mutedBrush_.Get());
+    }
+
+    void DrawRoomHeader(const D2D1_RECT_F& rect) {
+        Fill(rect, theme_.bg.a > 0 ? panelBrush_.Get() : panelBrush_.Get());
+        Line(rect.left, rect.bottom, rect.right, rect.bottom, borderSoftBrush_.Get(), 1.0f);
+
+        const auto icon = D2D1::RoundedRect(
+            Rect(rect.left + 18, rect.top + 17, rect.left + 56, rect.top + 55),
+            11, 11);
+        renderTarget_->FillRoundedRectangle(icon, violetPanelBrush_.Get());
+        DrawMonitor(rect.left + 28, rect.top + 27, violet2Brush_.Get());
+
+        const std::wstring title = sharing_ ? L"Compartilhando tela" : L"Sala privada";
+        Text(title,
+             Rect(rect.left + 70, rect.top + 16, rect.left + 360, rect.top + 43),
+             heading_.Get(), textBrush_.Get());
+
+        const std::wstring subtitle = sharing_
+            ? (roomState_.activeScreenSharerName.empty()
+                ? L"Transmissão ativa"
+                : roomState_.activeScreenSharerName + L" está transmitindo")
+            : L"Aguardando uma transmissão";
+        Text(subtitle,
+             Rect(rect.left + 70, rect.top + 43, rect.left + 440, rect.top + 63),
+             tiny_.Get(), mutedBrush_.Get());
+
+        const float right = rect.right - 20.0f;
+
+        const auto quality = D2D1::RoundedRect(
+            Rect(right - 224, rect.top + 19, right - 98, rect.top + 51),
+            16, 16);
+        renderTarget_->FillRoundedRectangle(quality, panel2Brush_.Get());
+        renderTarget_->DrawRoundedRectangle(quality, borderBrush_.Get(), 1.0f);
+        CenterText(L"1080p · " + std::to_wstring(fps_) + L" FPS",
+                   Rect(right - 216, rect.top + 24, right - 106, rect.top + 47),
+                   tinyBold_.Get(), mutedBrush_.Get());
+
+        renderTarget_->FillEllipse(
+            D2D1::Ellipse(D2D1::Point2F(right - 74, rect.top + 35), 4, 4),
+            networkConnected_ ? greenBrush_.Get() : amberBrush_.Get());
+        Text(networkConnected_ ? L"Excelente" : L"Reconectando",
+             Rect(right - 62, rect.top + 24, right, rect.top + 48),
+             tiny_.Get(), mutedBrush_.Get());
+    }
+
+    void DrawRoomActionBar(const D2D1_RECT_F& rect) {
+        const float center = (rect.left + rect.right) * 0.5f;
+        const float y = rect.top + 14.0f;
+        const float h = 54.0f;
+        const float gap = 10.0f;
+
+        const D2D1_RECT_F camera = Rect(center - 310, y, center - 202, y + h);
+        const D2D1_RECT_F share = Rect(center - 192, y, center - 52, y + h);
+        const D2D1_RECT_F audio = Rect(center - 42, y, center + 92, y + h);
+        const D2D1_RECT_F stats = Rect(center + 102, y, center + 210, y + h);
+        const D2D1_RECT_F leave = Rect(center + 220, y, center + 340, y + h);
+
+        AddHit(6, camera);
+        AddHit(7, share);
+        AddHit(8, audio);
+        AddHit(9, stats);
+        AddHit(17, leave);
+
+        Button(camera, cameraOn_ ? L"Câmera ligada" : L"Câmera", cameraOn_, hover_ == 6);
+
+        const std::wstring shareLabel = screenShareStarting_
+            ? L"Iniciando…"
+            : localScreenSharing_ ? L"Parar tela"
+            : sharing_ ? L"Tela em uso"
+            : L"Compartilhar tela";
+        PrimaryButton(share, shareLabel, localScreenSharing_, hover_ == 7);
+
+        Button(audio,
+               systemAudioOn_ ? L"Áudio ligado" : L"Áudio da tela",
+               systemAudioOn_,
+               hover_ == 8);
+        Button(stats, L"Estatísticas", statsOn_, hover_ == 9);
+
+        const auto leaveRr = D2D1::RoundedRect(leave, 14, 14);
+        renderTarget_->FillRoundedRectangle(leaveRr, redBrush_.Get());
+        CenterText(L"Sair da sala", Rect(leave.left + 8, leave.top + 13, leave.right - 8, leave.bottom - 9),
+                   bodyStrong_.Get(), textBrush_.Get());
+
+        if (statsOn_) {
+            const D2D1_RECT_F pill = Rect(rect.right - 304, rect.top - 34, rect.right, rect.top - 6);
+            const auto rr = D2D1::RoundedRect(pill, 14, 14);
+            renderTarget_->FillRoundedRectangle(rr, panel2Brush_.Get());
+            renderTarget_->DrawRoundedRectangle(rr, borderBrush_.Get(), 1.0f);
+            const std::wstring stats =
+                std::wstring(networkConnected_ ? L"Signaling online" : L"Signaling offline") +
+                L" · " +
+                (mediaConnected_ ? L"LiveKit online" : L"LiveKit standby") +
+                L" · " +
+                (agoraConnected_ ? L"Agora online" : L"Agora standby");
+            CenterText(stats, Rect(pill.left + 10, pill.top + 5, pill.right - 10, pill.bottom - 4),
+                       tiny_.Get(), mutedBrush_.Get());
         }
 
-        const float sideLeft = contentRight - side;
-        DrawStage(Rect(contentLeft, contentTop, sideLeft - gap, contentBottom));
-        DrawSidebar(Rect(sideLeft, contentTop, contentRight, contentBottom));
+        if (!roomNotice_.empty()) {
+            Text(roomNotice_,
+                 Rect(rect.left + 8, rect.bottom - 24, rect.right - 8, rect.bottom - 4),
+                 tiny_.Get(), amberBrush_.Get());
+        }
     }
 
     void DrawStage(const D2D1_RECT_F& area) {
@@ -2455,6 +2660,7 @@ private:
             focusedField_ = Field::None;
             break;
         case 16:
+        case 17:
             if (localScreenSharing_ || screenShareStarting_) StopNativeScreenShare(true);
             if (socket_.IsConnected() && !roomCode_.empty()) {
                 std::string payload = "{\"roomId\":";
