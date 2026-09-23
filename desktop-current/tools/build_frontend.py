@@ -57,8 +57,8 @@ PREFERENCES_NEW='function oOe(){try{const p={...G1,...JSON.parse(lj("lunira_pref
 QUALITY_MAP_OLD='j=b.resolution==="4K"?"auto":b.resolution'
 QUALITY_MAP_NEW='j=b.resolution==="4K"?"1080p":b.resolution'
 
-SOCKET_CLIENT_OLD='bP=TP("https://lunira-screen.onrender.com",{autoConnect:!1,reconnection:!0,reconnectionAttempts:1/0,reconnectionDelay:800,reconnectionDelayMax:5e3,randomizationFactor:.3,timeout:8e3})'
-SOCKET_CLIENT_NEW='bP=TP("https://lunira-screen.onrender.com",{autoConnect:!1,reconnection:!0,reconnectionAttempts:1/0,reconnectionDelay:600,reconnectionDelayMax:3e3,randomizationFactor:.25,timeout:25e3,transports:["polling","websocket"]})'
+SOCKET_CLIENT_OLD='bP=TP("https://lunirascreen.onrender.com",{autoConnect:!1,reconnection:!0,reconnectionAttempts:1/0,reconnectionDelay:800,reconnectionDelayMax:5e3,randomizationFactor:.3,timeout:8e3})'
+SOCKET_CLIENT_NEW='bP=TP("https://lunirascreen.onrender.com",{autoConnect:!1,reconnection:!0,reconnectionAttempts:1/0,reconnectionDelay:600,reconnectionDelayMax:3e3,randomizationFactor:.25,timeout:25e3,transports:["polling","websocket"]})'
 SOCKET_ERROR_OLD='si=()=>{Kr("Sem ligação"),le("Servidor de salas indisponível. Verifique a ligação e o endereço do servidor.")}'
 SOCKET_ERROR_NEW='si=()=>{Kr("Reconectando"),le("Reconectando ao servidor. Se ele estiver iniciando, isso pode levar alguns segundos.")}'
 
@@ -79,7 +79,7 @@ def main():
 
     js_path=DIST/"assets"/JS_NAME
     js=js_path.read_text("utf-8")
-    js=js.replace("https://lunirascreen.onrender.com","https://lunira-screen.onrender.com")
+    js=js.replace("https://lunira-screen.onrender.com","https://lunirascreen.onrender.com")
     js=replace_exact(js,PARTICIPANT_OLD,PARTICIPANT_NEW)
     js=replace_exact(js,"children:w.cameras.length","children:_e.length")
     js=replace_exact(js,AGORA_JOIN_OLD,AGORA_JOIN_NEW)
@@ -106,8 +106,10 @@ def main():
         html=html.replace("</body>",'    <script type="module" src="./polish.js"></script>\n  </body>')
     html_path.write_text(html,"utf-8")
 
-    if "https://lunirascreen.onrender.com" in js:
-        raise RuntimeError("Legacy signaling endpoint survived frontend build")
+    if "https://lunira-screen.onrender.com" in js:
+        raise RuntimeError("Invalid signaling endpoint survived frontend build")
+    if "https://lunirascreen.onrender.com" not in js:
+        raise RuntimeError("Production signaling endpoint missing from frontend build")
     if 'value:"4K"' in js or "Até 4K · 60 FPS · baixa latência" in js:
         raise RuntimeError("4K option survived frontend build")
     if "timeout:25e3" not in js or 'transports:["polling","websocket"]' not in js:

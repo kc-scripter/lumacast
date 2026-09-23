@@ -3,8 +3,8 @@ import argparse
 ap=argparse.ArgumentParser(); ap.add_argument('dir',type=Path); a=ap.parse_args()
 js=next((a.dir/'assets').glob('index-*.js')).read_text(encoding='utf-8')
 checks={
- 'canonical_signaling': 'https://lunira-screen.onrender.com' in js,
- 'legacy_signaling_absent': 'https://lunirascreen.onrender.com' not in js,
+ 'production_signaling': 'https://lunirascreen.onrender.com' in js,
+ 'invalid_signaling_absent': 'https://lunira-screen.onrender.com' not in js,
  'create_room': 'create-room' in js,
  'join_room': 'join-room' in js,
  'reclaim_room': 'reclaim-room' in js,

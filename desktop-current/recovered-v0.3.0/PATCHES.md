@@ -8,7 +8,7 @@
 `https://lunirascreen.onrender.com`
 
 **After**
-`https://lunira-screen.onrender.com`
+`https://lunirascreen.onrender.com`
 
 Applied by `tools/patch_endpoint.py`, which deliberately requires exactly one legacy endpoint occurrence before changing the bundle.
 

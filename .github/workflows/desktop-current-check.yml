@@ -28,8 +28,8 @@ jobs:
         run: |
           $js = Get-Content "desktop-current/dist/assets/index-Dm-7PBzL.js" -Raw
           $html = Get-Content "desktop-current/dist/index.html" -Raw
-          if ($js.Contains("https://lunirascreen.onrender.com")) { throw "Legacy signaling endpoint returned." }
-          if (-not $js.Contains("https://lunira-screen.onrender.com")) { throw "Canonical signaling endpoint missing." }
+          if ($js.Contains("https://lunira-screen.onrender.com")) { throw "Invalid signaling endpoint returned." }
+          if (-not $js.Contains("https://lunirascreen.onrender.com")) { throw "Production signaling endpoint missing." }
           if (-not $js.Contains("children:_e.length")) { throw "Participant rail patch missing." }
           if (-not $html.Contains("polish.css") -or -not $html.Contains("polish.js")) { throw "Polish assets were not injected." }
       - name: Check reconstructed Tauri shell
