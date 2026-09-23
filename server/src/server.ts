@@ -12,7 +12,8 @@ const port=Number(process.env.PORT||3001);
 const configuredOrigins=(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL||"http://localhost:5173")
   .split(",").map(value=>value.trim()).filter(Boolean);
 const allowedOrigins=new Set(configuredOrigins);
-const originAllowed=(value?:string)=>!value||allowedOrigins.has(value);
+const desktopOrigins=new Set(["http://tauri.localhost","https://tauri.localhost","tauri://localhost"]);
+const originAllowed=(value?:string)=>!value||allowedOrigins.has(value)||desktopOrigins.has(value);
 const corsOptions:CorsOptions={
   origin(origin,callback){callback(null,originAllowed(origin));},
   methods:["GET","POST"]
@@ -55,7 +56,7 @@ app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
-  cors:{origin:configuredOrigins,methods:["GET","POST"]},
+  cors:{origin:[...configuredOrigins,...desktopOrigins],methods:["GET","POST"]},
   allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)),
   maxHttpBufferSize:64*1024,
   pingTimeout:20_000,
