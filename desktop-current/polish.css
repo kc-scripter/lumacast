@@ -1,0 +1,179 @@
+/* Lunira Screen v0.3.0 UI polish layer */
+:root{
+  --lunira-violet:#a855f7;
+  --lunira-violet-2:#8b5cf6;
+  --lunira-panel:rgba(15,15,20,.82);
+  --lunira-border:rgba(255,255,255,.085);
+}
+.app{
+  isolation:isolate;
+  background:
+    radial-gradient(1200px 720px at 12% -15%,rgba(139,92,246,.12),transparent 58%),
+    radial-gradient(900px 620px at 92% 18%,rgba(168,85,247,.08),transparent 62%),
+    #070709;
+}
+.ambient{
+  background:
+    radial-gradient(ellipse at 50% 115%,rgba(96,42,150,.16),transparent 58%),
+    linear-gradient(135deg,rgba(255,255,255,.012),transparent 42%),
+    #070709;
+}
+.ambient::before,.ambient::after{
+  content:"";position:absolute;inset:-28%;pointer-events:none;
+  will-change:transform,opacity;
+}
+.ambient::before{
+  background:
+    radial-gradient(circle at 30% 35%,rgba(139,92,246,.12),transparent 20%),
+    radial-gradient(circle at 73% 58%,rgba(168,85,247,.10),transparent 22%),
+    radial-gradient(circle at 52% 80%,rgba(99,102,241,.07),transparent 18%);
+  filter:blur(22px);
+  animation:lunira-mesh-drift 28s ease-in-out infinite alternate;
+}
+.ambient::after{
+  inset:-5%;opacity:.22;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:54px 54px;
+  mask-image:radial-gradient(circle at 50% 42%,#000 0 36%,transparent 76%);
+  animation:lunira-grid-drift 34s linear infinite;
+}
+.ambient>i{
+  opacity:.72;
+  animation-timing-function:cubic-bezier(.45,.05,.2,1);
+  will-change:transform;
+}
+@keyframes lunira-mesh-drift{
+  0%{transform:translate3d(-2%,0,0) rotate(-2deg) scale(1)}
+  50%{transform:translate3d(3%,-2%,0) rotate(2deg) scale(1.05)}
+  100%{transform:translate3d(-1%,3%,0) rotate(-1deg) scale(1.02)}
+}
+@keyframes lunira-grid-drift{to{transform:translate3d(54px,54px,0)}}
+.titlebar{
+  background:linear-gradient(180deg,rgba(12,12,17,.90),rgba(9,9,13,.78));
+  border-bottom-color:rgba(255,255,255,.075);
+  box-shadow:0 1px 0 rgba(255,255,255,.018),0 12px 35px rgba(0,0,0,.18);
+  backdrop-filter:blur(18px) saturate(120%);
+}
+.window-controls button{transition:background-color .14s ease,color .14s ease,transform .14s ease}
+.window-controls button:active{transform:scale(.92)}
+.window-controls .close-control:hover{background:#d13d51}
+.launcher-tools button,.action-card,.studio-header,.stage-panel,.camera-panel,.dock,.settings-popover{
+  backdrop-filter:blur(14px) saturate(118%);
+}
+.action-card{
+  transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.action-card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(168,85,247,.32);
+  box-shadow:0 18px 50px rgba(0,0,0,.34),0 0 0 1px rgba(168,85,247,.035) inset;
+}
+.action-card-primary:hover{
+  box-shadow:0 20px 52px rgba(0,0,0,.40),0 0 44px rgba(139,92,246,.13),inset 0 1px rgba(255,255,255,.06);
+}
+.primary-button{transition:transform .15s ease,filter .15s ease,box-shadow .18s ease}
+.primary-button:hover{transform:translateY(-1px);box-shadow:0 10px 27px rgba(139,92,246,.32)}
+.primary-button:active{transform:translateY(0) scale(.992)}
+.launcher-tools button{transition:transform .15s ease,border-color .15s ease,background .15s ease,color .15s ease}
+.launcher-tools button:hover{transform:translateY(-1px);background:#211828}
+
+/* Studio: keep the RTC DOM intact and move participants to a bottom rail. */
+.studio-body{
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr) auto!important;
+  gap:12px!important;
+  padding:14px 22px 6px!important;
+}
+.stage-panel{min-height:0}
+.stage-content{padding:12px!important}
+.preview-window{max-width:none!important;width:100%!important}
+.camera-panel{
+  min-height:142px;max-height:164px;padding-bottom:0!important;overflow:hidden;
+}
+.camera-panel>.panel-heading{height:36px!important;padding:0 12px!important}
+.camera-grid{
+  display:flex!important;gap:9px!important;padding:9px 12px 11px!important;
+  overflow-x:auto!important;overflow-y:hidden!important;
+  scroll-snap-type:x proximity;scrollbar-width:thin;
+}
+.camera-grid::-webkit-scrollbar{height:5px}
+.camera-grid::-webkit-scrollbar-thumb{background:#3b3346;border-radius:999px}
+.camera-tile{
+  flex:0 0 clamp(150px,16vw,210px)!important;width:auto!important;height:100px!important;
+  scroll-snap-align:start;cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.camera-tile:hover{
+  transform:translateY(-2px);border-color:rgba(168,85,247,.52);
+  box-shadow:0 10px 28px rgba(0,0,0,.30),0 0 0 1px rgba(168,85,247,.06) inset;
+}
+.camera-tip{display:none!important}
+.camera-label{backdrop-filter:blur(7px)}
+.studio-bottom{height:86px!important}
+.dock{
+  border-color:rgba(255,255,255,.11);background:rgba(20,20,27,.84);
+  box-shadow:0 18px 45px rgba(0,0,0,.44),inset 0 1px rgba(255,255,255,.045);
+}
+.dock-button{transition:transform .15s ease,background .15s ease,color .15s ease}
+.dock-button:hover{transform:translateY(-1px)}
+.live-chip{box-shadow:inset 0 1px rgba(255,255,255,.04)}
+
+/* Camera focus preserves the live video element and its MediaStream. */
+.lunira-focus-backdrop{
+  position:fixed;z-index:90;inset:54px 0 0;background:rgba(3,3,7,.78);
+  backdrop-filter:blur(15px);animation:lunira-backdrop-in .16s ease-out both;
+}
+.camera-tile.lunira-camera-focused{
+  position:fixed!important;z-index:100!important;inset:86px 6vw 94px!important;
+  width:auto!important;height:auto!important;max-width:none!important;transform:none!important;
+  border-color:rgba(168,85,247,.62)!important;border-radius:15px!important;
+  box-shadow:0 32px 100px rgba(0,0,0,.68),0 0 70px rgba(139,92,246,.12)!important;
+  background:#09090d!important;
+}
+.camera-tile.lunira-camera-focused .camera-video{object-fit:contain!important}
+.camera-tile.lunira-camera-focused .camera-avatar{width:92px;height:92px;border-radius:24px;font-size:28px}
+.camera-tile.lunira-camera-focused .camera-label{height:40px;padding:0 14px;font-size:12px}
+@keyframes lunira-backdrop-in{from{opacity:0}to{opacity:1}}
+
+/* Functional How it works modal. */
+.lunira-how-overlay{
+  position:fixed;z-index:220;inset:0;display:grid;place-items:center;padding:28px;
+  background:rgba(4,3,8,.78);backdrop-filter:blur(18px);
+  animation:lunira-backdrop-in .18s ease-out both;
+}
+.lunira-how-modal{
+  position:relative;width:min(720px,calc(100vw - 48px));max-height:min(720px,calc(100vh - 70px));
+  overflow:auto;border:1px solid rgba(151,105,214,.46);border-radius:18px;padding:26px;
+  color:#f5f2f8;background:radial-gradient(circle at 88% 0,rgba(139,92,246,.16),transparent 38%),rgba(18,16,23,.96);
+  box-shadow:0 34px 110px rgba(0,0,0,.70),inset 0 1px rgba(255,255,255,.04);
+  animation:modal-scale .22s cubic-bezier(.2,.85,.2,1) both;
+}
+.lunira-how-modal h2{font-size:25px;letter-spacing:-.045em;margin:7px 0 6px}
+.lunira-how-modal>p{color:#a7a2ae;font-size:11px;line-height:1.65;max-width:590px}
+.lunira-how-close{
+  position:absolute;top:18px;right:18px;width:32px;height:32px;border-radius:8px;
+  border:1px solid #413847;background:#221d28;color:#bdb5c4;display:grid;place-items:center;
+}
+.lunira-how-close:hover{color:#fff;border-color:#a855f7;background:#2b2032}
+.lunira-flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:22px}
+.lunira-flow article{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:15px;background:rgba(255,255,255,.025)}
+.lunira-flow b{display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:7px}
+.lunira-flow b span{display:grid;place-items:center;width:23px;height:23px;border-radius:7px;background:rgba(139,92,246,.14);color:#c8a8ff;font-size:9px;border:1px solid rgba(139,92,246,.25)}
+.lunira-flow p{margin:0;color:#91909a;font-size:10px;line-height:1.55}
+.lunira-techline{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:17px;border-top:1px solid rgba(255,255,255,.07)}
+.lunira-techline span{font-size:9px;color:#aaa2b4;padding:6px 8px;border-radius:7px;background:#1b1720;border:1px solid #332d39}
+@media(max-width:900px){
+  .studio-body{padding-inline:14px!important}
+  .camera-tile{flex-basis:145px!important}
+  .connected,.bottom-spacer{min-width:80px!important}
+  .lunira-flow{grid-template-columns:1fr}
+}
+@media(max-height:700px){
+  .camera-panel{min-height:120px;max-height:132px}
+  .camera-tile{height:82px!important}
+  .studio-bottom{height:74px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .ambient::before,.ambient::after{animation:none!important}
+  .action-card,.camera-tile,.dock-button,.launcher-tools button,.primary-button{transition:none!important}
+}
