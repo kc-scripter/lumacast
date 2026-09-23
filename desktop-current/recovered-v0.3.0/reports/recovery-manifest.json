@@ -1,0 +1,43 @@
+{
+  "source_setup": "Lunira Screen_0.3.0_x64-setup.exe",
+  "setup_sha256": "38914bdbd022735cf2aecc3b34910c122ede68accd049276282df6ba5faaa8e5",
+  "setup_size": 2469798,
+  "main_exe_sha256": "576b6adc32ed9e012870c934847163490782984f3c7a266325c2038c1c39596a",
+  "main_exe_size": 9284608,
+  "identified": {
+    "framework": "Tauri",
+    "tauri_version": "2.11.6",
+    "version": "0.3.0",
+    "identifier": "com.lunira.screen.desktop",
+    "webview": "WebView2"
+  },
+  "assets": {
+    "html": {
+      "key": "/index.html",
+      "compressed_range": [
+        6284882,
+        6285083
+      ],
+      "size": 453,
+      "sha256": "b24b2780aaa1358cf9fe10fbbbf721a92953ad98659631891fc73d0e8294e7e0"
+    },
+    "css": {
+      "key": "/assets/index-CVLCUZdC.css",
+      "compressed_range": [
+        6277266,
+        6284871
+      ],
+      "size": 32438,
+      "sha256": "c676fc0cd831594a812f4569df56497a0ca045bbde1993d1b42c2e7214f4d9d2"
+    },
+    "js": {
+      "key": "/assets/index-Dm-7PBzL.js",
+      "compressed_range": [
+        6285108,
+        6855981
+      ],
+      "size": 2503291,
+      "sha256": "a57ca15fc586d25771fb126adc9795351b106cc14e04035b15626fb2f1c3b781"
+    }
+  }
+}

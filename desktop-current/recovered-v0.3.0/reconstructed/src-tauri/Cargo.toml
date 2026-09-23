@@ -1,0 +1,16 @@
+[package]
+name = "lunira-screen"
+version = "0.3.0"
+description = "Lunira Screen desktop application"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2.11.6", features = [] }
+tauri-plugin-autostart = "2.5.1"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

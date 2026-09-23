@@ -1,0 +1,8 @@
+canonical_signaling: OK
+legacy_signaling_absent: OK
+create_room: OK
+join_room: OK
+reclaim_room: OK
+agora: OK
+livekit: OK
+tauri_autostart: OK
