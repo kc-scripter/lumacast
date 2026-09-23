@@ -292,7 +292,7 @@ void MainWindow::ApplyRoomState(
         ++participantCount;
     }
 
-    ParticipantCountText().Text(hstring(L"Pessoas · " + std::to_wstring(std::max(1, participantCount))));
+    ParticipantCountText().Text(hstring(L"Pessoas · " + std::to_wstring(participantCount > 0 ? participantCount : 1)));
     if (participantCount == 0) {
         TextBlock empty;
         empty.Text(L"Aguardando participantes…");
