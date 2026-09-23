@@ -28,7 +28,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 !.env.example
 
@@ -39,7 +39,8 @@ yarn-error.log*
 next-env.d.ts
 /dist/
 /.wrangler/
-# Checkout-local execution profile and tool state; never publish them.
+
+# local execution state
 /.sites-runtime/
 /.agents/
 /.codex/
@@ -48,3 +49,10 @@ next-env.d.ts
 
 # generated server build
 /server/dist/
+
+# desktop generated output
+/desktop-ui/dist/
+/desktop-ui/node_modules/
+/desktop-electron/node_modules/
+/desktop-electron/renderer/
+/desktop-electron/dist/

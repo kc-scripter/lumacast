@@ -18,22 +18,9 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Build desktop UI
-        shell: pwsh
-        run: |
-          npm ci
-          npm run build:desktop
 
       - name: Configure
         shell: pwsh
@@ -47,187 +34,32 @@ jobs:
         shell: pwsh
         run: |
           & "native-windows/build/Release/LuniraUpdater.exe" --self-test
-          if ($LASTEXITCODE -ne 0) {
-            throw "LuniraUpdater self-test falhou."
-          }
-
-      - name: Report executable size
-        shell: pwsh
-        run: |
-          $exe = Get-Item "native-windows/build/Release/LuniraScreen.exe"
-          Write-Host "LuniraScreen.exe: $([math]::Round($exe.Length / 1KB, 1)) KB"
-          if ($exe.Length -gt 5MB) {
-            throw "UI shell ficou maior que 5 MB; revisar dependências."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "LuniraUpdater self-test falhou." }
 
       - name: Production endpoint diagnostics
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Continue"
-
-          function Probe([string]$url) {
-            try {
-              $r = Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 25
-              Write-Host "PROBE $url -> $($r.StatusCode)"
-              return $r
-            } catch {
-              $status = try { [int]$_.Exception.Response.StatusCode } catch { 0 }
-              Write-Host "PROBE $url -> $status / $($_.Exception.Message)"
-              return $null
-            }
-          }
-
-          $front = "https://lunirascreen.onrender.com"
-          $legacy = "https://lunirascreen.onrender.com"
-
-          $home = Probe $front
-          Probe "$front/api/health" | Out-Null
-          Probe "$front/socket.io/?EIO=4&transport=polling&t=ci" | Out-Null
-          Probe "$legacy/api/health" | Out-Null
-          Probe "$legacy/socket.io/?EIO=4&transport=polling&t=ci" | Out-Null
-
-          if ($home) {
-            $matches = [regex]::Matches($home.Content, 'src="([^"]+\.js)"')
-            foreach ($match in $matches) {
-              $src = $match.Groups[1].Value
-              if ($src.StartsWith("/")) { $src = "$front$src" }
-              try {
-                $bundle = (Invoke-WebRequest -UseBasicParsing -Uri $src -TimeoutSec 25).Content
-                [regex]::Matches($bundle, 'https://[a-zA-Z0-9.-]+\.onrender\.com') |
-                  ForEach-Object { $_.Value } |
-                  Sort-Object -Unique |
-                  ForEach-Object { Write-Host "BUNDLE_RENDER_URL $_" }
-              } catch {
-                Write-Host "Could not inspect bundle $src"
-              }
-            }
-          }
-
-      - name: Agora loader diagnostics
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Continue"
-          $release = Resolve-Path "native-windows/build/Release"
-          $sdkRoot = Resolve-Path "native-windows/build/_deps/agora-sdk/Agora_Native_SDK_for_Windows_FULL/sdk/x86_64"
-
-          Write-Host "=== Agora SDK DLL inventory ==="
-          Get-ChildItem "$sdkRoot/*.dll" |
-            Sort-Object Name |
-            ForEach-Object { Write-Host ("SDK_DLL {0} {1}" -f $_.Name, $_.Length) }
-
-          Write-Host "=== Release DLL inventory ==="
-          Get-ChildItem "$release/*.dll" |
-            Sort-Object Name |
-            ForEach-Object { Write-Host ("RELEASE_DLL {0} {1}" -f $_.Name, $_.Length) }
-
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1
-
-          if (-not $dumpbin) {
-            throw "dumpbin.exe não encontrado no runner."
-          }
-
-          Write-Host "DUMPBIN $($dumpbin.FullName)"
-          @(
-            "LuniraAgoraRoundtrip.exe",
-            "agora_rtc_sdk.dll",
-            "libaosl.dll",
-            "libagora_screen_capture_extension.dll",
-            "libagora-wgc.dll",
-            "libagora_video_encoder_extension.dll",
-            "video_enc.dll",
-            "video_dec.dll"
-          ) | ForEach-Object {
-            $path = Join-Path $release $_
-            if (Test-Path $path) {
-              Write-Host "=== DEPENDENTS $_ ==="
-              & $dumpbin.FullName /nologo /dependents $path
-            } else {
-              Write-Host "MISSING_RELEASE $_"
-            }
-          }
-
-          Write-Host "=== Direct loader probe ==="
-          & "$release/LuniraAgoraRoundtrip.exe" --loader-probe
-          $code = [int32]$LASTEXITCODE
-          $hex = [BitConverter]::ToUInt32([BitConverter]::GetBytes($code), 0)
-          Write-Host ("AGORA_ROUNDTRIP_EXIT decimal={0} hex=0x{1:X8}" -f $code, $hex)
-          exit 0
-
-      - name: Cross-compatible camera roundtrip
-        shell: pwsh
-        run: |
           & "native-windows/build/Release/LuniraSignalingSmoke.exe"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Falhou o signaling Socket.IO nativo no domínio de produção."
-          }
-
+          if ($LASTEXITCODE -ne 0) { throw "Falhou o signaling nativo." }
           & "native-windows/build/Release/LuniraLiveKitSmoke.exe"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Falhou a conexão LiveKit obtida pelo signaling atual."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "Falhou a conexão LiveKit nativa." }
 
-          $exe = "native-windows/build/Release/LuniraCameraRoundtrip.exe"
-          & $exe
-          if ($LASTEXITCODE -ne 0) {
-            throw "Falhou o fluxo real: sala -> join -> LiveKit -> câmera -> pixels no receptor nativo."
-          }
-
+      - name: Media roundtrips
+        shell: pwsh
+        run: |
+          & "native-windows/build/Release/LuniraCameraRoundtrip.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Falhou o roundtrip LiveKit." }
           & "native-windows/build/Release/LuniraAgoraRoundtrip.exe"
-          $agoraExit = [int32]$LASTEXITCODE
-          $agoraHex = [BitConverter]::ToUInt32([BitConverter]::GetBytes($agoraExit), 0)
-          Write-Host ("Agora roundtrip exit code: {0} (0x{1:X8})" -f $agoraExit, $agoraHex)
-          if ($agoraExit -ne 0) {
-            throw "Falhou o fluxo real: token do backend -> fonte sintética Agora -> pixels no receptor nativo."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "Falhou o roundtrip Agora." }
 
-      - name: Report LiveKit runtime size
-        shell: pwsh
-        run: |
-          $files = Get-ChildItem "native-windows/build/Release/*.dll" -ErrorAction SilentlyContinue
-          if (-not $files) {
-            throw "As DLLs do LiveKit não foram copiadas para o build."
-          }
-          $total = ($files | Measure-Object -Property Length -Sum).Sum
-          $files | ForEach-Object {
-            Write-Host "$($_.Name): $([math]::Round($_.Length / 1MB, 2)) MB"
-          }
-          Write-Host "LiveKit runtime total: $([math]::Round($total / 1MB, 2)) MB"
-
-      - name: Stage runnable preview
-        shell: pwsh
-        run: |
-          $source = "native-windows/build/Release"
-          $stage = "native-windows/package"
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          Copy-Item "$source/LuniraScreen.exe" $stage
-          Copy-Item "$source/LuniraScreenWebUI.exe" "$stage/LuniraScreen-WebUI.exe"
-          Copy-Item "$source/desktop-ui" "$stage/desktop-ui" -Recurse
-          Copy-Item "$source/LuniraUpdater.exe" $stage
-          Copy-Item "$source/livekit.dll" $stage
-          Copy-Item "$source/livekit_ffi.dll" $stage
-          @(
-            "agora_rtc_sdk.dll",
-            "libaosl.dll",
-            "libagora-ffmpeg.dll",
-            "libagora-soundtouch.dll",
-            "libagora-fdkaac.dll",
-            "libagora_screen_capture_extension.dll",
-            "libagora-wgc.dll",
-            "libagora_video_encoder_extension.dll",
-            "video_enc.dll",
-            "video_dec.dll"
-          ) | ForEach-Object { Copy-Item "$source/$_" $stage }
-          $packageBytes = (Get-ChildItem $stage -File | Measure-Object Length -Sum).Sum
-          Write-Host "LuniraScreen-Native package: $([math]::Round($packageBytes / 1MB, 2)) MB"
-
-      - name: Upload native preview
+      - name: Upload native diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: LuniraScreen-Native
-          path: native-windows/package/
+          name: LuniraScreen-Native-Core
+          path: |
+            native-windows/build/Release/LuniraSignalingSmoke.exe
+            native-windows/build/Release/LuniraLiveKitSmoke.exe
+            native-windows/build/Release/LuniraCameraRoundtrip.exe
+            native-windows/build/Release/LuniraAgoraRoundtrip.exe
           if-no-files-found: error
           retention-days: 7

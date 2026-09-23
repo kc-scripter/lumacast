@@ -42,88 +42,6 @@ configure_file(
 )
 
 
-# Experimental WebView2 shell. This keeps the proven native media build intact
-# while moving the visual shell to a declarative HTML/CSS UI.
-set(LUNIRA_WEBVIEW2_VERSION "1.0.4191.47" CACHE STRING "WebView2 SDK version")
-set(LUNIRA_WEBVIEW2_DIR "${CMAKE_BINARY_DIR}/_deps/webview2-${LUNIRA_WEBVIEW2_VERSION}")
-set(LUNIRA_WEBVIEW2_NUPKG "${CMAKE_BINARY_DIR}/_deps/Microsoft.Web.WebView2.${LUNIRA_WEBVIEW2_VERSION}.nupkg")
-
-if(NOT EXISTS "${LUNIRA_WEBVIEW2_DIR}/build/native/include/WebView2.h")
-  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/_deps")
-  if(NOT EXISTS "${LUNIRA_WEBVIEW2_NUPKG}")
-    file(
-      DOWNLOAD
-      "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${LUNIRA_WEBVIEW2_VERSION}"
-      "${LUNIRA_WEBVIEW2_NUPKG}"
-      SHOW_PROGRESS
-      STATUS LUNIRA_WEBVIEW2_DOWNLOAD_STATUS
-      TLS_VERIFY ON
-    )
-    list(GET LUNIRA_WEBVIEW2_DOWNLOAD_STATUS 0 LUNIRA_WEBVIEW2_DOWNLOAD_CODE)
-    if(NOT LUNIRA_WEBVIEW2_DOWNLOAD_CODE EQUAL 0)
-      list(GET LUNIRA_WEBVIEW2_DOWNLOAD_STATUS 1 LUNIRA_WEBVIEW2_DOWNLOAD_MESSAGE)
-      message(FATAL_ERROR "Failed to download WebView2 SDK: ${LUNIRA_WEBVIEW2_DOWNLOAD_MESSAGE}")
-    endif()
-  endif()
-
-  file(
-    ARCHIVE_EXTRACT
-    INPUT "${LUNIRA_WEBVIEW2_NUPKG}"
-    DESTINATION "${LUNIRA_WEBVIEW2_DIR}"
-  )
-endif()
-
-set(LUNIRA_WEBVIEW2_INCLUDE "${LUNIRA_WEBVIEW2_DIR}/build/native/include")
-set(LUNIRA_WEBVIEW2_STATIC_LIB "${LUNIRA_WEBVIEW2_DIR}/build/native/x64/WebView2LoaderStatic.lib")
-if(NOT EXISTS "${LUNIRA_WEBVIEW2_STATIC_LIB}")
-  message(FATAL_ERROR "WebView2 static loader library not found: ${LUNIRA_WEBVIEW2_STATIC_LIB}")
-endif()
-
-add_executable(LuniraScreenWebUI WIN32
-  src/webview_shell.cpp
-  src/updater.cpp
-  "${LUNIRA_GENERATED_DIR}/resources.rc"
-)
-
-target_compile_features(LuniraScreenWebUI PRIVATE cxx_std_20)
-target_compile_definitions(LuniraScreenWebUI PRIVATE
-  UNICODE
-  _UNICODE
-  WIN32_LEAN_AND_MEAN
-  NOMINMAX
-  LUNIRA_APP_VERSION="${LUNIRA_VERSION}"
-)
-target_include_directories(LuniraScreenWebUI PRIVATE "${LUNIRA_WEBVIEW2_INCLUDE}")
-target_link_libraries(LuniraScreenWebUI PRIVATE
-  "${LUNIRA_WEBVIEW2_STATIC_LIB}"
-  dwmapi
-  ole32
-  shell32
-  shlwapi
-  winhttp
-  bcrypt
-)
-
-add_custom_command(
-  TARGET LuniraScreenWebUI
-  POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E rm -rf "$<TARGET_FILE_DIR:LuniraScreenWebUI>/desktop-ui"
-  COMMAND "${CMAKE_COMMAND}" -E copy_directory
-          "${CMAKE_CURRENT_SOURCE_DIR}/../desktop-ui/dist"
-          "$<TARGET_FILE_DIR:LuniraScreenWebUI>/desktop-ui"
-  VERBATIM
-)
-
-if(MSVC)
-  target_compile_options(LuniraScreenWebUI PRIVATE /W4 /permissive- /EHsc /utf-8)
-  target_link_options(LuniraScreenWebUI PRIVATE
-    $<$<CONFIG:Release>:/OPT:REF>
-    $<$<CONFIG:Release>:/OPT:ICF>
-  )
-  set_property(TARGET LuniraScreenWebUI PROPERTY
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
 add_executable(LuniraScreen WIN32
   src/main.cpp
   src/ui_layout.cpp
@@ -238,50 +156,6 @@ lunira_copy_livekit_runtime(LuniraScreen "${LUNIRA_LIVEKIT_ROOT}")
 include(LuniraAgora)
 lunira_setup_agora(LUNIRA_AGORA_ROOT)
 lunira_link_agora(LuniraScreen "${LUNIRA_AGORA_ROOT}")
-
-add_library(LuniraCoreBridge SHARED
-  src/core_bridge.cpp
-  src/socket_io_client.cpp
-  src/livekit_media_client.cpp
-  src/camera_capture.cpp
-  src/agora_screen_client.cpp
-  src/system_audio_capture.cpp
-  src/updater.cpp
-)
-
-target_compile_features(LuniraCoreBridge PRIVATE cxx_std_20)
-target_compile_definitions(LuniraCoreBridge PRIVATE
-  UNICODE
-  _UNICODE
-  WIN32_LEAN_AND_MEAN
-  NOMINMAX
-  LUNIRA_APP_VERSION="${LUNIRA_VERSION}"
-)
-
-if(MSVC)
-  target_compile_options(LuniraCoreBridge PRIVATE
-    /W4 /permissive- /EHsc /utf-8
-    $<$<CONFIG:Release>:/O2>
-  )
-  set_property(TARGET LuniraCoreBridge PROPERTY
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
-target_link_libraries(LuniraCoreBridge PRIVATE
-  LiveKit::livekit
-  winhttp
-  mf
-  mfplat
-  mfreadwrite
-  mfuuid
-  ole32
-  uuid
-  bcrypt
-)
-
-lunira_copy_livekit_runtime(LuniraCoreBridge "${LUNIRA_LIVEKIT_ROOT}")
-lunira_link_agora(LuniraCoreBridge "${LUNIRA_AGORA_ROOT}")
-
 
 add_executable(LuniraLiveKitSmoke
   tests/livekit_smoke.cpp

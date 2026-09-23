@@ -32,6 +32,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm install --prefix desktop-ui --no-audit --no-fund
       - run: npm run typecheck
       - run: npm audit --omit=dev --audit-level=high
       - name: Ensure generated server build is not committed
