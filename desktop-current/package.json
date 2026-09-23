@@ -5,7 +5,9 @@
   "scripts": {
     "recover": "python recovery/extract_v0_3_0.py input/Lunira Screen_0.3.0_x64-setup.exe",
     "tauri": "tauri",
-    "build:windows": "npm run recover && tauri build"
+    "build:windows": "npm run prepare:frontend && tauri build",
+    "prepare:frontend": "python tools/build_frontend.py",
+    "check:frontend": "python tools/build_frontend.py"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"
