@@ -8,7 +8,7 @@ on:
       web_url:
         description: "URL HTTPS pública do Lunira Screen"
         required: false
-        default: "https://lumacast-live-kc.onrender.com/"
+        default: "https://lunira-screen.onrender.com/"
         type: string
       version:
         description: "Versão do app (ex.: 1.2.0)"
@@ -24,7 +24,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     env:
-      LUNIRA_WEB_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.web_url || vars.LUNIRA_WEB_URL || 'https://lumacast-live-kc.onrender.com/' }}
+      LUNIRA_WEB_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.web_url || vars.LUNIRA_WEB_URL || 'https://lunira-screen.onrender.com/' }}
 
     steps:
       - name: Checkout
