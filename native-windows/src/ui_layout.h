@@ -5,7 +5,7 @@
 namespace lunira::ui {
 
 struct Tokens {
-    static constexpr float Sidebar = 272.0f;
+    static constexpr float Sidebar = 228.0f;
     static constexpr float Outer = 20.0f;
     static constexpr float Gap = 14.0f;
     static constexpr float SmallGap = 10.0f;

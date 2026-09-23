@@ -52,6 +52,26 @@ jobs:
           & "native-windows/build/Release/LuniraAgoraRoundtrip.exe"
           if ($LASTEXITCODE -ne 0) { throw "Falhou o roundtrip Agora." }
 
+      - name: Stage native application
+        shell: pwsh
+        run: |
+          $release = "native-windows/build/Release"
+          $stage = "native-windows/package"
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item "$release/LuniraScreen.exe" $stage
+          Copy-Item "$release/LuniraUpdater.exe" $stage
+          Get-ChildItem $release -Filter *.dll | Copy-Item -Destination $stage
+          Write-Host "Native package:"
+          Get-ChildItem $stage | Select-Object Name,Length
+
+      - name: Upload native app
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuniraScreen-Native
+          path: native-windows/package/*
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload native diagnostics
         uses: actions/upload-artifact@v4
         with:

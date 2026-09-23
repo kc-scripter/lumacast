@@ -49,31 +49,31 @@ HomeLayout MakeHomeLayout(float width, float height) noexcept {
     HomeLayout layout;
     layout.sidebar = Rect(0.0f, 0.0f, Tokens::Sidebar, height);
     layout.content = Rect(
-        Tokens::Sidebar + 28.0f,
-        26.0f,
-        width - 28.0f,
-        height - 26.0f);
+        Tokens::Sidebar + 30.0f,
+        30.0f,
+        width - 30.0f,
+        height - 30.0f);
 
     const float contentWidth = Width(layout.content);
-    const float contentHeight = Height(layout.content);
-    const float formWidth = std::clamp(contentWidth * 0.36f, 370.0f, 440.0f);
-    const float topHeight = std::clamp(contentHeight * 0.48f, 330.0f, 382.0f);
+    const float leftWidth = std::clamp(contentWidth * 0.47f, 390.0f, 520.0f);
+    const float columnGap = 26.0f;
+    const float heroHeight = std::clamp(Height(layout.content) * 0.40f, 225.0f, 265.0f);
 
     layout.hero = Rect(
         layout.content.left,
         layout.content.top,
-        layout.content.right - formWidth - 22.0f,
-        layout.content.top + topHeight);
+        layout.content.left + leftWidth,
+        layout.content.top + heroHeight);
 
     layout.form = Rect(
-        layout.hero.right + 22.0f,
-        layout.content.top,
-        layout.content.right,
-        layout.content.top + topHeight);
+        layout.content.left,
+        layout.hero.bottom + 18.0f,
+        layout.content.left + leftWidth,
+        layout.content.bottom);
 
     layout.preview = Rect(
-        layout.content.left,
-        layout.content.top + topHeight + 18.0f,
+        layout.content.left + leftWidth + columnGap,
+        layout.content.top,
         layout.content.right,
         layout.content.bottom);
 

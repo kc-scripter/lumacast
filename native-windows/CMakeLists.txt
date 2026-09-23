@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(LuniraScreenNative LANGUAGES CXX RC)
 
-set(LUNIRA_VERSION "0.8.0" CACHE STRING "LuniraScreen application version")
+set(LUNIRA_VERSION "0.9.0" CACHE STRING "LuniraScreen application version")
 
 execute_process(
   COMMAND git rev-parse --short=7 HEAD
@@ -62,7 +62,7 @@ target_compile_definitions(LuniraScreen PRIVATE
   NOMINMAX
   LUNIRA_APP_VERSION="${LUNIRA_VERSION}"
   LUNIRA_GIT_SHA="${LUNIRA_GIT_SHA}"
-  LUNIRA_UI_REV="R2"
+  LUNIRA_UI_REV="R3"
 )
 
 if(MSVC)
