@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     env:
-      LUNIRA_WEB_URL: https://lumacast-live-kc.onrender.com/
+      LUNIRA_WEB_URL: https://lunira-screen.onrender.com/
 
     steps:
       - name: Checkout
