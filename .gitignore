@@ -49,10 +49,3 @@ next-env.d.ts
 
 # generated server build
 /server/dist/
-
-# desktop generated output
-/desktop-ui/dist/
-/desktop-ui/node_modules/
-/desktop-electron/node_modules/
-/desktop-electron/renderer/
-/desktop-electron/dist/
