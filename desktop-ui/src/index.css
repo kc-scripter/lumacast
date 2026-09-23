@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root{color-scheme:dark;font-family:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;background:#08090d}
+*{box-sizing:border-box}
+html,body,#root{margin:0;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background:#08090d}
+body{font-synthesis:none;text-rendering:optimizeLegibility}
+button,input,select{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed}
+button:not(:disabled){transition:transform 140ms ease,background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 180ms ease}
+button:not(:disabled):active{transform:scale(.97)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(139,92,246,.7);outline-offset:2px}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a2b33;border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+.gpu-layer{transform:translateZ(0);will-change:transform,opacity}
+
+.lunira-ambient{background:
+  radial-gradient(1000px 620px at 16% -10%,rgba(124,58,237,.14),transparent 62%),
+  radial-gradient(900px 620px at 92% 102%,rgba(79,70,229,.10),transparent 66%),
+  linear-gradient(135deg,#08090d 0%,#0a0b12 52%,#090910 100%)}
+.lunira-ambient-room{background:
+  radial-gradient(760px 520px at 4% 2%,rgba(124,58,237,.09),transparent 64%),
+  radial-gradient(820px 560px at 96% 98%,rgba(79,70,229,.07),transparent 68%),
+  linear-gradient(135deg,#08090d 0%,#090a10 100%)}
+.ambient-lines{background-image:
+  linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.62),transparent 88%)}
+.ambient-wash-a,.ambient-wash-b,.ambient-arc{position:absolute;border-radius:9999px;filter:blur(90px);transform:translate3d(0,0,0);will-change:transform,opacity}
+.ambient-wash-a{width:42vw;height:42vw;left:-20vw;top:-24vw;background:rgba(124,58,237,.14);animation:ambientDriftA 28s ease-in-out infinite alternate}
+.ambient-wash-b{width:38vw;height:38vw;right:-18vw;bottom:-22vw;background:rgba(79,70,229,.11);animation:ambientDriftB 34s ease-in-out infinite alternate}
+.ambient-arc{width:62vw;height:24vw;right:-26vw;top:14vh;border:1px solid rgba(139,92,246,.10);background:transparent;filter:blur(.2px);transform:rotate(-12deg);animation:ambientArc 36s ease-in-out infinite alternate}
+.splash-progress{position:relative;overflow:hidden}
+.splash-progress::after{content:"";position:absolute;inset:0 auto 0 -34%;width:34%;border-radius:9999px;background:linear-gradient(90deg,transparent,rgba(167,139,250,.95),rgba(99,102,241,.95),transparent);animation:splashSweep 1.65s ease-in-out infinite}
+@keyframes ambientDriftA{0%{transform:translate3d(-1%,0,0) scale(1)}100%{transform:translate3d(11%,8%,0) scale(1.12)}}
+@keyframes ambientDriftB{0%{transform:translate3d(0,4%,0) scale(1.04)}100%{transform:translate3d(-12%,-9%,0) scale(1.14)}}
+@keyframes ambientArc{0%{transform:translate3d(0,0,0) rotate(-12deg);opacity:.45}100%{transform:translate3d(-8%,6%,0) rotate(-8deg);opacity:.75}}
+@keyframes splashSweep{0%{left:-34%}70%,100%{left:100%}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
