@@ -3093,7 +3093,7 @@ private:
                 publisher.uid = static_cast<unsigned int>(event.agoraUid);
                 screenShareStarting_ = true;
                 agoraConnected_ = false;
-                if (!agora_.StartSharing(publisher, pendingScreenSource_, fps_, AgoraCallback())) {
+                if (!agora_.StartSharing(publisher, pendingScreenSource_, 1920, 1080, fps_, AgoraCallback())) {
                     StopNativeScreenShare(true, L"Não foi possível iniciar a captura Agora.");
                 }
                 break;

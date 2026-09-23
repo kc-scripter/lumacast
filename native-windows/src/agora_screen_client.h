@@ -63,16 +63,17 @@ public:
 
     bool StartViewer(const AgoraCredentials& credentials, Callback callback);
     bool StartSharing(const AgoraCredentials& credentials, const ScreenSource& source,
-                      int fps, Callback callback);
+                      int width, int height, int fps, Callback callback);
     void Stop();
     bool UpdateFrameRate(int fps);
+    bool UpdateCaptureQuality(int width, int height, int fps);
     bool RenewToken(std::wstring_view token);
     std::vector<ScreenSource> ListSources();
     bool IsSharing() const noexcept { return sharing_.load(); }
 
 private:
     bool StartEngine(const AgoraCredentials& credentials, bool publisher,
-                     const ScreenSource* source, int fps, Callback callback);
+                     const ScreenSource* source, int width, int height, int fps, Callback callback);
     void Notify(AgoraEvent event);
     static std::string WideToUtf8(std::wstring_view value);
     static std::wstring Utf8ToWide(std::string_view value);

@@ -75,16 +75,18 @@ std::wstring AgoraScreenClient::Utf8ToWide(std::string_view value) {
 }
 
 bool AgoraScreenClient::StartViewer(const AgoraCredentials& credentials, Callback callback) {
-    return StartEngine(credentials, false, nullptr, 30, std::move(callback));
+    return StartEngine(credentials, false, nullptr, 1920, 1080, 30, std::move(callback));
 }
 
 bool AgoraScreenClient::StartSharing(const AgoraCredentials& credentials,
-                                     const ScreenSource& source, int fps, Callback callback) {
-    return StartEngine(credentials, true, &source, fps, std::move(callback));
+                                     const ScreenSource& source, int width, int height,
+                                     int fps, Callback callback) {
+    return StartEngine(credentials, true, &source, width, height, fps, std::move(callback));
 }
 
 bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool publisher,
-                                    const ScreenSource* source, int fps, Callback callback) {
+                                    const ScreenSource* source, int width, int height,
+                                    int fps, Callback callback) {
     Stop();
     if (!credentials.Valid() || (publisher && source == nullptr)) return false;
 
@@ -138,7 +140,9 @@ bool AgoraScreenClient::StartEngine(const AgoraCredentials& credentials, bool pu
     }
 
     if (publisher) {
-        captureParameters_ = agora::rtc::ScreenCaptureParameters(1920, 1080,
+        captureParameters_ = agora::rtc::ScreenCaptureParameters(
+            std::clamp(width, 1280, 1920),
+            std::clamp(height, 720, 1080),
             std::clamp(fps, 30, 60), 0);
         captureParameters_.captureAudio = false;
         captureParameters_.captureMouseCursor = true;
@@ -202,6 +206,23 @@ void AgoraScreenClient::Stop() {
 bool AgoraScreenClient::UpdateFrameRate(int fps) {
     if (!engine_ || !sharing_.load()) return false;
     captureParameters_.frameRate = std::clamp(fps, 30, 60);
+    return engine_->updateScreenCaptureParameters(captureParameters_) == 0;
+}
+
+bool AgoraScreenClient::UpdateCaptureQuality(int width, int height, int fps) {
+    if (!engine_ || !sharing_.load()) return false;
+    agora::rtc::ScreenCaptureParameters updated(
+        std::clamp(width, 1280, 1920),
+        std::clamp(height, 720, 1080),
+        std::clamp(fps, 30, 60),
+        0);
+    updated.captureAudio = captureParameters_.captureAudio;
+    updated.captureMouseCursor = captureParameters_.captureMouseCursor;
+    updated.windowFocus = captureParameters_.windowFocus;
+    updated.enableHighLight = captureParameters_.enableHighLight;
+    updated.highLightWidth = captureParameters_.highLightWidth;
+    updated.highLightColor = captureParameters_.highLightColor;
+    captureParameters_ = updated;
     return engine_->updateScreenCaptureParameters(captureParameters_) == 0;
 }
 

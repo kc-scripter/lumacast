@@ -56,6 +56,7 @@ LUNIRA_BRIDGE_API void __stdcall lunira_bridge_toggle_camera(void* handle);
 LUNIRA_BRIDGE_API void __stdcall lunira_bridge_toggle_system_audio(void* handle);
 LUNIRA_BRIDGE_API void __stdcall lunira_bridge_toggle_screen(void* handle, HWND ownerWindow, int fps);
 LUNIRA_BRIDGE_API void __stdcall lunira_bridge_set_fps(void* handle, int fps);
+LUNIRA_BRIDGE_API void __stdcall lunira_bridge_set_quality(void* handle, int width, int height, int fps);
 LUNIRA_BRIDGE_API void __stdcall lunira_bridge_check_update(void* handle);
 LUNIRA_BRIDGE_API void __stdcall lunira_bridge_download_update(void* handle);
 

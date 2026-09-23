@@ -184,8 +184,16 @@ public:
     }
 
     void SetFps(int fps) {
+        SetQuality(screenWidth_, screenHeight_, fps);
+    }
+
+    void SetQuality(int width, int height, int fps) {
+        screenWidth_ = width <= 1280 ? 1280 : 1920;
+        screenHeight_ = height <= 720 ? 720 : 1080;
         fps_ = fps <= 30 ? 30 : 60;
-        if (localScreenSharing_) agora_.UpdateFrameRate(fps_);
+        if (localScreenSharing_) {
+            agora_.UpdateCaptureQuality(screenWidth_, screenHeight_, fps_);
+        }
         NotifyFlags();
     }
 
@@ -512,6 +520,8 @@ private:
                 if (!agora_.StartSharing(
                         publisher,
                         pendingScreenSource_,
+                        screenWidth_,
+                        screenHeight_,
                         fps_,
                         AgoraCallback())) {
                     StopNativeScreenShare(
@@ -1161,6 +1171,8 @@ private:
     int screenShareAckId_ = -1;
     int agoraRenewAckId_ = -1;
     int fps_ = 60;
+    int screenWidth_ = 1920;
+    int screenHeight_ = 1080;
     lunira::AgoraCredentials viewerAgoraCredentials_;
     lunira::ScreenSource pendingScreenSource_;
 
@@ -1236,6 +1248,10 @@ void __stdcall lunira_bridge_toggle_screen(
 
 void __stdcall lunira_bridge_set_fps(void* handle, int fps) {
     if (auto* bridge = AsBridge(handle)) bridge->SetFps(fps);
+}
+
+void __stdcall lunira_bridge_set_quality(void* handle, int width, int height, int fps) {
+    if (auto* bridge = AsBridge(handle)) bridge->SetQuality(width, height, fps);
 }
 
 void __stdcall lunira_bridge_check_update(void* handle) {
