@@ -34,15 +34,15 @@ function openHow(){
     <section class="lunira-how-modal" role="dialog" aria-modal="true" aria-labelledby="lunira-how-title">
       <button class="lunira-how-close" type="button" aria-label="Fechar">×</button>
       <span class="section-kicker">COMO FUNCIONA</span>
-      <h2 id="lunira-how-title">Da sala à transmissão, sem complicação.</h2>
-      <p>O Lunira conecta o aplicativo desktop e quem entra pelo navegador na mesma sala. O código identifica a sala; o servidor cuida da presença e das permissões, enquanto a mídia usa rotas próprias para manter baixa latência.</p>
+      <h2 id="lunira-how-title">Compartilhe sua tela em poucos segundos.</h2>
+      <p>O Lunira cria uma sala única que funciona no aplicativo e no navegador. Você compartilha o código da sala, escolhe a tela ou janela e quem entrar acompanha a transmissão em tempo real.</p>
       <div class="lunira-flow">
-        <article><b><span>01</span>Criar ou entrar</b><p>Crie uma sala no desktop ou digite um código existente. O nome escolhido aparece para os outros participantes.</p></article>
-        <article><b><span>02</span>Compartilhar o código</b><p>Envie o código de 8 caracteres para quem vai assistir. O mesmo código funciona entre app e web.</p></article>
-        <article><b><span>03</span>Escolher a tela</b><p>Selecione monitor ou janela e inicie o compartilhamento. Resolução e FPS podem ser ajustados sem recriar a sala.</p></article>
-        <article><b><span>04</span>Participar</b><p>Câmeras aparecem na faixa inferior. Clique em uma câmera para focar; pressione Esc ou clique fora para voltar.</p></article>
+        <article><b><span>01</span>Crie ou entre em uma sala</b><p>Use “Compartilhar Tela” para criar uma sala nova ou digite um código de 8 caracteres para entrar em uma sala existente.</p></article>
+        <article><b><span>02</span>Convide outras pessoas</b><p>Copie o código exibido no topo da sala e envie para quem vai assistir. App e site usam o mesmo código.</p></article>
+        <article><b><span>03</span>Escolha o que transmitir</b><p>Clique em “Compartilhar tela”, selecione um monitor ou uma janela e escolha 720p ou 1080p em 30 ou 60 FPS.</p></article>
+        <article><b><span>04</span>Use a sala como uma call</b><p>Os participantes ficam na lateral. Você pode ativar câmera, áudio da tela e focar um participante sem interromper a transmissão.</p></article>
       </div>
-      <div class="lunira-techline"><span>Socket.IO · sala/presença</span><span>Agora · tela</span><span>LiveKit · câmeras/áudio</span><span>Sem gravação pelo Lunira</span></div>
+      <div class="lunira-techline"><span>Sala sincronizada entre app e web</span><span>Tela em baixa latência</span><span>Câmera e áudio em tempo real</span><span>Sem gravação automática</span></div>
     </section>`;
   overlay.addEventListener("mousedown",e=>{if(e.target===overlay) closeHow();});
   qs(".lunira-how-close",overlay)?.addEventListener("click",closeHow);
@@ -108,3 +108,20 @@ const observer=new MutationObserver(syncStatus);
 observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["class"]});
 window.addEventListener("DOMContentLoaded",syncStatus);
 setTimeout(syncStatus,0);
+
+
+const LUNIRA_SIGNALING_URL="https://lunira-screen.onrender.com";
+async function prewarmSignaling(){
+  try{
+    const response=await fetch(`${LUNIRA_SIGNALING_URL}/api/health`,{
+      method:"GET",
+      cache:"no-store",
+      credentials:"omit"
+    });
+    console.info("[Lunira] signaling warmup",response.status);
+  }catch(error){
+    console.warn("[Lunira] signaling warmup failed",error);
+  }
+}
+window.addEventListener("DOMContentLoaded",()=>{void prewarmSignaling()},{once:true});
+window.addEventListener("online",()=>{void prewarmSignaling()});
