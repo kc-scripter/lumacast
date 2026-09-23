@@ -265,3 +265,248 @@
 @media(prefers-reduced-motion:reduce){
   .ambient::before,.ambient::after,.ambient>i{animation:none!important}
 }
+
+
+/* === v4: Discord-inspired room layout === */
+.studio{
+  position:relative!important;
+  padding:0 12px 10px!important;
+  gap:8px!important;
+}
+.studio-header{
+  height:58px!important;
+  padding:0 8px 0 4px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.room-heading small{display:none!important}
+.room-heading h1{
+  font-size:14px!important;
+  font-weight:650!important;
+  letter-spacing:-.02em!important;
+}
+.room-heading h1 span{color:#77727f!important;font-weight:500!important}
+.back-button{
+  border:0!important;
+  background:rgba(255,255,255,.04)!important;
+  border-radius:9px!important;
+}
+.room-meta>span:first-child{
+  color:#8f8a98!important;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:8px;
+  padding:7px 9px;
+}
+.code-chip,.live-chip{
+  height:30px!important;
+  border-radius:8px!important;
+  background:rgba(255,255,255,.035)!important;
+}
+
+.studio-body{
+  position:relative!important;
+  grid-template-columns:minmax(0,1fr) 228px!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  gap:10px!important;
+  padding:0 0 68px!important;
+}
+.stage-panel{
+  position:relative!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:#0c0c11!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.28)!important;
+  overflow:hidden!important;
+}
+.stage-panel>.panel-heading{
+  position:absolute!important;
+  z-index:4!important;
+  top:10px!important;
+  left:10px!important;
+  right:auto!important;
+  width:auto!important;
+  height:30px!important;
+  padding:0 10px!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  border-radius:8px!important;
+  background:rgba(15,15,21,.72)!important;
+  backdrop-filter:blur(12px)!important;
+}
+.stage-panel>.panel-heading>div{gap:6px!important}
+.stage-panel>.panel-heading span:not(.count-pill){display:none!important}
+.stage-panel>.panel-heading em{display:none!important}
+.stage-content{
+  height:100%!important;
+  padding:0!important;
+  background:
+    radial-gradient(720px 420px at 50% 45%,rgba(116,77,174,.08),transparent 68%),
+    #09090d!important;
+}
+.stage-idle{
+  height:100%!important;
+  min-height:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.stage-idle>div{
+  width:52px!important;
+  height:52px!important;
+  border-radius:16px!important;
+  background:rgba(124,77,255,.09)!important;
+  border:1px solid rgba(155,108,255,.18)!important;
+}
+.stage-idle h2{font-size:15px!important;margin-top:14px!important}
+.stage-idle p{max-width:460px;text-align:center!important;color:#77727f!important}
+.stage-panel footer{display:none!important}
+.screen-preview,.preview-window{height:100%!important;min-height:0!important}
+.preview-window{
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  background:#050507!important;
+}
+.preview-toolbar,.preview-caption{display:none!important}
+.stage-video,.source-image{
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  background:#050507!important;
+}
+
+.camera-panel{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  max-height:none!important;
+  height:auto!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:rgba(15,15,20,.82)!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.22)!important;
+  overflow:hidden!important;
+}
+.camera-panel>.panel-heading{
+  position:static!important;
+  width:100%!important;
+  height:46px!important;
+  padding:0 12px!important;
+  border:0!important;
+  border-bottom:1px solid rgba(255,255,255,.055)!important;
+  background:transparent!important;
+}
+.camera-panel>.panel-heading>div:first-child{
+  flex-wrap:nowrap!important;
+  width:100%!important;
+}
+.camera-panel>.panel-heading strong{font-size:11px!important}
+.camera-panel>.panel-heading em{display:none!important}
+.camera-grid{
+  display:flex!important;
+  flex:1!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:8px!important;
+  min-height:0!important;
+  padding:10px!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  scroll-snap-type:y proximity!important;
+}
+.camera-tile{
+  flex:0 0 112px!important;
+  width:100%!important;
+  height:112px!important;
+  border-radius:12px!important;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(139,92,246,.13),transparent 56%),
+    #17151c!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+}
+.camera-tile:hover{
+  transform:none!important;
+  border-color:rgba(155,108,255,.45)!important;
+  box-shadow:0 0 0 1px rgba(155,108,255,.08) inset!important;
+}
+.camera-avatar{
+  width:48px!important;
+  height:48px!important;
+  border-radius:50%!important;
+}
+.camera-label{
+  height:29px!important;
+  background:linear-gradient(transparent,rgba(5,5,8,.88))!important;
+  font-size:10px!important;
+}
+.camera-tip{display:none!important}
+
+.studio-bottom{
+  position:absolute!important;
+  z-index:12!important;
+  left:50%!important;
+  bottom:10px!important;
+  transform:translateX(-50%)!important;
+  width:auto!important;
+  height:auto!important;
+  padding:0!important;
+  pointer-events:none;
+}
+.studio-bottom .connected,.studio-bottom .bottom-spacer{display:none!important}
+.dock{
+  pointer-events:auto;
+  padding:5px!important;
+  gap:2px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:15px!important;
+  background:rgba(22,21,28,.93)!important;
+  box-shadow:0 18px 48px rgba(0,0,0,.5)!important;
+}
+.dock-button{
+  min-width:58px!important;
+  height:52px!important;
+  border-radius:10px!important;
+}
+.dock-button small{font-size:8px!important}
+.toast{
+  bottom:78px!important;
+  right:14px!important;
+}
+.settings-popover{bottom:76px!important;right:16px!important}
+
+@media(max-width:980px){
+  .studio-body{
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr) 126px!important;
+  }
+  .camera-panel{
+    min-height:126px!important;
+    max-height:126px!important;
+    flex-direction:row!important;
+  }
+  .camera-panel>.panel-heading{
+    width:112px!important;
+    height:100%!important;
+    border-bottom:0!important;
+    border-right:1px solid rgba(255,255,255,.055)!important;
+  }
+  .camera-grid{
+    flex-direction:row!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+  .camera-tile{
+    flex:0 0 150px!important;
+    width:150px!important;
+    height:104px!important;
+  }
+}
+@media(max-height:700px){
+  .studio-header{height:50px!important}
+  .studio-body{padding-bottom:62px!important}
+  .dock-button{height:46px!important;min-width:52px!important}
+}
