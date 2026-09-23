@@ -20,6 +20,12 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Build native core bridge
+        shell: pwsh
+        run: |
+          cmake -S native-windows -B native-windows/build -A x64
+          cmake --build native-windows/build --config Release --target LuniraCoreBridge LuniraUpdater
+
       - name: Restore WinUI packages
         shell: pwsh
         run: |
@@ -33,8 +39,12 @@ jobs:
       - name: Verify executable
         shell: pwsh
         run: |
-          $exe = "desktop-winui/bin/Release/x64/LuniraScreen-WinUI.exe"
+          $out = "desktop-winui/bin/Release/x64"
+          $exe = "$out/LuniraScreen-WinUI.exe"
           if (-not (Test-Path $exe)) { throw "WinUI executable was not produced." }
+          Copy-Item "native-windows/build/Release/*.dll" $out -Force
+          Copy-Item "native-windows/build/Release/LuniraUpdater.exe" $out -Force
+          if (-not (Test-Path "$out/LuniraCoreBridge.dll")) { throw "Core bridge was not packaged." }
           Write-Host "WinUI EXE: $((Get-Item $exe).Length) bytes"
 
       - name: Upload WinUI preview

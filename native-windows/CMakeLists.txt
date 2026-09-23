@@ -239,6 +239,50 @@ include(LuniraAgora)
 lunira_setup_agora(LUNIRA_AGORA_ROOT)
 lunira_link_agora(LuniraScreen "${LUNIRA_AGORA_ROOT}")
 
+add_library(LuniraCoreBridge SHARED
+  src/core_bridge.cpp
+  src/socket_io_client.cpp
+  src/livekit_media_client.cpp
+  src/camera_capture.cpp
+  src/agora_screen_client.cpp
+  src/system_audio_capture.cpp
+  src/updater.cpp
+)
+
+target_compile_features(LuniraCoreBridge PRIVATE cxx_std_20)
+target_compile_definitions(LuniraCoreBridge PRIVATE
+  UNICODE
+  _UNICODE
+  WIN32_LEAN_AND_MEAN
+  NOMINMAX
+  LUNIRA_APP_VERSION="${LUNIRA_VERSION}"
+)
+
+if(MSVC)
+  target_compile_options(LuniraCoreBridge PRIVATE
+    /W4 /permissive- /EHsc /utf-8
+    $<$<CONFIG:Release>:/O2>
+  )
+  set_property(TARGET LuniraCoreBridge PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+target_link_libraries(LuniraCoreBridge PRIVATE
+  LiveKit::livekit
+  winhttp
+  mf
+  mfplat
+  mfreadwrite
+  mfuuid
+  ole32
+  uuid
+  bcrypt
+)
+
+lunira_copy_livekit_runtime(LuniraCoreBridge "${LUNIRA_LIVEKIT_ROOT}")
+lunira_link_agora(LuniraCoreBridge "${LUNIRA_AGORA_ROOT}")
+
+
 add_executable(LuniraLiveKitSmoke
   tests/livekit_smoke.cpp
   src/socket_io_client.cpp
