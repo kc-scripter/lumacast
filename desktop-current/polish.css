@@ -510,3 +510,150 @@
   .studio-body{padding-bottom:62px!important}
   .dock-button{height:46px!important;min-width:52px!important}
 }
+
+
+/* === v5: visible motion + readable help === */
+.app{
+  isolation:isolate!important;
+  position:relative!important;
+  background:
+    radial-gradient(1150px 760px at 12% -18%,rgba(118,72,224,.10),transparent 63%),
+    radial-gradient(920px 640px at 104% 12%,rgba(172,75,238,.07),transparent 62%),
+    #07070a!important;
+}
+.ambient{
+  z-index:0!important;
+  opacity:1!important;
+  overflow:hidden!important;
+}
+.titlebar,.launcher,.onboarding,.studio{
+  position:relative!important;
+  z-index:1!important;
+}
+.ambient::before{
+  z-index:0!important;
+  width:82vw!important;
+  height:82vw!important;
+  min-width:760px!important;
+  min-height:760px!important;
+  top:-42vw!important;
+  left:-12vw!important;
+  opacity:.58!important;
+  filter:blur(46px)!important;
+  background:
+    conic-gradient(from 210deg,
+      transparent 0 12%,
+      rgba(118,72,255,.42) 22%,
+      rgba(183,79,255,.30) 35%,
+      transparent 48% 63%,
+      rgba(67,112,255,.25) 75%,
+      rgba(142,78,255,.20) 84%,
+      transparent 94%)!important;
+  animation:lunira-aurora-visible 15s cubic-bezier(.45,.05,.35,1) infinite alternate!important;
+}
+.ambient::after{
+  z-index:0!important;
+  opacity:.20!important;
+  background-size:52px 52px!important;
+  animation:lunira-grid-visible 26s linear infinite!important;
+}
+.ambient>i{
+  z-index:0!important;
+  opacity:.70!important;
+  filter:blur(82px)!important;
+  animation-name:lunira-orb-visible!important;
+  animation-duration:18s!important;
+  animation-timing-function:ease-in-out!important;
+  animation-iteration-count:infinite!important;
+  animation-direction:alternate!important;
+}
+.ambient>i:first-child{
+  width:620px!important;height:620px!important;
+  top:-260px!important;left:2%!important;
+  background:rgba(111,60,225,.28)!important;
+  animation-delay:-3s!important;
+}
+.ambient>i:nth-child(2){
+  width:560px!important;height:560px!important;
+  top:14%!important;right:-180px!important;
+  background:rgba(167,71,221,.22)!important;
+  animation-delay:-9s!important;
+}
+.ambient>i:nth-child(3){
+  width:540px!important;height:470px!important;
+  bottom:-220px!important;left:28%!important;
+  background:rgba(68,84,210,.18)!important;
+  animation-delay:-13s!important;
+}
+@keyframes lunira-aurora-visible{
+  0%{transform:translate3d(-7%,0,0) rotate(-12deg) scale(.94)}
+  35%{transform:translate3d(7%,8%,0) rotate(2deg) scale(1.05)}
+  70%{transform:translate3d(19%,2%,0) rotate(14deg) scale(1.10)}
+  100%{transform:translate3d(28%,10%,0) rotate(22deg) scale(.98)}
+}
+@keyframes lunira-grid-visible{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(52px,52px,0)}
+}
+@keyframes lunira-orb-visible{
+  0%{transform:translate3d(-24px,-10px,0) scale(.94)}
+  50%{transform:translate3d(52px,42px,0) scale(1.08)}
+  100%{transform:translate3d(108px,18px,0) scale(1.18)}
+}
+
+/* Keep the background moving even when Windows has reduced-motion enabled:
+   this is an explicit visual feature of the desktop app. */
+@media(prefers-reduced-motion:reduce){
+  .ambient::before{animation:lunira-aurora-visible 22s ease-in-out infinite alternate!important}
+  .ambient::after{animation:lunira-grid-visible 36s linear infinite!important}
+  .ambient>i{animation:lunira-orb-visible 26s ease-in-out infinite alternate!important}
+}
+
+/* Readable "Como funciona" dialog. */
+.lunira-how-modal{
+  width:min(820px,calc(100vw - 48px))!important;
+  padding:32px!important;
+}
+.lunira-how-modal h2{
+  font-size:30px!important;
+  line-height:1.12!important;
+  margin:9px 0 10px!important;
+}
+.lunira-how-modal>p{
+  max-width:700px!important;
+  color:#c2bdc9!important;
+  font-size:14px!important;
+  line-height:1.65!important;
+}
+.lunira-flow{
+  gap:12px!important;
+  margin-top:24px!important;
+}
+.lunira-flow article{
+  padding:18px!important;
+  background:rgba(255,255,255,.032)!important;
+}
+.lunira-flow b{
+  font-size:13px!important;
+  line-height:1.35!important;
+  margin-bottom:9px!important;
+}
+.lunira-flow b span{
+  width:27px!important;
+  height:27px!important;
+  font-size:10px!important;
+}
+.lunira-flow p{
+  color:#aaa5b2!important;
+  font-size:13px!important;
+  line-height:1.6!important;
+}
+.lunira-techline{
+  margin-top:22px!important;
+  padding-top:20px!important;
+}
+.lunira-techline span{
+  font-size:11px!important;
+  line-height:1.3!important;
+  padding:7px 10px!important;
+}
