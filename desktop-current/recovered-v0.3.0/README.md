@@ -30,7 +30,7 @@ The v0.3.0 production bundle hard-coded the signaling server as:
 
 The current site/backend is:
 
-`https://lunira-screen.onrender.com`
+`https://lunirascreen.onrender.com`
 
 This recovered working copy changes only that endpoint. The verifier additionally confirms that the room signaling events and RTC flows remain present (`create-room`, `join-room`, `reclaim-room`, Agora and LiveKit token flows).
 

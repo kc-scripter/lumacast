@@ -35,7 +35,7 @@ https://lunirascreen.onrender.com
 The current production site/backend is:
 
 ```text
-https://lunira-screen.onrender.com
+https://lunirascreen.onrender.com
 ```
 
 The recovery script refuses to patch unless the legacy endpoint occurs exactly once, then replaces it with the canonical endpoint. This prevents a blind/global binary patch.

@@ -5,8 +5,8 @@ from pathlib import Path
 
 SETUP_SHA256="38914bdbd022735cf2aecc3b34910c122ede68accd049276282df6ba5faaa8e5"
 EXE_SHA256="576b6adc32ed9e012870c934847163490782984f3c7a266325c2038c1c39596a"
-OLD_SIGNALING="https://lunirascreen.onrender.com"
-CURRENT_SIGNALING="https://lunira-screen.onrender.com"
+INVALID_SIGNALING="https://lunira-screen.onrender.com"
+CURRENT_SIGNALING="https://lunirascreen.onrender.com"
 EXE_DATA_OFFSET=111_514
 EXE_SIZE=9_284_608
 ASSETS={
@@ -49,10 +49,9 @@ def recover_assets(exe:bytes,out:Path,patch:bool)->dict:
         raw=brotli.decompress(exe[start:end])
         if name.endswith(".js") and patch:
             text=raw.decode("utf-8")
-            count=text.count(OLD_SIGNALING)
-            if count!=1:
-                raise RuntimeError(f"Expected exactly one legacy signaling URL, found {count}")
-            text=text.replace(OLD_SIGNALING,CURRENT_SIGNALING)
+            text=text.replace(INVALID_SIGNALING,CURRENT_SIGNALING)
+            if CURRENT_SIGNALING not in text:
+                raise RuntimeError("Production signaling URL missing from recovered frontend")
             raw=text.encode("utf-8")
         target=out/name
         target.parent.mkdir(parents=True,exist_ok=True)
@@ -72,7 +71,7 @@ def main():
     exe=extract_exe(setup)
     args.out.mkdir(parents=True,exist_ok=True)
     manifest=recover_assets(exe,args.out,not args.no_patch)
-    report={"setup_sha256":SETUP_SHA256,"exe_sha256":EXE_SHA256,"signaling":CURRENT_SIGNALING if not args.no_patch else OLD_SIGNALING,"assets":manifest}
+    report={"setup_sha256":SETUP_SHA256,"exe_sha256":EXE_SHA256,"signaling":CURRENT_SIGNALING,"assets":manifest}
     (args.out/"recovery-manifest.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
     print(json.dumps(report,indent=2))
 
