@@ -5,7 +5,9 @@
     xmlns:local="using:LuniraScreen.UI">
     <Application.Resources>
         <ResourceDictionary>
-            <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
             <Color x:Key="AccentColor">#A78BFA</Color>
             <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
             <SolidColorBrush x:Key="SurfaceBrush" Color="#1B191F"/>
