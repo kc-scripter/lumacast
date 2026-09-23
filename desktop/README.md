@@ -14,7 +14,7 @@ A implementação atual corrige os dois pontos:
 - verificação explícita do WebView2 Runtime;
 - instalador inclui o **Evergreen Bootstrapper oficial da Microsoft** e instala o Runtime automaticamente quando necessário;
 - validação dos assemblies e do `WebView2Loader.dll` antes de gerar o instalador;
-- URL padrão real: `https://lumacast-live-kc.onrender.com/`;
+- URL padrão real: `https://lunira-screen.onrender.com/`;
 - tela de loading/erro com retry em vez de janela preta ou encerramento silencioso;
 - a imagem fornecida do Lunira Screen é a fonte do ícone do executável e do instalador.
 
@@ -29,7 +29,7 @@ Requisitos do ambiente de build:
 
 ```powershell
 cd desktop
-.\scripts\build.ps1 -Version 1.0.0 -WebUrl "https://lumacast-live-kc.onrender.com/"
+.\scripts\build.ps1 -Version 1.0.0 -WebUrl "https://lunira-screen.onrender.com/"
 ```
 
 O script baixa o bootstrapper oficial do WebView2, gera o ícone, verifica os arquivos obrigatórios do runtime e cria:
