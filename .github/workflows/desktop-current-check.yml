@@ -1,0 +1,32 @@
+name: Desktop Current Recovery
+
+on:
+  pull_request:
+    paths:
+      - "desktop-current/**"
+      - "server/src/server.ts"
+      - ".github/workflows/desktop-current-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-shell:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check reconstructed Tauri shell
+        run: cargo check --manifest-path desktop-current/src-tauri/Cargo.toml
+
+  recovery-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate recovery script syntax
+        run: python -m py_compile desktop-current/recovery/extract_v0_3_0.py
