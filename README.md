@@ -4,6 +4,8 @@ Transmissão de tela em tempo real no navegador com WebRTC. O vídeo da tela usa
 
 Produção: `https://lunira-screen.onrender.com`
 
+Desktop atual de referência: **Lunira Screen v0.3.0 (Windows x64)**. Metadados e checksum estão em `desktop-current/`. Clientes desktop antigos foram arquivados e não devem ser usados como base.
+
 ## Requisitos
 
 - Node.js 20 ou superior
