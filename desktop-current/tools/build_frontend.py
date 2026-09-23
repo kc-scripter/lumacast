@@ -57,6 +57,11 @@ PREFERENCES_NEW='function oOe(){try{const p={...G1,...JSON.parse(lj("lunira_pref
 QUALITY_MAP_OLD='j=b.resolution==="4K"?"auto":b.resolution'
 QUALITY_MAP_NEW='j=b.resolution==="4K"?"1080p":b.resolution'
 
+SOCKET_CLIENT_OLD='bP=TP("https://lunira-screen.onrender.com",{autoConnect:!1,reconnection:!0,reconnectionAttempts:1/0,reconnectionDelay:800,reconnectionDelayMax:5e3,randomizationFactor:.3,timeout:8e3})'
+SOCKET_CLIENT_NEW='bP=TP("https://lunira-screen.onrender.com",{autoConnect:!1,reconnection:!0,reconnectionAttempts:1/0,reconnectionDelay:600,reconnectionDelayMax:3e3,randomizationFactor:.25,timeout:25e3,transports:["polling","websocket"]})'
+SOCKET_ERROR_OLD='si=()=>{Kr("Sem ligação"),le("Servidor de salas indisponível. Verifique a ligação e o endereço do servidor.")}'
+SOCKET_ERROR_NEW='si=()=>{Kr("Reconectando"),le("Reconectando ao servidor. Se ele estiver iniciando, isso pode levar alguns segundos.")}'
+
 PARTICIPANT_NEW='const _e=w.cameras.map(Ae=>({id:Ae.identity,name:Ae.local?c:ee.find($e=>$e.id===Ae.identity)?.displayName||"Participante",track:Ae.track,local:Ae.local}));ee.forEach(Ae=>{_e.some($e=>$e.id===Ae.id)||_e.push({id:Ae.id,name:Ae.displayName||"Participante",local:Ae.displayName===c})});return _e.some(Ae=>Ae.local)||_e.unshift({id:"self",name:c,local:!0})'
 
 def replace_exact(text:str,old:str,new:str)->str:
@@ -84,6 +89,8 @@ def main():
     js=replace_exact(js,QUALITY_OPTION_4K,"")
     js=replace_exact(js,PREFERENCES_OLD,PREFERENCES_NEW)
     js=replace_exact(js,QUALITY_MAP_OLD,QUALITY_MAP_NEW)
+    js=replace_exact(js,SOCKET_CLIENT_OLD,SOCKET_CLIENT_NEW)
+    js=replace_exact(js,SOCKET_ERROR_OLD,SOCKET_ERROR_NEW)
     js=js.replace("Até 4K · 60 FPS · baixa latência","Até 1080p · 60 FPS · baixa latência")
     for old,new in TEXT_REPLACEMENTS.items():
         js=js.replace(old,new)
@@ -103,6 +110,8 @@ def main():
         raise RuntimeError("Legacy signaling endpoint survived frontend build")
     if 'value:"4K"' in js or "Até 4K · 60 FPS · baixa latência" in js:
         raise RuntimeError("4K option survived frontend build")
+    if "timeout:25e3" not in js or 'transports:["polling","websocket"]' not in js:
+        raise RuntimeError("Desktop signaling resilience patch missing")
     for expected in ["Timeout ao conectar no Agora","Timeout ao publicar no Agora","Timeout ao conectar no LiveKit","Timeout ao publicar tela no LiveKit"]:
         if expected not in js:
             raise RuntimeError(f"RTC hardening patch missing: {expected}")
