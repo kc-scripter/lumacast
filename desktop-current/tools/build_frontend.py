@@ -41,6 +41,16 @@ TEXT_REPLACEMENTS={
 }
 
 PARTICIPANT_OLD='const _e=w.cameras.map(Ae=>({id:Ae.identity,name:Ae.local?c:ee.find($e=>$e.id===Ae.identity)?.displayName||"Participante",track:Ae.track,local:Ae.local}));return _e.some(Ae=>Ae.local)||_e.unshift({id:"self",name:c,local:!0})'
+
+AGORA_JOIN_OLD='await et.setClientRole("host"),await et.join(Ke.agoraAppId,Ke.agoraChannel,Ke.agoraToken,Ke.agoraUid);'
+AGORA_JOIN_NEW='await et.setClientRole("host"),await Promise.race([et.join(Ke.agoraAppId,Ke.agoraChannel,Ke.agoraToken,Ke.agoraUid),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timeout ao conectar no Agora")),12000))]);'
+AGORA_PUBLISH_OLD='b.current=Di,await et.publish(Di),await ro(hr,vt,an,Un)'
+AGORA_PUBLISH_NEW='b.current=Di,await Promise.race([et.publish(Di),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timeout ao publicar no Agora")),12000))]),await ro(hr,vt,an,Un)'
+LIVEKIT_CONNECT_OLD='try{if(await Yt.connect(et.livekitUrl,et.livekitToken),A.current=Yt'
+LIVEKIT_CONNECT_NEW='try{if(await Promise.race([Yt.connect(et.livekitUrl,et.livekitToken),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timeout ao conectar no LiveKit")),12000))]),A.current=Yt'
+LIVEKIT_SCREEN_PUBLISH_OLD='if(await vt.localParticipant.publishTrack(an,{source:Ge.Source.ScreenShare}),u.current!==Ke)'
+LIVEKIT_SCREEN_PUBLISH_NEW='if(await Promise.race([vt.localParticipant.publishTrack(an,{source:Ge.Source.ScreenShare}),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timeout ao publicar tela no LiveKit")),12000))]),u.current!==Ke)'
+
 PARTICIPANT_NEW='const _e=w.cameras.map(Ae=>({id:Ae.identity,name:Ae.local?c:ee.find($e=>$e.id===Ae.identity)?.displayName||"Participante",track:Ae.track,local:Ae.local}));ee.forEach(Ae=>{_e.some($e=>$e.id===Ae.id)||_e.push({id:Ae.id,name:Ae.displayName||"Participante",local:Ae.displayName===c})});return _e.some(Ae=>Ae.local)||_e.unshift({id:"self",name:c,local:!0})'
 
 def replace_exact(text:str,old:str,new:str)->str:
@@ -61,6 +71,10 @@ def main():
     js=js.replace("https://lunirascreen.onrender.com","https://lunira-screen.onrender.com")
     js=replace_exact(js,PARTICIPANT_OLD,PARTICIPANT_NEW)
     js=replace_exact(js,"children:w.cameras.length","children:_e.length")
+    js=replace_exact(js,AGORA_JOIN_OLD,AGORA_JOIN_NEW)
+    js=replace_exact(js,AGORA_PUBLISH_OLD,AGORA_PUBLISH_NEW)
+    js=replace_exact(js,LIVEKIT_CONNECT_OLD,LIVEKIT_CONNECT_NEW)
+    js=replace_exact(js,LIVEKIT_SCREEN_PUBLISH_OLD,LIVEKIT_SCREEN_PUBLISH_NEW)
     for old,new in TEXT_REPLACEMENTS.items():
         js=js.replace(old,new)
     js_path.write_text(js,"utf-8")
@@ -76,7 +90,7 @@ def main():
     html_path.write_text(html,"utf-8")
 
     if "https://lunirascreen.onrender.com" in js:
-        raise RuntimeError("Legacy signaling endpoint survived frontend build")
+        raise RuntimeError("Legacy signaling endpoint survived frontend build")\n    for expected in ["Timeout ao conectar no Agora","Timeout ao publicar no Agora","Timeout ao conectar no LiveKit","Timeout ao publicar tela no LiveKit"]:\n        if expected not in js:\n            raise RuntimeError(f"RTC hardening patch missing: {expected}")
     print("Prepared polished Lunira Screen frontend in",DIST)
 
 if __name__=="__main__":
