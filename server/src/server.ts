@@ -13,7 +13,18 @@ const configuredOrigins=(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL||"htt
   .split(",").map(value=>value.trim()).filter(Boolean);
 const allowedOrigins=new Set(configuredOrigins);
 const desktopOrigins=new Set(["http://tauri.localhost","https://tauri.localhost","tauri://localhost"]);
-const originAllowed=(value?:string)=>!value||allowedOrigins.has(value)||desktopOrigins.has(value);
+const desktopOriginAllowed=(value?:string)=>{
+  if(!value||value==="null")return true;
+  if(desktopOrigins.has(value))return true;
+  try{
+    const parsed=new URL(value);
+    const loopbackHosts=new Set(["tauri.localhost","localhost","127.0.0.1","::1"]);
+    return loopbackHosts.has(parsed.hostname)&&["http:","https:","tauri:"].includes(parsed.protocol);
+  }catch{
+    return false;
+  }
+};
+const originAllowed=(value?:string)=>desktopOriginAllowed(value)||Boolean(value&&allowedOrigins.has(value));
 const corsOptions:CorsOptions={
   origin(origin,callback){callback(null,originAllowed(origin));},
   methods:["GET","POST"]
@@ -56,7 +67,7 @@ app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
-  cors:{origin:[...configuredOrigins,...desktopOrigins],methods:["GET","POST"]},
+  cors:corsOptions,
   allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)),
   maxHttpBufferSize:64*1024,
   pingTimeout:20_000,
