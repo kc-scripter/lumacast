@@ -90,7 +90,10 @@ def main():
     html_path.write_text(html,"utf-8")
 
     if "https://lunirascreen.onrender.com" in js:
-        raise RuntimeError("Legacy signaling endpoint survived frontend build")\n    for expected in ["Timeout ao conectar no Agora","Timeout ao publicar no Agora","Timeout ao conectar no LiveKit","Timeout ao publicar tela no LiveKit"]:\n        if expected not in js:\n            raise RuntimeError(f"RTC hardening patch missing: {expected}")
+        raise RuntimeError("Legacy signaling endpoint survived frontend build")
+    for expected in ["Timeout ao conectar no Agora","Timeout ao publicar no Agora","Timeout ao conectar no LiveKit","Timeout ao publicar tela no LiveKit"]:
+        if expected not in js:
+            raise RuntimeError(f"RTC hardening patch missing: {expected}")
     print("Prepared polished Lunira Screen frontend in",DIST)
 
 if __name__=="__main__":
