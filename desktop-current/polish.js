@@ -99,6 +99,8 @@ function syncStatus(){
   }else if(qs(".onboarding")) label="Configuração inicial";
   else if(qs(".launcher")) label="Pronto para conectar";
   if(live?.classList.contains("live")) label="Ao vivo";
+  if(status.dataset.luniraState===label) return;
+  status.dataset.luniraState=label;
   const dot=status.querySelector("i")?.outerHTML||"<i></i>";
   status.innerHTML=`${dot} ${label}`;
 }
