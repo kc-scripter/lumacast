@@ -113,6 +113,29 @@ void MainWindow::Update_Click(IInspectable const&, RoutedEventArgs const&) {
     else lunira_bridge_check_update(m_bridge);
 }
 
+void MainWindow::Invite_Click(IInspectable const&, RoutedEventArgs const&) {
+    if (m_roomCode.empty()) return;
+    winrt::Windows::ApplicationModel::DataTransfer::DataPackage package;
+    package.SetText(hstring(L"Entre na minha sala do LuniraScreen: " + m_roomCode));
+    winrt::Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
+    RoomStatusText().Text(L"Convite copiado.");
+}
+
+void MainWindow::Quality_Changed(IInspectable const&, SelectionChangedEventArgs const&) {
+    if (!m_bridge) return;
+    const int index = RoomQualityBox().SelectedIndex();
+    switch (index) {
+    case 1: m_qualityWidth = 1920; m_qualityHeight = 1080; m_fps = 30; break;
+    case 2: m_qualityWidth = 1280; m_qualityHeight = 720; m_fps = 60; break;
+    case 3: m_qualityWidth = 1280; m_qualityHeight = 720; m_fps = 30; break;
+    default: m_qualityWidth = 1920; m_qualityHeight = 1080; m_fps = 60; break;
+    }
+    lunira_bridge_set_quality(m_bridge, m_qualityWidth, m_qualityHeight, m_fps);
+    const std::wstring label = (m_qualityHeight == 1080 ? L"1080p" : L"720p") + std::wstring(L" · ") + std::to_wstring(m_fps) + L" FPS";
+    StageQualityText().Text(hstring(label));
+    StatsQualityText().Text(hstring(label));
+}
+
 void __stdcall MainWindow::BridgeCallback(
     int eventType,
     const wchar_t* text,
@@ -213,9 +236,12 @@ void MainWindow::ApplyFlags(int flags, int fps) {
     const bool agora = (flags & LUNIRA_FLAG_AGORA) != 0;
 
     m_syncingToggles = true;
-    CameraToggle().IsOn(camera);
-    ShareToggle().IsOn(localScreen);
-    AudioToggle().IsOn(audio);
+    CameraToggle().IsChecked(camera);
+    ShareToggle().IsChecked(localScreen);
+    AudioToggle().IsChecked(audio);
+    CameraActionText().Text(camera ? L"Câmera ligada" : L"Câmera");
+    ShareActionText().Text(localScreen ? L"Parar compartilhamento" : L"Compartilhar tela");
+    AudioActionText().Text(audio ? L"Áudio ligado" : L"Áudio do sistema");
     m_syncingToggles = false;
 
     ConnectionText().Text(network ? L"● Conectado" : L"● Offline");
@@ -266,6 +292,7 @@ void MainWindow::ApplyRoomState(
         ++participantCount;
     }
 
+    ParticipantCountText().Text(hstring(L"Pessoas · " + std::to_wstring(std::max(1, participantCount))));
     if (participantCount == 0) {
         TextBlock empty;
         empty.Text(L"Aguardando participantes…");
@@ -360,6 +387,9 @@ void MainWindow::ApplyCameraFrame(
     card.Visibility(Visibility::Visible);
     label.Text(identity == m_displayName ? L"Você" : hstring(identity));
     CameraEmptyText().Visibility(Visibility::Collapsed);
+    int cameraCount = 0;
+    for (const auto& cameraSlot : m_cameraSlots) if (!cameraSlot.identity.empty()) ++cameraCount;
+    CameraCountText().Text(hstring(std::to_wstring(cameraCount) + (cameraCount == 1 ? L" ligada" : L" ligadas")));
 }
 
 void MainWindow::RemoveCamera(std::wstring_view identity) {
@@ -391,6 +421,9 @@ void MainWindow::RemoveCamera(std::wstring_view identity) {
         }
     }
     CameraEmptyText().Visibility(any ? Visibility::Collapsed : Visibility::Visible);
+    int cameraCount = 0;
+    for (const auto& cameraSlot : m_cameraSlots) if (!cameraSlot.identity.empty()) ++cameraCount;
+    CameraCountText().Text(hstring(std::to_wstring(cameraCount) + (cameraCount == 1 ? L" ligada" : L" ligadas")));
 }
 
 void MainWindow::UpdateBitmap(

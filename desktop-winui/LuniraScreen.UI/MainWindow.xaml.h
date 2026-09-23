@@ -17,6 +17,8 @@ struct MainWindow : MainWindowT<MainWindow> {
     void Stats_Click(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
     void Leave_Click(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
     void Update_Click(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+    void Invite_Click(IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+    void Quality_Changed(IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
 
 private:
     struct CameraSlot {
@@ -72,6 +74,8 @@ private:
     bool m_syncingToggles = false;
     bool m_updateAvailable = false;
     int m_fps = 60;
+    int m_qualityWidth = 1920;
+    int m_qualityHeight = 1080;
 
     int m_screenWidth = 0;
     int m_screenHeight = 0;
