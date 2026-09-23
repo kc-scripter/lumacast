@@ -25,7 +25,7 @@ TEXT_REPLACEMENTS={
     "Já recebeu um convite? Introduza o código para aceder à sala.":"Já recebeu um convite? Digite o código para entrar na sala.",
     "Definições":"Configurações",
     "Câmara":"Câmera",
-    "Câmaras":"Câmeras",
+    "Câmaras":"Participantes",
     "Dispositivo predefinido":"Dispositivo padrão",
     "Nenhum dispositivo detetado":"Nenhum dispositivo detectado",
     "Ecrã principal":"Tela principal",
@@ -37,7 +37,7 @@ TEXT_REPLACEMENTS={
     "A ligar…":"Conectando…",
     "Ligado ao servidor":"Conectado ao servidor",
     "Partilha interrompida":"Compartilhamento interrompido",
-    "As câmaras dos participantes aparecem aqui quando estão ligadas.":"As câmeras e participantes da sala aparecem aqui."
+    "As câmaras dos participantes aparecem aqui quando estão ligadas.":"Participantes da sala aparecem aqui."
 }
 
 PARTICIPANT_OLD='const _e=w.cameras.map(Ae=>({id:Ae.identity,name:Ae.local?c:ee.find($e=>$e.id===Ae.identity)?.displayName||"Participante",track:Ae.track,local:Ae.local}));return _e.some(Ae=>Ae.local)||_e.unshift({id:"self",name:c,local:!0})'
@@ -50,6 +50,12 @@ LIVEKIT_CONNECT_OLD='try{if(await Yt.connect(et.livekitUrl,et.livekitToken),A.cu
 LIVEKIT_CONNECT_NEW='try{if(await Promise.race([Yt.connect(et.livekitUrl,et.livekitToken),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timeout ao conectar no LiveKit")),12000))]),A.current=Yt'
 LIVEKIT_SCREEN_PUBLISH_OLD='if(await vt.localParticipant.publishTrack(an,{source:Ge.Source.ScreenShare}),u.current!==Ke)'
 LIVEKIT_SCREEN_PUBLISH_NEW='if(await Promise.race([vt.localParticipant.publishTrack(an,{source:Ge.Source.ScreenShare}),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Timeout ao publicar tela no LiveKit")),12000))]),u.current!==Ke)'
+
+QUALITY_OPTION_4K='te.jsx("option",{value:"4K",children:"4K · Ultra HD"})'
+PREFERENCES_OLD='function oOe(){try{return{...G1,...JSON.parse(lj("lunira_preferences")||"{}")}}catch{return G1}}'
+PREFERENCES_NEW='function oOe(){try{const p={...G1,...JSON.parse(lj("lunira_preferences")||"{}")};return p.resolution==="4K"&&(p.resolution="1080p"),p}catch{return G1}}'
+QUALITY_MAP_OLD='j=b.resolution==="4K"?"auto":b.resolution'
+QUALITY_MAP_NEW='j=b.resolution==="4K"?"1080p":b.resolution'
 
 PARTICIPANT_NEW='const _e=w.cameras.map(Ae=>({id:Ae.identity,name:Ae.local?c:ee.find($e=>$e.id===Ae.identity)?.displayName||"Participante",track:Ae.track,local:Ae.local}));ee.forEach(Ae=>{_e.some($e=>$e.id===Ae.id)||_e.push({id:Ae.id,name:Ae.displayName||"Participante",local:Ae.displayName===c})});return _e.some(Ae=>Ae.local)||_e.unshift({id:"self",name:c,local:!0})'
 
@@ -75,6 +81,10 @@ def main():
     js=replace_exact(js,AGORA_PUBLISH_OLD,AGORA_PUBLISH_NEW)
     js=replace_exact(js,LIVEKIT_CONNECT_OLD,LIVEKIT_CONNECT_NEW)
     js=replace_exact(js,LIVEKIT_SCREEN_PUBLISH_OLD,LIVEKIT_SCREEN_PUBLISH_NEW)
+    js=replace_exact(js,QUALITY_OPTION_4K,"")
+    js=replace_exact(js,PREFERENCES_OLD,PREFERENCES_NEW)
+    js=replace_exact(js,QUALITY_MAP_OLD,QUALITY_MAP_NEW)
+    js=js.replace("Até 4K · 60 FPS · baixa latência","Até 1080p · 60 FPS · baixa latência")
     for old,new in TEXT_REPLACEMENTS.items():
         js=js.replace(old,new)
     js_path.write_text(js,"utf-8")
@@ -91,6 +101,8 @@ def main():
 
     if "https://lunirascreen.onrender.com" in js:
         raise RuntimeError("Legacy signaling endpoint survived frontend build")
+    if 'value:"4K"' in js or "Até 4K · 60 FPS · baixa latência" in js:
+        raise RuntimeError("4K option survived frontend build")
     for expected in ["Timeout ao conectar no Agora","Timeout ao publicar no Agora","Timeout ao conectar no LiveKit","Timeout ao publicar tela no LiveKit"]:
         if expected not in js:
             raise RuntimeError(f"RTC hardening patch missing: {expected}")
