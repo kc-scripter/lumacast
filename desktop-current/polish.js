@@ -110,7 +110,7 @@ window.addEventListener("DOMContentLoaded",syncStatus);
 setTimeout(syncStatus,0);
 
 
-const LUNIRA_SIGNALING_URL="https://lunira-screen.onrender.com";
+const LUNIRA_SIGNALING_URL="https://lunirascreen.onrender.com";
 async function prewarmSignaling(){
   try{
     const response=await fetch(`${LUNIRA_SIGNALING_URL}/api/health`,{
