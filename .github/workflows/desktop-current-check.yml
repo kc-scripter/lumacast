@@ -18,6 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prepare polished frontend
+        run: python desktop-current/tools/build_frontend.py
+      - name: Validate desktop frontend invariants
+        shell: pwsh
+        run: |
+          $js = Get-Content "desktop-current/dist/assets/index-Dm-7PBzL.js" -Raw
+          $html = Get-Content "desktop-current/dist/index.html" -Raw
+          if ($js.Contains("https://lunirascreen.onrender.com")) { throw "Legacy signaling endpoint returned." }
+          if (-not $js.Contains("https://lunira-screen.onrender.com")) { throw "Canonical signaling endpoint missing." }
+          if (-not $js.Contains("children:_e.length")) { throw "Participant rail patch missing." }
+          if (-not $html.Contains("polish.css") -or -not $html.Contains("polish.js")) { throw "Polish assets were not injected." }
       - name: Check reconstructed Tauri shell
         run: cargo check --manifest-path desktop-current/src-tauri/Cargo.toml
 
@@ -28,5 +42,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Validate recovery script syntax
-        run: python -m py_compile desktop-current/recovery/extract_v0_3_0.py
+      - name: Validate recovery and polish scripts
+        run: |
+          python -m py_compile desktop-current/recovery/extract_v0_3_0.py
+          python -m py_compile desktop-current/tools/build_frontend.py
+          python desktop-current/tools/build_frontend.py
