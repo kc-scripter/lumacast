@@ -7,7 +7,7 @@ export function displayConstraints(quality:Quality,frameRate:FrameRate):DisplayM
   const options:ExtendedDisplayMediaOptions={
     // Firefox's native capture path can follow the display refresh rate. Asking
     // it to crop/scale the source first commonly keeps desktop capture at 30 FPS.
-    video:{frameRate:{ideal:frameRate,max:frameRate},...(firefox?{resizeMode:"none"}:width?{width:{ideal:width},height:{ideal:height}}:{})},
+    video:{frameRate:{ideal:60,max:60},...(firefox?{resizeMode:"none"}:width?{width:{ideal:width,max:width},height:{ideal:height,max:height}}:{})},
     audio:true,
     systemAudio:"include",
     windowAudio:"system",

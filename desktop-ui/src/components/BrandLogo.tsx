@@ -1,11 +1,2 @@
-import { MonitorUp } from "lucide-react";
-
-export function BrandLogo() {
-  return <div className="flex items-center gap-2.5 select-none">
-    <div className="relative grid h-7 w-7 place-items-center rounded-lg border border-purple-400/40 bg-purple-600 text-white shadow-[0_0_24px_rgba(124,58,237,.28)]">
-      <MonitorUp size={17} strokeWidth={2.2}/>
-      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#0d0d10] bg-purple-300"/>
-    </div>
-    <span className="text-xs font-semibold tracking-[-.01em] text-zinc-100">Lunira <span className="text-purple-300">Screen</span></span>
-  </div>;
-}
+import { memo } from "react";
+export const BrandLogo=memo(function BrandLogo({size="sm"}:{size?:"sm"|"lg"}){const large=size==="lg";return <div className="group flex select-none items-center gap-2.5"><div className={`relative grid place-items-center rounded-xl border border-purple-400/30 bg-purple-600/95 shadow-purple-500/20 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-110 group-hover:border-purple-500/50 group-hover:shadow-lg group-hover:shadow-purple-500/30 ${large?"h-11 w-11":"h-7 w-7"}`}><img src="/__desktop__/logo.svg" alt="" className={large?"h-7 w-7":"h-[18px] w-[18px]"}/></div><span className={`font-semibold tracking-[-.01em] text-zinc-100 transition-colors duration-300 group-hover:text-purple-300 ${large?"text-base":"text-xs"}`}>Lunira Screen</span></div>;});
