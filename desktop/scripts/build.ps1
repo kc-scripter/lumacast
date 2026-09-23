@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($WebUrl)) {
-  $WebUrl = "https://lumacast-live-kc.onrender.com/"
+  $WebUrl = "https://lunira-screen.onrender.com/"
 }
 
 $uri = $null
