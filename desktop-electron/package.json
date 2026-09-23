@@ -33,7 +33,7 @@
         "portable"
       ],
       "artifactName": "LuniraScreen-Desktop-${version}.${ext}",
-      "icon": "build/icon.png"
+      "icon": "build/icon.ico"
     },
     "mac": {
       "icon": "build/icon.png",

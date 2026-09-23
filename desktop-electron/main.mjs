@@ -11,7 +11,7 @@ let pipBounds = null;
 const contentTypes = new Map([
   [".html","text/html; charset=utf-8"],[".js","text/javascript; charset=utf-8"],[".css","text/css; charset=utf-8"],
   [".svg","image/svg+xml"],[".png","image/png"],[".jpg","image/jpeg"],[".jpeg","image/jpeg"],[".webp","image/webp"],
-  [".woff2","font/woff2"],[".ico","image/png"],[".json","application/json; charset=utf-8"]
+  [".woff2","font/woff2"],[".ico","image/x-icon"],[".json","application/json; charset=utf-8"]
 ]);
 
 function rendererRoot(){ return path.join(app.getAppPath(),"renderer"); }
@@ -100,7 +100,7 @@ function createWindow(){
   mainWindow = new BrowserWindow({
     width:1440,height:900,minWidth:1080,minHeight:680,frame:false,backgroundColor:"#09090b",show:false,
     title:"Lunira Screen",
-    icon:path.join(app.getAppPath(),"build","icon.png"),
+    icon:path.join(app.getAppPath(),"build",process.platform==="win32"?"icon.ico":"icon.png"),
     webPreferences:{
       preload:path.join(app.getAppPath(),"preload.cjs"),
       contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false
@@ -114,7 +114,7 @@ function createWindow(){
 }
 
 app.setName("Lunira Screen");
-app.setAppUserModelId("Lunira.Screen");
+app.setAppUserModelId("com.lunira.screen");
 app.whenReady().then(async()=>{
   await session.defaultSession.protocol.handle("https",localResponse);
   installCaptureHandler();
