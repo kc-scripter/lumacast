@@ -1,0 +1,72 @@
+name: Electron Desktop App
+
+on:
+  pull_request:
+    paths:
+      - "desktop-ui/**"
+      - "desktop-electron/**"
+      - "client/src/services/**"
+      - "client/src/types.ts"
+      - "package.json"
+      - ".github/workflows/electron-desktop-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: electron-desktop-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      VITE_SIGNALING_URL: "https://lunira-screen.onrender.com"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install web dependencies
+        shell: pwsh
+        run: |
+          npm ci
+          npm install --prefix desktop-ui --no-audit --no-fund
+
+      - name: Verify canonical production endpoint
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem desktop-electron,desktop-ui -Recurse -File | Select-String -SimpleMatch 'https://lunirascreen.onrender.com','https://lumacast-live-kc.onrender.com'
+          if ($bad) { $bad | ForEach-Object { Write-Host $_ }; throw 'Desktop app still contains a legacy production endpoint.' }
+
+      - name: Build React desktop renderer
+        shell: pwsh
+        run: npm run build:desktop
+
+      - name: Install Electron shell
+        shell: pwsh
+        run: npm install --prefix desktop-electron --no-audit --no-fund
+
+      - name: Package Windows app
+        shell: pwsh
+        run: npm --prefix desktop-electron run package:win
+
+      - name: Verify portable executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "desktop-electron/dist/LuniraScreen-Desktop-*.exe" | Select-Object -First 1
+          if (-not $exe) { throw "Electron portable executable was not produced." }
+          Write-Host "Desktop EXE: $($exe.Name) / $([math]::Round($exe.Length / 1MB, 2)) MB"
+
+      - name: Upload desktop preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuniraScreen-Desktop-Electron
+          path: desktop-electron/dist/LuniraScreen-Desktop-*.exe
+          if-no-files-found: error
+          retention-days: 7
