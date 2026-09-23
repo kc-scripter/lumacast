@@ -1,19 +1,42 @@
 import { memo } from "react";
 import { Check, ChevronLeft, ChevronRight, Copy, Keyboard, MoreHorizontal, Radio, Users } from "lucide-react";
+
 type Person={id:string;displayName?:string};
 
 const Participant=memo(function Participant({person,ownerName,sharing}:{person:Person;ownerName:string;sharing:boolean}){
   const name=person.displayName||"Participante";
   const initials=name.split(" ").slice(0,2).map(part=>part[0]?.toUpperCase()).join("");
-  return <div className="group flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors duration-200 hover:bg-zinc-900/80"><div className="relative grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-zinc-700/70 bg-zinc-800 text-[10px] font-semibold text-zinc-300">{initials}<span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d0d10] bg-emerald-400"/></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate text-xs font-medium text-zinc-200">{name}</span>{name===ownerName&&<span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-purple-300">Host</span>}</div><span className="text-[10px] text-zinc-600">{sharing?"Compartilhando tela":"Conectado"}</span></div><MoreHorizontal size={15} className="text-zinc-700"/></div>;
+  return <div className="group flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors duration-200 hover:bg-zinc-900/80">
+    <div className="relative grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-zinc-700/70 bg-zinc-800 text-[10px] font-semibold text-zinc-300">{initials}<span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d0d10] bg-emerald-400"/></div>
+    <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate text-xs font-medium text-zinc-200">{name}</span>{name===ownerName&&<span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase text-purple-300">Host</span>}</div><span className="text-[10px] text-zinc-600">{sharing?"Compartilhando tela":"Conectado"}</span></div>
+    <MoreHorizontal size={15} className="text-zinc-700"/>
+  </div>;
 });
 
 export const RoomSidebar=memo(function RoomSidebar({open,roomCode,copied,onCopy,people,count,ownerName,activeSharerId,onToggle}:{open:boolean;roomCode:string;copied:boolean;onCopy():void;people:Person[];count:number;ownerName:string;activeSharerId:string|null;onToggle():void}){
   return <>
-    <aside className={`relative z-20 flex shrink-0 flex-col overflow-hidden bg-[#0d0d10]/92 backdrop-blur-xl transition-[width,transform,opacity] duration-300 ease-out transform-gpu ${open?"w-[252px] translate-x-0 border-r border-zinc-800/80 opacity-100":"w-0 -translate-x-full border-r-0 opacity-0"}`} style={{willChange:"transform,width,opacity"}}>
-      <div className="border-b border-zinc-800/70 p-4"><div className="mb-2 flex items-center gap-2 text-[9px] uppercase tracking-[.15em] text-zinc-600"><Radio size={12}/>Sala atual</div><div className="flex items-center gap-2"><span className="font-mono text-sm font-semibold tracking-[.08em] text-zinc-200">{roomCode}</span><button onClick={onCopy} className="flex h-7 items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-[10px] text-zinc-500 hover:text-zinc-200">{copied?<Check size={12}/>:<Copy size={12}/>} {copied?"Copiado":"Copiar"}</button></div></div>
-      <div className="flex min-h-0 flex-1 flex-col p-3"><div className="mb-2 flex items-center justify-between px-2"><span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"><Users size={13}/>Participantes</span><span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] text-zinc-500">{count}</span></div><div className="space-y-1 overflow-y-auto">{people.map(person=><Participant key={person.id} person={person} ownerName={ownerName} sharing={person.id===activeSharerId}/>)}</div><div className="mt-auto border-t border-zinc-800/70 pt-4"><div className="mb-3 flex items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"><Keyboard size={13}/>Atalhos</div><div className="space-y-2 px-2 text-[10px] text-zinc-600"><div className="flex items-center justify-between"><span>Compartilhar</span><kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5">Ctrl ⇧ S</kbd></div><div className="flex items-center justify-between"><span>Áudio sistema</span><kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5">Ctrl ⇧ A</kbd></div></div></div></div>
+    <aside className={`fixed bottom-0 left-0 top-16 z-30 flex w-[252px] flex-col overflow-hidden border-r border-zinc-800/60 bg-[#0b0b0e]/88 shadow-xl shadow-black/20 backdrop-blur-xl transition-all duration-300 transform-gpu ${open?"translate-x-0 opacity-100":"-translate-x-full opacity-0"}`} style={{willChange:"transform,opacity"}}>
+      <div className="border-b border-zinc-800/70 p-4">
+        <div className="mb-2 flex items-center gap-2 text-[9px] uppercase tracking-[.15em] text-zinc-600"><Radio size={12}/>Sala atual</div>
+        <div className="flex items-center gap-2"><span className="font-mono text-sm font-semibold tracking-[.08em] text-zinc-200">{roomCode}</span><button onClick={onCopy} className="flex h-7 items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-[10px] text-zinc-500 hover:text-zinc-200">{copied?<Check size={12}/>:<Copy size={12}/>} {copied?"Copiado":"Copiar"}</button></div>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col p-3">
+        <div className="mb-2 flex items-center justify-between px-2"><span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"><Users size={13}/>Participantes</span><span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] text-zinc-500">{count}</span></div>
+        <div className="space-y-1 overflow-y-auto">{people.map(person=><Participant key={person.id} person={person} ownerName={ownerName} sharing={person.id===activeSharerId}/>)}</div>
+
+        <div className="mt-auto border-t border-zinc-800/70 pt-4">
+          <div className="mb-3 flex items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"><Keyboard size={13}/>Atalhos</div>
+          <div className="space-y-2 px-2 text-[10px] text-zinc-600"><div className="flex items-center justify-between"><span>Compartilhar</span><kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5">Ctrl ⇧ S</kbd></div><div className="flex items-center justify-between"><span>Áudio sistema</span><kbd className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5">Ctrl ⇧ A</kbd></div></div>
+        </div>
+      </div>
     </aside>
-    <button onClick={onToggle} aria-label={open?"Recolher sidebar":"Expandir sidebar"} className={`absolute top-1/2 z-30 grid h-9 w-7 -translate-y-1/2 place-items-center rounded-r-lg border border-l-0 border-zinc-800 bg-[#151519]/95 text-zinc-500 shadow-xl shadow-black/20 backdrop-blur-xl transition-[left,transform,color] duration-300 transform-gpu hover:text-zinc-200 ${open?"left-[252px]":"left-0"}`} style={{willChange:"left,transform"}}>{open?<ChevronLeft size={15}/>:<ChevronRight size={15}/>}</button>
+
+    <button
+      onClick={onToggle}
+      aria-label={open?"Recolher sidebar":"Expandir sidebar"}
+      className={`fixed top-1/2 z-40 grid h-10 w-7 -translate-y-1/2 place-items-center rounded-r-lg border border-l-0 border-zinc-800/80 bg-[#121216]/90 text-zinc-500 shadow-xl shadow-black/25 backdrop-blur-xl transition-all duration-300 transform-gpu hover:text-zinc-200 ${open?"left-[252px]":"left-0"}`}
+      style={{willChange:"left,transform"}}
+    >{open?<ChevronLeft size={15}/>:<ChevronRight size={15}/>}</button>
   </>;
 });
