@@ -4,6 +4,8 @@ import path from "node:path";
 
 const ORIGIN = "https://lunirascreen.onrender.com";
 const DESKTOP_PREFIX = "/__desktop__/";
+const NORMAL_MIN_SIZE = {width:1080,height:680};
+const PIP_SIZE = {width:520,height:340};
 let mainWindow = null;
 let selectedSourceId = null;
 let pipBounds = null;
@@ -98,7 +100,7 @@ function installCaptureHandler(){
 
 function createWindow(){
   mainWindow = new BrowserWindow({
-    width:1440,height:900,minWidth:1080,minHeight:680,frame:false,backgroundColor:"#09090b",show:false,
+    width:1440,height:900,minWidth:NORMAL_MIN_SIZE.width,minHeight:NORMAL_MIN_SIZE.height,frame:false,backgroundColor:"#08090d",show:false,
     title:"Lunira Screen",
     icon:path.join(app.getAppPath(),"build",process.platform==="win32"?"icon.ico":"icon.png"),
     webPreferences:{
@@ -109,7 +111,7 @@ function createWindow(){
   mainWindow.once("ready-to-show",()=>mainWindow?.show());
   mainWindow.webContents.setWindowOpenHandler(({url})=>{ if(/^https?:\/\//i.test(url))void shell.openExternal(url); return {action:"deny"}; });
   mainWindow.webContents.on("will-navigate",(event,url)=>{ if(!url.startsWith(ORIGIN)){event.preventDefault(); if(/^https?:\/\//i.test(url))void shell.openExternal(url);} });
-  void mainWindow.loadURL(`${ORIGIN}${DESKTOP_PREFIX}index.html`);
+  void mainWindow.loadURL(ORIGIN+DESKTOP_PREFIX+"index.html");
   mainWindow.on("closed",()=>{mainWindow=null;});
 }
 
@@ -131,10 +133,19 @@ app.whenReady().then(async()=>{
     if(!mainWindow)return false;
     if(enabled){
       if(!pipBounds)pipBounds=mainWindow.getBounds();
+      if(mainWindow.isMaximized())mainWindow.unmaximize();
+      mainWindow.setMinimumSize(420,260);
       mainWindow.setAlwaysOnTop(true,"floating");
-      mainWindow.setBounds({width:520,height:340,x:pipBounds.x+Math.max(0,pipBounds.width-540),y:pipBounds.y+Math.max(0,pipBounds.height-360)},true);
+      const base=pipBounds||mainWindow.getBounds();
+      mainWindow.setBounds({
+        width:PIP_SIZE.width,
+        height:PIP_SIZE.height,
+        x:base.x+Math.max(0,base.width-PIP_SIZE.width-18),
+        y:base.y+Math.max(0,base.height-PIP_SIZE.height-18)
+      },true);
     }else{
       mainWindow.setAlwaysOnTop(false);
+      mainWindow.setMinimumSize(NORMAL_MIN_SIZE.width,NORMAL_MIN_SIZE.height);
       if(pipBounds)mainWindow.setBounds(pipBounds,true);
       pipBounds=null;
     }

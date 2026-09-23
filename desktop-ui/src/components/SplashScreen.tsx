@@ -1,17 +1,43 @@
 import { memo, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AmbientBackground } from "./AmbientBackground";
-import { BrandLogo } from "./BrandLogo";
 
 export const SplashScreen=memo(function SplashScreen({visible,onComplete}:{visible:boolean;onComplete():void}){
   const reduced=useReducedMotion();
-  useEffect(()=>{if(!visible)return;const timer=window.setTimeout(onComplete,reduced?450:2200);return()=>window.clearTimeout(timer);},[onComplete,reduced,visible]);
-  return <AnimatePresence>{visible&&<motion.button type="button" aria-label="Continuar para o Lunira Screen" onClick={onComplete} className="fixed inset-0 z-[100] isolate grid place-items-center overflow-hidden bg-[#09090b] text-left" initial={{opacity:1,scale:1}} exit={{opacity:0,scale:.98}} transition={{duration:reduced?.15:.6,ease:"easeInOut"}}>
+
+  useEffect(()=>{
+    if(!visible)return;
+    const timer=window.setTimeout(onComplete,reduced?350:1850);
+    return()=>window.clearTimeout(timer);
+  },[onComplete,reduced,visible]);
+
+  return <AnimatePresence>{visible&&<motion.button
+    type="button"
+    aria-label="Continuar para o Lunira Screen"
+    onClick={onComplete}
+    className="fixed inset-0 z-[100] isolate grid place-items-center overflow-hidden bg-[#08090d] text-left"
+    initial={{opacity:1}}
+    exit={{opacity:0,scale:.992}}
+    transition={{duration:reduced?.01:.45,ease:"easeInOut"}}
+  >
     <AmbientBackground variant="home"/>
-    <div className="relative flex flex-col items-center text-center will-change-transform">
-      <motion.div initial={{opacity:0,scale:.8,y:12}} animate={{opacity:1,scale:1,y:0}} transition={{duration:reduced?.01:.5,ease:[.2,.8,.2,1]}}><motion.div className="transform-gpu will-change-transform" animate={reduced?{}:{scale:[1,1.06,1],filter:["drop-shadow(0 0 0 rgba(124,58,237,0))","drop-shadow(0 0 30px rgba(124,58,237,.62))","drop-shadow(0 0 10px rgba(124,58,237,.24))"]}} transition={{duration:1.35,repeat:1}}><BrandLogo size="lg"/></motion.div></motion.div>
-      <motion.h1 className="mt-7 text-3xl font-semibold tracking-[-.035em] text-zinc-50" initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:reduced?0:.35,duration:reduced?.01:.45}}>Bem-vindo ao Lunira Screen</motion.h1>
-      <motion.p className="mt-3 max-w-xl text-sm text-zinc-500" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:reduced?0:.55,duration:reduced?.01:.45}}>Transmissão desktop de alta performance sem interrupções.</motion.p>
+    <div className="relative flex w-[360px] flex-col items-center text-center">
+      <motion.div
+        initial={{opacity:0,scale:.9,y:8}}
+        animate={{opacity:1,scale:1,y:0}}
+        transition={{duration:reduced?.01:.42,ease:[.2,.8,.2,1]}}
+        className="grid h-16 w-16 place-items-center rounded-[18px] border border-purple-400/25 bg-purple-600 shadow-[0_18px_55px_rgba(91,33,182,.25)]"
+      >
+        <img src="/__desktop__/logo.svg" alt="" className="h-9 w-9"/>
+      </motion.div>
+
+      <motion.h1 className="mt-5 text-2xl font-semibold tracking-[-.03em] text-zinc-100" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:reduced?0:.14,duration:.35}}>Lunira Screen</motion.h1>
+      <motion.p className="mt-2 text-xs text-zinc-500" initial={{opacity:0}} animate={{opacity:1}} transition={{delay:reduced?0:.26,duration:.35}}>Compartilhe o que importa.</motion.p>
+
+      <motion.div className="mt-12 w-40" initial={{opacity:0}} animate={{opacity:1}} transition={{delay:reduced?0:.35,duration:.3}}>
+        <div className="splash-progress h-1 overflow-hidden rounded-full bg-white/[.07]"/>
+        <span className="mt-3 block text-[10px] text-zinc-600">Iniciando…</span>
+      </motion.div>
     </div>
   </motion.button>}</AnimatePresence>;
 });
