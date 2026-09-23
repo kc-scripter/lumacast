@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Activity, AppWindow, Check, ChevronDown, Copy, Cpu, Gauge, Keyboard,
-  Maximize2, Minus, Monitor, MoreHorizontal, Radio, ScreenShare,
-  ScreenShareOff, Settings2, ShieldCheck, SlidersHorizontal, Square,
-  Users, Volume2, VolumeX, Wifi, X, Zap
+  Maximize2, Monitor, MoreHorizontal, Radio, ScreenShare,
+  Settings2, ShieldCheck, Users, Volume2, VolumeX, Wifi, X
 } from "lucide-react";
+import { DesktopTitleBar } from "./components/DesktopTitleBar";
+import { HowItWorksModal } from "./components/HowItWorksModal";
+import { RoomDock } from "./components/RoomDock";
 import { useCollaborativeRoom } from "../../client/src/services/useCollaborativeRoom";
 import { copyText, safeSessionGet, safeSessionRemove, safeSessionSet } from "../../client/src/services/browser";
 import { getSocket } from "../../client/src/services/socket";
@@ -36,94 +38,64 @@ declare global {
 
 const cx = (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" ");
 
-function Logo() {
-  return <div className="flex items-center gap-2">
-    <div className="relative h-6 w-6 rounded-lg bg-purple-600 shadow-[0_0_24px_rgba(124,58,237,.24)]">
-      <div className="absolute inset-[5px] rounded border border-white/70" />
-      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-[#0d0d10] bg-purple-300" />
-    </div>
-    <span className="text-xs font-semibold tracking-tight">Lunira Screen</span>
-  </div>;
-}
-
-function TitleBar({ status = "Pronto" }: { status?: string }) {
-  const action = (value: "minimize" | "maximize" | "close") => void window.desktopBridge?.windowAction(value);
-  const connected = status === "Conectado" || status === "Pronto";
-  return <header className="flex h-11 shrink-0 items-center border-b border-zinc-800/70 bg-[#0d0d10] pl-4 [-webkit-app-region:drag]">
-    <div className="flex min-w-0 flex-1 items-center gap-3">
-      <Logo />
-      <div className="h-4 w-px bg-zinc-800" />
-      <span className="rounded-md border border-purple-500/20 bg-purple-500/[0.07] px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-purple-300">Desktop App v1.0</span>
-    </div>
-    <div className="flex items-center gap-2 pr-2 [-webkit-app-region:no-drag]">
-      <div className="mr-2 flex items-center gap-2 rounded-full border border-zinc-800/80 bg-zinc-900/60 px-2.5 py-1">
-        <span className={cx("h-2 w-2 rounded-full", connected ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.38)]" : "bg-amber-400")} />
-        <span className="text-[10px] text-zinc-400">{status}</span>
-      </div>
-      <button aria-label="Minimizar" onClick={() => action("minimize")} className="grid h-8 w-10 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"><Minus size={15}/></button>
-      <button aria-label="Maximizar" onClick={() => action("maximize")} className="grid h-8 w-10 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"><Square size={12}/></button>
-      <button aria-label="Fechar" onClick={() => action("close")} className="grid h-8 w-10 place-items-center rounded-md text-zinc-500 transition hover:bg-red-500/90 hover:text-white"><X size={15}/></button>
-    </div>
-  </header>;
-}
-
 function Home({ onCreate, onJoin }: { onCreate(name: string): void; onJoin(name: string, code: string): void }) {
   const [name, setName] = useState(() => safeSessionGet("lumacast-display-name") || "");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [howOpen, setHowOpen] = useState(false);
 
-  const create = () => {
+  const enterOrCreate = () => {
     const clean = name.trim();
-    if (!clean) return setError("Digite o seu nome para criar uma sala.");
-    setError(""); onCreate(clean);
-  };
-  const join = () => {
-    const clean = name.trim(), room = code.replace(/[^a-z0-9]/gi, "").toUpperCase();
-    if (!clean) return setError("Digite o seu nome primeiro.");
-    if (room.length < 6) return setError("Digite um código de sala válido.");
-    setError(""); onJoin(clean, room);
+    const room = code.replace(/[^a-z0-9]/gi, "").toUpperCase();
+    if (!clean) return setError("Digite o seu nome para continuar.");
+    if (room && room.length < 6) return setError("Digite um código de sala válido.");
+    setError("");
+    if (room) onJoin(clean, room);
+    else onCreate(clean);
   };
 
-  return <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#09090b] p-10">
-    <div className="grid w-full max-w-6xl grid-cols-[1.05fr_.95fr] items-center gap-16">
-      <section>
-        <div className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-purple-300"><span className="h-2 w-2 rounded-full bg-purple-500"/> Lunira Screen Desktop</div>
-        <h1 className="max-w-2xl text-5xl font-semibold leading-[1.05] tracking-[-.04em] text-zinc-50">Compartilhe a sua tela sem interromper o fluxo.</h1>
-        <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-500">Salas privadas, captura de monitor ou janela, áudio do sistema e controle de qualidade em uma interface feita para desktop.</p>
+  return <>
+    <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#09090b] p-10">
+      <div className="grid w-full max-w-6xl grid-cols-[1.05fr_.95fr] items-center gap-16">
+        <section>
+          <div className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-purple-300"><span className="h-2 w-2 rounded-full bg-purple-500"/> Lunira Screen Desktop</div>
+          <h1 className="max-w-2xl text-5xl font-semibold leading-[1.05] tracking-[-.04em] text-zinc-50">Compartilhe a sua tela sem interromper o fluxo.</h1>
+          <p className="mt-5 max-w-xl text-sm leading-6 text-zinc-500">Salas privadas, captura de monitor ou janela, áudio do sistema e controle de qualidade numa interface feita para desktop.</p>
 
-        <div className="mt-8 max-w-xl rounded-2xl border border-zinc-800/80 bg-[#121215] p-5 shadow-2xl shadow-black/20">
-          <div className="mb-4">
-            <span className="text-[10px] font-semibold uppercase tracking-[.14em] text-purple-300">Nova sala</span>
-            <p className="mt-1 text-xs text-zinc-500">Como as outras pessoas vão ver você?</p>
+          <div className="mt-8 max-w-xl rounded-2xl border border-zinc-800/80 bg-[#121215] p-5 shadow-2xl shadow-black/20">
+            <div className="mb-4">
+              <span className="text-[10px] font-semibold uppercase tracking-[.14em] text-purple-300">Entrar ou criar</span>
+              <p className="mt-1 text-xs text-zinc-500">Deixe o código vazio para criar uma sala nova.</p>
+            </div>
+            <input value={name} onChange={e => setName(e.target.value)} maxLength={24} placeholder="Seu nome" className="h-11 w-full rounded-xl border border-zinc-800 bg-[#09090b] px-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/10" />
+            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === "Enter" && enterOrCreate()} maxLength={10} placeholder="CÓDIGO DA SALA · opcional" className="mt-2 h-11 w-full rounded-xl border border-zinc-800 bg-[#09090b] px-3 font-mono text-xs tracking-[.12em] text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/10" />
+            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+              <button onClick={enterOrCreate} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white shadow-lg shadow-purple-950/30 hover:bg-purple-500"><Radio size={16}/> Entrar / Criar Sala</button>
+              <button onClick={()=>setHowOpen(true)} className="h-11 rounded-xl border border-zinc-800 bg-transparent px-5 text-xs font-semibold text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900/60">Como Funciona</button>
+            </div>
+            {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
           </div>
-          <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && create()} maxLength={24} placeholder="Seu nome" className="h-11 w-full rounded-xl border border-zinc-800 bg-[#09090b] px-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-700 focus:border-purple-500/60 focus:ring-2 focus:ring-purple-500/10" />
-          <button onClick={create} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 text-sm font-semibold text-white shadow-lg shadow-purple-950/30 transition hover:bg-purple-500 active:scale-[.995]"><Radio size={16}/> Criar sala privada</button>
-          {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
-        </div>
+        </section>
 
-        <div className="mt-4 flex max-w-xl gap-2">
-          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === "Enter" && join()} maxLength={10} placeholder="CÓDIGO DA SALA" className="h-10 flex-1 rounded-xl border border-zinc-800 bg-[#121215] px-3 font-mono text-xs tracking-[.12em] text-zinc-200 outline-none focus:border-purple-500/50" />
-          <button onClick={join} className="h-10 rounded-xl border border-zinc-700 bg-zinc-900 px-5 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800">Entrar</button>
-        </div>
-      </section>
-
-      <section>
-        <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-[#121215] shadow-2xl shadow-black/30">
-          <div className="flex h-10 items-center justify-between border-b border-zinc-800/70 px-4 text-[10px] text-zinc-600"><span>PREVIEW DO DESKTOP</span><Maximize2 size={13}/></div>
-          <div className="relative flex h-80 items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(124,58,237,.14),transparent_48%),#0d0d10]">
-            <div className="text-center">
-              <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-purple-500/20 bg-purple-500/[.06] text-purple-400"><Monitor size={28}/></div>
-              <strong className="mt-4 block text-sm text-zinc-200">Sua transmissão aparece aqui</strong>
-              <span className="mt-1 block text-xs text-zinc-600">Monitor ou janela específica</span>
+        <section>
+          <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-[#121215] shadow-2xl shadow-black/30">
+            <div className="flex h-10 items-center justify-between border-b border-zinc-800/70 px-4 text-[10px] text-zinc-600"><span>PREVIEW DO DESKTOP</span><Maximize2 size={13}/></div>
+            <div className="relative flex h-80 items-center justify-center bg-[radial-gradient(circle_at_50%_35%,rgba(124,58,237,.14),transparent_48%),#0d0d10]">
+              <div className="text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-purple-500/20 bg-purple-500/[.06] text-purple-400"><Monitor size={28}/></div>
+                <strong className="mt-4 block text-sm text-zinc-200">Sua transmissão aparece aqui</strong>
+                <span className="mt-1 block text-xs text-zinc-600">Monitor ou janela específica</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          {[["Privado","Protegido"],["Duração","Temporária"],["Qualidade","1080p"],["Fluidez","60 FPS"]].map(([label,value]) => <div key={label} className="rounded-xl border border-zinc-800/70 bg-[#101013] px-3 py-3"><span className="block text-[9px] uppercase tracking-wider text-zinc-600">{label}</span><strong className="mt-1 block text-xs text-zinc-300">{value}</strong></div>)}
-        </div>
-      </section>
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {[["Privado","Protegido"],["Duração","Temporária"],["Qualidade","1080p"],["Fluidez","60 FPS"]].map(([label,value]) => <div key={label} className="rounded-xl border border-zinc-800/70 bg-[#101013] px-3 py-3"><span className="block text-[9px] uppercase tracking-wider text-zinc-600">{label}</span><strong className="mt-1 block text-xs text-zinc-300">{value}</strong></div>)}
+          </div>
+        </section>
+      </div>
     </div>
-  </div>;
+    <HowItWorksModal open={howOpen} onClose={()=>setHowOpen(false)} />
+  </>;
 }
 
 function MetricCard({ icon: Icon, label, value, suffix, bars }: { icon: React.ElementType; label: string; value: string | number; suffix?: string; bars?: number[] }) {
@@ -170,6 +142,8 @@ function Room({ session, onLeave }: { session: SessionState; onLeave(): void }) 
   const [systemAudio,setSystemAudio] = useState(true);
   const [pip,setPip] = useState(false);
   const [settingsOpen,setSettingsOpen] = useState(false);
+  const [statsOpen,setStatsOpen] = useState(false);
+  const [sidebarOpen,setSidebarOpen] = useState(true);
   const [copied,setCopied] = useState(false);
   const [desktopMetrics,setDesktopMetrics] = useState<DesktopMetrics>({cpu:0,memoryMb:0});
   const selfName = safeSessionGet("lumacast-display-name") || "Você";
@@ -248,7 +222,7 @@ function Room({ session, onLeave }: { session: SessionState; onLeave(): void }) 
   const sourceLabel = selectedSource?.name || "Escolher fonte";
 
   return <div className="relative flex min-h-0 flex-1 overflow-hidden">
-    <aside className="flex w-[252px] shrink-0 flex-col border-r border-zinc-800/80 bg-[#0d0d10]">
+    <aside className={cx("relative flex shrink-0 flex-col overflow-hidden bg-[#0d0d10] transition-all duration-300",sidebarOpen?"w-[252px] translate-x-0 border-r border-zinc-800/80 opacity-100":"w-0 -translate-x-full border-r-0 opacity-0")}>
       <div className="border-b border-zinc-800/70 p-4">
         <div className="mb-2 flex items-center gap-2 text-[9px] uppercase tracking-[.15em] text-zinc-600"><Radio size={12}/>Sala atual</div>
         <div className="flex items-center gap-2"><span className="font-mono text-sm font-semibold tracking-[.08em] text-zinc-200">{roomCode}</span><button onClick={()=>void copyCode()} className="flex h-7 items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900 px-2 text-[10px] text-zinc-500 hover:text-zinc-200">{copied?<Check size={12}/>:<Copy size={12}/>} {copied?"Copiado":"Copiar"}</button></div>
@@ -262,6 +236,13 @@ function Room({ session, onLeave }: { session: SessionState; onLeave(): void }) 
         </div>
       </div>
     </aside>
+    <button
+      onClick={()=>setSidebarOpen(value=>!value)}
+      aria-label={sidebarOpen?"Recolher sidebar":"Expandir sidebar"}
+      className={cx("absolute top-1/2 z-30 grid h-9 w-7 -translate-y-1/2 place-items-center rounded-r-lg border border-l-0 border-zinc-800 bg-[#151519] text-zinc-500 shadow-xl shadow-black/20 transition-all duration-300 hover:text-zinc-200",sidebarOpen?"left-[252px]":"left-0")}
+    >
+      {sidebarOpen?<span className="text-lg leading-none">‹</span>:<span className="text-lg leading-none">›</span>}
+    </button>
 
     <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex h-[66px] shrink-0 items-center justify-between border-b border-zinc-800/70 px-5">
@@ -272,12 +253,14 @@ function Room({ session, onLeave }: { session: SessionState; onLeave(): void }) 
         </div>
       </div>
 
-      <section className="grid shrink-0 grid-cols-4 gap-2 border-b border-zinc-800/60 px-5 py-3">
-        <MetricCard icon={Cpu} label="CPU" value={Math.round(desktopMetrics.cpu)} suffix="%" bars={[26,41,33,52,46,58,40,Math.max(12,Math.min(90,desktopMetrics.cpu+20))]}/>
-        <MetricCard icon={Activity} label="Latência" value={latency} suffix={latency==="—"?"":"ms"} bars={[42,35,49,30,39,45,36,43]}/>
-        <MetricCard icon={Gauge} label="Bitrate" value={bitrate} suffix={bitrate==="—"?"":"Mbps"} bars={[31,46,51,63,71,67,76,73]}/>
-        <MetricCard icon={systemAudio?Volume2:VolumeX} label="Áudio do sistema" value={systemAudio?"Ativo":"Mudo"} bars={systemAudio?[24,55,38,74,44,64,79,58]:[5,5,5,5,5,5,5,5]}/>
-      </section>
+      <div className={cx("shrink-0 overflow-hidden border-b border-zinc-800/60 transition-all duration-300",statsOpen?"max-h-32 translate-y-0 opacity-100":"max-h-0 -translate-y-2 border-b-transparent opacity-0")}>
+        <section className="grid grid-cols-4 gap-2 px-5 py-3">
+          <MetricCard icon={Cpu} label="CPU" value={Math.round(desktopMetrics.cpu)} suffix="%" bars={[26,41,33,52,46,58,40,Math.max(12,Math.min(90,desktopMetrics.cpu+20))]}/>
+          <MetricCard icon={Activity} label="Latência" value={latency} suffix={latency==="—"?"":"ms"} bars={[42,35,49,30,39,45,36,43]}/>
+          <MetricCard icon={Gauge} label="Bitrate" value={bitrate} suffix={bitrate==="—"?"":"Mbps"} bars={[31,46,51,63,71,67,76,73]}/>
+          <MetricCard icon={systemAudio?Volume2:VolumeX} label="Áudio do sistema" value={systemAudio?"Ativo":"Mudo"} bars={systemAudio?[24,55,38,74,44,64,79,58]:[5,5,5,5,5,5,5,5]}/>
+        </section>
+      </div>
 
       <section className="relative flex min-h-0 flex-1 p-5">
         <div className={cx("relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-[#0c0c0f] transition",room.roomState.live?"border-purple-500/30 shadow-[0_0_60px_rgba(124,58,237,.06)]":"border-zinc-800/80")}>
@@ -292,16 +275,19 @@ function Room({ session, onLeave }: { session: SessionState; onLeave(): void }) 
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-zinc-700/70 bg-[#17171b]/95 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl">
-            <button onClick={()=>void toggleAudio()} className={cx("flex h-11 items-center gap-2 rounded-xl px-3 text-xs font-medium transition",systemAudio?"bg-zinc-800 text-zinc-200 hover:bg-zinc-700":"bg-red-500/10 text-red-300")} >{systemAudio?<Volume2 size={17}/>:<VolumeX size={17}/>}<span className="hidden 2xl:inline">{systemAudio?"Áudio ligado":"Áudio mudo"}</span></button>
-            <button disabled={busy} onClick={()=>void toggleShare()} className={cx("flex h-11 items-center gap-2 rounded-xl px-4 text-xs font-semibold transition disabled:opacity-40",sharing?"bg-red-500/10 text-red-300 hover:bg-red-500/15":"bg-purple-600 text-white shadow-lg shadow-purple-950/30 hover:bg-purple-500")}>{sharing?<ScreenShareOff size={17}/>:<ScreenShare size={17}/>} {sharing?"Parar tela":"Compartilhar tela"}</button>
-            <div className="mx-1 h-6 w-px bg-zinc-700/80"/>
-            <button onClick={()=>void togglePip()} className={cx("grid h-11 w-11 place-items-center rounded-xl transition",pip?"bg-purple-500/15 text-purple-300":"text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200")} title="Mini-player"><Minus size={17}/></button>
-            <button onClick={()=>{void refreshSources();setSourceOpen(true);}} className="grid h-11 w-11 place-items-center rounded-xl text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200" title="Fonte de captura"><Monitor size={17}/></button>
-            <button onClick={()=>setSettingsOpen(v=>!v)} className="grid h-11 w-11 place-items-center rounded-xl text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200" title="Configurações"><SlidersHorizontal size={17}/></button>
-          </div>
-        </div>
+        <RoomDock
+          systemAudio={systemAudio}
+          sharing={sharing}
+          busy={busy}
+          statsOpen={statsOpen}
+          pip={pip}
+          onToggleAudio={()=>void toggleAudio()}
+          onToggleShare={()=>void toggleShare()}
+          onToggleStats={()=>setStatsOpen(value=>!value)}
+          onTogglePip={()=>void togglePip()}
+          onSettings={()=>setSettingsOpen(value=>!value)}
+          onLeave={()=>void leave()}
+        />
 
         {settingsOpen && <div className="absolute right-8 top-8 z-20 w-72 rounded-2xl border border-zinc-800 bg-[#121215] p-4 shadow-2xl shadow-black/50">
           <div className="mb-4 flex items-center justify-between"><div><span className="text-[9px] font-semibold uppercase tracking-wider text-purple-300">Captura</span><h3 className="mt-1 text-sm font-semibold">Qualidade</h3></div><button onClick={()=>setSettingsOpen(false)} className="text-zinc-600 hover:text-zinc-300"><X size={15}/></button></div>
@@ -312,7 +298,7 @@ function Room({ session, onLeave }: { session: SessionState; onLeave(): void }) 
           <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 text-[10px] leading-4 text-zinc-600">Mudanças de qualidade são aplicadas ao encoder sem encerrar a sala.</div>
         </div>}
 
-        {room.error && <div className="absolute bottom-8 left-8 max-w-md rounded-xl border border-red-500/20 bg-red-500/[.1] px-4 py-3 text-xs text-red-200 shadow-xl">{room.error}</div>}
+        {room.error && <div className="toast-enter absolute bottom-8 left-8 z-40 max-w-md rounded-xl border border-red-500/25 bg-[#2a1015]/95 px-4 py-3 text-xs text-red-200 shadow-2xl shadow-black/40 backdrop-blur">{room.error}</div>}
       </section>
     </main>
 
@@ -324,9 +310,13 @@ function App() {
   const [session,setSession] = useState<SessionState|null>(null);
   const createRoom = (name:string) => { safeSessionSet("lumacast-display-name",name); safeSessionRemove("lumacast-broadcaster"); getSocket().disconnect(); setSession({owner:true}); };
   const joinRoom = (name:string,roomId:string) => { safeSessionSet("lumacast-display-name",name); getSocket().disconnect(); setSession({owner:false,roomId}); };
+  const goHome = () => {
+    getSocket().disconnect();
+    setSession(null);
+  };
   return <div className="flex h-screen min-h-[680px] w-screen flex-col overflow-hidden bg-[#09090b] text-zinc-100">
-    <TitleBar status={session ? "Conectado" : "Pronto"} />
-    {session ? <Room session={session} onLeave={()=>setSession(null)} /> : <Home onCreate={createRoom} onJoin={joinRoom} />}
+    <DesktopTitleBar status={session ? "Conectado" : "Pronto"} inRoom={!!session} onHome={goHome} />
+    {session ? <Room session={session} onLeave={goHome} /> : <Home onCreate={createRoom} onJoin={joinRoom} />}
   </div>;
 }
 

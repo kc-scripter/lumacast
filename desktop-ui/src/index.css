@@ -10,3 +10,11 @@ button:focus-visible, input:focus-visible { outline:2px solid rgba(124,58,237,.7
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:#2f2f35; border-radius:999px; border:2px solid transparent; background-clip:padding-box; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto!important; transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; } }
+
+button:not(:disabled) { transition: all 200ms ease; }
+button:not(:disabled):hover { transform: scale(1.02); }
+button:not(:disabled):active { transform: scale(.95); }
+@keyframes toastIn { from { opacity:0; transform:translate3d(-14px,10px,0) scale(.97); } to { opacity:1; transform:translate3d(0,0,0) scale(1); } }
+@keyframes modalIn { from { opacity:0; transform:scale(.975); } to { opacity:1; transform:scale(1); } }
+.toast-enter { animation: toastIn 220ms cubic-bezier(.2,.8,.2,1); }
+.modal-enter > div { animation: modalIn 220ms cubic-bezier(.2,.8,.2,1); }
