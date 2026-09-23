@@ -24,15 +24,18 @@ function(lunira_setup_agora out_root)
         file(REMOVE "${_archive}")
         file(DOWNLOAD "${_url}" "${_archive}"
           SHOW_PROGRESS TLS_VERIFY ON
-          EXPECTED_HASH "SHA256=${LUNIRA_AGORA_WINDOWS_SHA256}"
           STATUS _status
           TIMEOUT 120
           INACTIVITY_TIMEOUT 30)
         list(GET _status 0 _code)
         list(GET _status 1 _message)
-        if(_code EQUAL 0)
-          set(_download_ok TRUE)
-          break()
+        if(_code EQUAL 0 AND EXISTS "${_archive}")
+          file(SHA256 "${_archive}" _download_sha256)
+          if(_download_sha256 STREQUAL LUNIRA_AGORA_WINDOWS_SHA256)
+            set(_download_ok TRUE)
+            break()
+          endif()
+          set(_message "SHA256 mismatch: expected ${LUNIRA_AGORA_WINDOWS_SHA256}, got ${_download_sha256}")
         endif()
         message(WARNING "Agora SDK download attempt ${_attempt}/3 failed: ${_message}")
         execute_process(COMMAND "${CMAKE_COMMAND}" -E sleep 3)
