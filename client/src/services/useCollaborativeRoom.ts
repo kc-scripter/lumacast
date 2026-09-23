@@ -296,18 +296,33 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string){
     try{
       setError("");screenConfigRef.current={quality,fps};
       if(stateRef.current.activeScreenSharerId&&stateRef.current.activeScreenSharerId!==socketIdRef.current){setError("Outra pessoa já está compartilhando a tela.");return;}
+      let stream:MediaStream;
+      // Capture immediately while the click still owns Chromium's transient
+      // user activation. Electron's custom source handler then grants the
+      // monitor/window selected in the desktop UI without showing another picker.
+      try{stream=await navigator.mediaDevices.getDisplayMedia(displayConstraints(quality,60));}
+      catch(cause){
+        console.error("Screen capture error",cause);
+        const error=cause as DOMException;
+        setError(error?.name==="NotAllowedError"
+          ?"O compartilhamento foi cancelado."
+          :error?.name==="InvalidStateError"
+            ?"A captura perdeu a permissão do clique. Tente novamente."
+            :"Não foi possível capturar a tela.");
+        return;
+      }
+      const video=stream.getVideoTracks()[0];
+      if(!valid(video)){stream.getTracks().forEach(track=>track.stop());setError("Não foi possível capturar a tela.");return;}
+
       const lock:ScreenAck=await emitAck<ScreenAck>("request-screen-share",{roomId:roomIdRef.current}).catch(cause=>({ok:false,error:String(cause)}));
-      if(!lock.ok||!lock.agoraAppId||!lock.agoraChannel||lock.agoraUid===undefined||!lock.agoraToken){setError(lock.error||"Não foi possível iniciar a transmissão.");return;}
+      if(!lock.ok||!lock.agoraAppId||!lock.agoraChannel||lock.agoraUid===undefined||!lock.agoraToken){
+        stream.getTracks().forEach(track=>track.stop());
+        setError(lock.error||"Não foi possível iniciar a transmissão.");
+        return;
+      }
       const auth:AgoraCredentials={agoraAppId:lock.agoraAppId,agoraChannel:lock.agoraChannel,agoraUid:lock.agoraUid,agoraToken:lock.agoraToken};
       screenCredentialsRef.current=auth;
       updateState({activeScreenSharerId:socketIdRef.current,activeScreenUid:auth.agoraUid,screenProvider:"agora"});
-      let stream:MediaStream;
-      // Capture at 60 from the beginning so switching 30 -> 60 does not require
-      // reopening the browser's screen picker. The encoder can still publish 30.
-      try{stream=await navigator.mediaDevices.getDisplayMedia(displayConstraints(quality,60));}
-      catch(cause){console.error("Screen capture error",cause);setError((cause as DOMException).name==="NotAllowedError"?"O compartilhamento foi cancelado.":"Não foi possível capturar a tela.");connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);return;}
-      const video=stream.getVideoTracks()[0];
-      if(!valid(video)){stream.getTracks().forEach(track=>track.stop());connectSocket().emit("release-screen-share",{roomId:roomIdRef.current},()=>undefined);setError("Não foi possível capturar a tela.");return;}
       const initialCaptureFps=video.getSettings().frameRate;
       if(!initialCaptureFps||initialCaptureFps<50){
         try{await video.applyConstraints(captureConstraints(quality,video.getSettings()));}

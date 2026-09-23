@@ -48,14 +48,52 @@ async function getSources(){
   }));
 }
 
+function isTrustedOrigin(value){
+  try { return new URL(value).origin === ORIGIN; }
+  catch { return typeof value === "string" && value.startsWith(ORIGIN); }
+}
+
 function installCaptureHandler(){
-  session.defaultSession.setDisplayMediaRequestHandler(async(request,callback)=>{
-    if(request.securityOrigin!==ORIGIN){ callback({}); return; }
-    const sources = await desktopCapturer.getSources({types:["screen","window"],thumbnailSize:{width:1,height:1}});
-    const selected = sources.find(source=>source.id===selectedSourceId) || sources.find(source=>source.id.startsWith("screen:")) || sources[0];
-    if(!selected){ callback({}); return; }
-    callback({video:selected,audio:request.audioRequested?"loopback":undefined});
+  const ses=session.defaultSession;
+
+  ses.setPermissionCheckHandler((_webContents,permission,requestingOrigin,details)=>{
+    if(permission!=="media")return false;
+    return isTrustedOrigin(details?.securityOrigin || requestingOrigin || "");
   });
+
+  ses.setPermissionRequestHandler((webContents,permission,callback,details)=>{
+    if(permission!=="media"){callback(false);return;}
+    callback(isTrustedOrigin(details?.securityOrigin || details?.requestingUrl || webContents.getURL()));
+  });
+
+  ses.setDisplayMediaRequestHandler((request,callback)=>{
+    void (async()=>{
+      try{
+        if(!request.videoRequested || !isTrustedOrigin(request.securityOrigin)){
+          callback({});
+          return;
+        }
+        const sources=await desktopCapturer.getSources({
+          types:["screen","window"],
+          thumbnailSize:{width:0,height:0},
+          fetchWindowIcons:false
+        });
+        const selected=sources.find(source=>source.id===selectedSourceId)
+          || sources.find(source=>source.id.startsWith("screen:"))
+          || sources[0];
+        if(!selected){callback({});return;}
+
+        const grant={
+          video:{id:selected.id,name:selected.name},
+          ...(request.audioRequested && process.platform==="win32" ? {audio:"loopback"} : {})
+        };
+        callback(grant);
+      }catch(error){
+        console.error("Display media grant failed",error);
+        callback({});
+      }
+    })();
+  },{useSystemPicker:false});
 }
 
 function createWindow(){
