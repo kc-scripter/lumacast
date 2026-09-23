@@ -12,7 +12,8 @@ namespace LuniraScreen
 {
     internal sealed class MainForm : Form
     {
-        private const string DefaultWebUrl = "https://lumacast-live-kc.onrender.com/";
+        private const string DefaultWebUrl = "https://lunira-screen.onrender.com/";
+        private static readonly string[] DeprecatedWebHosts = { "lumacast-live-kc.onrender.com", "lunirascreen.onrender.com" };
 
         private readonly Panel _statusPanel;
         private readonly Label _titleLabel;
@@ -180,6 +181,13 @@ namespace LuniraScreen
             if (!candidate.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
                 !(localhost && candidate.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)))
                 return false;
+
+            if (DeprecatedWebHosts.Any(host =>
+                candidate.Host.Equals(host, StringComparison.OrdinalIgnoreCase)))
+            {
+                uri = new Uri(DefaultWebUrl);
+                return true;
+            }
 
             uri = candidate;
             return true;
