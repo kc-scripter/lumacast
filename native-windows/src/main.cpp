@@ -18,7 +18,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cstring>
-#include <cwctype>\n#include <cmath>
+#include <cwctype>
+#include <cmath>
 #include <memory>
 #include <mutex>
 #include <array>
@@ -41,7 +42,8 @@ constexpr UINT kSocketEventMessage = WM_APP + 42;
 constexpr UINT kMediaEventMessage = WM_APP + 43;
 constexpr UINT kAgoraEventMessage = WM_APP + 44;
 constexpr UINT kUpdateEventMessage = WM_APP + 45;
-constexpr UINT_PTR kUiAnimationTimerId = 1;\nconstexpr UINT_PTR kAmbientAnimationTimerId = 2;
+constexpr UINT_PTR kUiAnimationTimerId = 1;
+constexpr UINT_PTR kAmbientAnimationTimerId = 2;
 
 #ifndef LUNIRA_GIT_SHA
 #define LUNIRA_GIT_SHA "unknown"
