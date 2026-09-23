@@ -48,7 +48,7 @@ constexpr UINT_PTR kUiAnimationTimerId = 1;\nconstexpr UINT_PTR kAmbientAnimatio
 #endif
 
 #ifndef LUNIRA_UI_REV
-#define LUNIRA_UI_REV "R2"
+#define LUNIRA_UI_REV "R3"
 #endif
 
 #define LUNIRA_WIDEN_IMPL(x) L##x
