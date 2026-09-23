@@ -55,7 +55,7 @@ app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
-  cors:{origin:configuredOrigins,methods:["GET","POST"]},
+  cors:{origin:[...configuredOrigins,...desktopOrigins],methods:["GET","POST"]},
   allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)),
   maxHttpBufferSize:64*1024,
   pingTimeout:20_000,
