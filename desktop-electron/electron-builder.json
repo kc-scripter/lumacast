@@ -1,0 +1,21 @@
+{
+  "appId": "com.lunira.screen",
+  "productName": "Lunira Screen",
+  "asar": true,
+  "directories": {
+    "output": "dist",
+    "buildResources": "build"
+  },
+  "files": [
+    "main.mjs",
+    "preload.cjs",
+    "renderer/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": [
+      "portable"
+    ],
+    "artifactName": "LuniraScreen-Desktop-${version}.${ext}"
+  }
+}
