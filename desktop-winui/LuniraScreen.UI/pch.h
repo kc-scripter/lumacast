@@ -29,3 +29,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+struct __declspec(uuid("905a0fef-bc53-11df-8c49-001e4fc686da")) IBufferByteAccess : IUnknown
+{
+    virtual HRESULT STDMETHODCALLTYPE Buffer(BYTE** value) = 0;
+};

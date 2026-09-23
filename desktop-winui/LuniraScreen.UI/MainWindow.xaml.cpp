@@ -8,7 +8,6 @@ using namespace winrt;
 using namespace Microsoft::UI::Xaml;
 using namespace Microsoft::UI::Xaml::Controls;
 using namespace Microsoft::UI::Xaml::Media::Imaging;
-using namespace Windows::ApplicationModel::DataTransfer;
 
 namespace winrt::LuniraScreen::UI::implementation {
 
@@ -84,9 +83,9 @@ void MainWindow::TogglePanel_Click(IInspectable const&, RoutedEventArgs const&) 
 
 void MainWindow::CopyCode_Click(IInspectable const&, RoutedEventArgs const&) {
     if (m_roomCode.empty()) return;
-    DataPackage package;
+    winrt::Windows::ApplicationModel::DataTransfer::DataPackage package;
     package.SetText(m_roomCode);
-    Clipboard::SetContent(package);
+    winrt::Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
     CopyLabel().Text(L"Copiado");
 }
 
@@ -242,7 +241,7 @@ void MainWindow::ApplyRoomState(
     auto children = ParticipantsList().Children();
     children.Clear();
 
-    std::wistringstream stream(std::wstring(serialized));
+    std::wistringstream stream{std::wstring(serialized)};
     std::wstring line;
     int participantCount = 0;
 
@@ -262,10 +261,6 @@ void MainWindow::ApplyRoomState(
 
         TextBlock item;
         item.Text(hstring(L"●  " + name + (owner ? L"   · Host" : L"")));
-        item.Foreground(
-            Microsoft::UI::Xaml::Media::SolidColorBrush(
-                Windows::UI::ColorHelper::FromArgb(
-                    255, 205, 198, 214)));
         item.FontSize(12);
         children.Append(item);
         ++participantCount;
@@ -416,7 +411,8 @@ void MainWindow::UpdateBitmap(
 
     auto buffer = bitmap.PixelBuffer();
     BYTE* destination = nullptr;
-    check_hresult(buffer.as<::IBufferByteAccess>()->Buffer(&destination));
+    auto byteAccess = buffer.as<::IBufferByteAccess>();
+    check_hresult(byteAccess->Buffer(&destination));
     const size_t bytes =
         static_cast<size_t>(width) *
         static_cast<size_t>(height) * 4u;
