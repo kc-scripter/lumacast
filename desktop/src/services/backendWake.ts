@@ -2,7 +2,7 @@ import { connectSocket, getSocket } from "../../../client/src/services/socket";
 
 export type BackendWakeState="waking"|"ready"|"error";
 
-const signalingBase=(import.meta.env.VITE_SIGNALING_URL||"https://lunira-screen.onrender.com").trim().replace(/\/$/,"");
+const signalingBase=(import.meta.env.VITE_SIGNALING_URL||"https://lunirascreen.onrender.com").trim().replace(/\/$/,"");
 const wakeUrl=new URL("/api/wake",signalingBase+"/").toString();
 const healthUrl=new URL("/api/health",signalingBase+"/").toString();
 let activeWake:Promise<void>|null=null;
