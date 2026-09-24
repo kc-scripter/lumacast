@@ -31,12 +31,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-s
 .ambient-orb-a{width:48vw;height:48vw;left:-18vw;top:4vh;background:radial-gradient(circle,#824dff34 0%,#824dff11 48%,transparent 72%);animation:orb-a 18s ease-in-out infinite}
 .ambient-orb-b{width:44vw;height:44vw;right:-12vw;top:10vh;background:radial-gradient(circle,#bd5cff24 0%,#8049ff12 48%,transparent 72%);animation:orb-b 22s ease-in-out infinite}
 .ambient-orb-c{width:34vw;height:34vw;right:28vw;bottom:-24vw;background:radial-gradient(circle,#5f4cff20 0%,transparent 70%);animation:orb-c 26s ease-in-out infinite}
-.ambient-grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff07 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:88px 88px;mask-image:radial-gradient(circle at 54% 42%,#000 0 22%,transparent 72%);opacity:.18;animation:grid-drift 28s linear infinite}
+.ambient-grid{position:absolute;inset:-88px;background-image:linear-gradient(#ffffff07 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:88px 88px;mask-image:radial-gradient(circle at 54% 42%,#000 0 22%,transparent 72%);opacity:.18;will-change:transform;animation:grid-drift 28s linear infinite}
 .ambient-vignette{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,transparent 0 42%,rgba(2,1,5,.42) 100%)}
 @keyframes orb-a{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(6vw,-3vh,0) scale(1.08)}}
 @keyframes orb-b{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(-5vw,5vh,0)}}
 @keyframes orb-c{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(2vw,-6vh,0)}}
-@keyframes grid-drift{from{background-position:0 0,0 0}to{background-position:88px 44px,88px 44px}}
+@keyframes grid-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(88px,44px,0)}}
 
 .titlebar{position:relative;z-index:10;height:52px;display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,.055);background:rgba(9,8,15,.88);backdrop-filter:blur(16px);user-select:none}
 .titlebar-brand{display:flex;align-items:center;height:100%;padding-left:14px;flex:1}
