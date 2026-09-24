@@ -24,7 +24,7 @@ export default defineConfig(({mode})=>{
     build:{
       outDir:"dist",
       emptyOutDir:true,
-      sourcemap:true,
+      sourcemap:false,
       target:"es2022"
     },
     clearScreen:false

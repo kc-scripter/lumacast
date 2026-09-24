@@ -251,3 +251,5 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .room-loading small{font-size:9px;color:#6d6675;margin-top:4px}
 @keyframes room-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.room-loading>span{animation:none;border-top-color:#362b45}}
+
+@media(hover:hover){.brand:hover .brand-mark{transform:translateY(-1px);box-shadow:0 10px 26px rgba(95,66,219,.28),inset 0 1px rgba(255,255,255,.28)}}
