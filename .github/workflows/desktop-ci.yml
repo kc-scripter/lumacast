@@ -85,3 +85,61 @@ jobs:
           name: lunira-screen-desktop-windows
           path: desktop/src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
+
+
+  visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PORT: "3001"
+      CLIENT_ORIGIN: "http://127.0.0.1:1420"
+      PUBLIC_URL: "http://127.0.0.1:1420"
+      AGORA_APP_ID: "11111111111111111111111111111111"
+      AGORA_APP_CERTIFICATE: "22222222222222222222222222222222"
+      LIVEKIT_URL: "wss://example.invalid"
+      LIVEKIT_API_KEY: "ci-key"
+      LIVEKIT_API_SECRET: "ci-secret"
+      TRUST_PROXY_HOPS: "0"
+      MAX_ROOM_PARTICIPANTS: "8"
+      DESKTOP_PREVIEW_URL: "http://127.0.0.1:1420"
+      DESKTOP_VISUAL_DIR: "/tmp/lunira-visual"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:server
+      - name: Install desktop and visual QA dependencies
+        shell: bash
+        run: |
+          cd desktop
+          npm install
+          cd ..
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local signaling and desktop preview
+        shell: bash
+        run: |
+          node server/dist/server.js > /tmp/lunira-server.log 2>&1 &
+          echo $! > /tmp/lunira-server.pid
+          (
+            cd desktop
+            VITE_SIGNALING_URL=http://127.0.0.1:3001 VITE_PUBLIC_WEB_URL=http://127.0.0.1:1420 npm run dev -- --host 127.0.0.1 > /tmp/lunira-vite.log 2>&1
+          ) &
+          for i in {1..45}; do
+            if curl --fail --silent http://127.0.0.1:1420 >/dev/null && curl --fail --silent http://127.0.0.1:3001/api/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/lunira-server.log || true
+          cat /tmp/lunira-vite.log || true
+          exit 1
+      - name: Capture 1280x800 desktop UI
+        run: node tests/desktop-visual-smoke.mjs
+      - name: Upload visual QA screenshots
+        uses: actions/upload-artifact@v6
+        with:
+          name: lunira-desktop-visual-qa
+          path: /tmp/lunira-visual/*.png
+          if-no-files-found: error
