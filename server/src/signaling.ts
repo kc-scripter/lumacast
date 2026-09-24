@@ -3,6 +3,7 @@ import { createAgoraCredentials,createAgoraUid } from "./agora.js";
 import { createLiveKitToken } from "./livekit.js";
 import { hashSecret,newSecret,normalizeDisplayName,RoomStore,secretMatches,validRoomId,validSecret,type Room,type ScreenProvider } from "./rooms.js";
 import { createRoomPersistenceFromEnv } from "./roomPersistence.js";
+import { configurationError,runtimeEnvironmentStatus } from "./environment.js";
 
 type Ack=(payload:Record<string,unknown>)=>void;
 const reply=(ack:unknown,payload:Record<string,unknown>)=>{if(typeof ack==="function")(ack as Ack)(payload);};
@@ -24,6 +25,11 @@ function rateAddress(socket:Socket){
 function allowed(socket:Socket,limit=140,windowMs=10_000,scope="general"){const now=Date.now(),key=`${scope}:${rateAddress(socket)}`;let entry=limiter.get(key);if(!entry||now-entry.start>windowMs)entry={start:now,count:0};entry.count++;limiter.set(key,entry);return entry.count<=limit;}
 const livekitActive=(room:Room)=>room.ownerLivekitActive||[...room.participants.values()].some(p=>p.livekitActive)||room.live&&room.screenProvider==="livekit";
 const state=(room:Room)=>({live:room.live,count:room.participants.size,activeScreenSharerId:room.activeScreenSharerId,activeScreenUid:room.activeScreenUid,activeScreenSharerName:room.activeScreenSharerId===room.ownerId?room.ownerName:room.participants.get(room.activeScreenSharerId||"")?.displayName||null,screenProvider:room.screenProvider,livekitActive:livekitActive(room),ownerName:room.ownerName,participants:[{id:room.ownerId,displayName:room.ownerName},...[...room.participants.values()].map(p=>({id:p.socketId,displayName:p.displayName}))]});
+const rtcReady=(ack:Ack)=>{
+  if(runtimeEnvironmentStatus().ready)return true;
+  reply(ack,configurationError());
+  return false;
+};
 
 export async function registerSignaling(io:Server){const rooms=new RoomStore(createRoomPersistenceFromEnv());await rooms.hydrate();
   const announce=(room:Room)=>{rooms.persist(room);io.to(room.id).emit("room-state",state(room));io.to(room.ownerId).emit("viewer-count",{count:room.participants.size});};
@@ -33,6 +39,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
 
     socket.on("create-room",(input:unknown,ack:Ack)=>{
       if(!allowed(socket,5,60_000,"create"))return reply(ack,{ok:false,error:"Muitas tentativas. Aguarde um minuto."});
+      if(!rtcReady(ack))return;
       const requested=normalizeDisplayName((input as {displayName?:unknown})?.displayName);
       if(!requested)return reply(ack,{ok:false,error:"Informe um nome entre 2 e 20 caracteres."});
       try{
@@ -44,6 +51,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
 
     socket.on("reclaim-room",(input:unknown,ack:Ack)=>{
       if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});
+      if(!rtcReady(ack))return;
       const data=input as {roomId?:unknown;token?:unknown};
       if(!validRoomId(data?.roomId)||!validSecret(data.token))return reply(ack,{ok:false,error:"Credenciais inválidas."});
       const room=rooms.get(data.roomId);
@@ -54,6 +62,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
 
     socket.on("join-room",(input:unknown,ack:Ack)=>{
       if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});
+      if(!rtcReady(ack))return;
       const data=input as {roomId?:unknown;participantToken?:unknown;displayName?:unknown};
       if(!validRoomId(data?.roomId))return reply(ack,{ok:false,error:"Código de sala inválido."});
       const room=rooms.get(data.roomId);
@@ -84,14 +93,14 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
       }catch(error){console.error("Room join error",error);reply(ack,{ok:false,error:"Não foi possível entrar na sala."});}
     });
 
-    socket.on("request-screen-share",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room)return reply(ack,{ok:false,error:"Participante não autorizado."});if(room.activeScreenSharerId&&room.activeScreenSharerId!==socket.id)return reply(ack,{ok:false,error:"Outra pessoa já está compartilhando a tela."});try{if(!room.activeScreenSharerId){room.activeScreenSharerId=socket.id;let uid:number;do{uid=createAgoraUid();}while(uid===room.ownerUid||[...room.participants.values()].some(p=>p.agoraUid===uid));room.activeScreenUid=uid;room.screenProvider="agora";}reply(ack,{ok:true,...createAgoraCredentials(room.id,room.activeScreenUid!,"broadcaster"),...state(room)});announce(room);}catch(error){console.error("Screen lock error",error);reply(ack,{ok:false,error:"Não foi possível preparar a tela."});}});
+    socket.on("request-screen-share",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});if(!rtcReady(ack))return;const room=member(input);if(!room)return reply(ack,{ok:false,error:"Participante não autorizado."});if(room.activeScreenSharerId&&room.activeScreenSharerId!==socket.id)return reply(ack,{ok:false,error:"Outra pessoa já está compartilhando a tela."});try{if(!room.activeScreenSharerId){room.activeScreenSharerId=socket.id;let uid:number;do{uid=createAgoraUid();}while(uid===room.ownerUid||[...room.participants.values()].some(p=>p.agoraUid===uid));room.activeScreenUid=uid;room.screenProvider="agora";}reply(ack,{ok:true,...createAgoraCredentials(room.id,room.activeScreenUid!,"broadcaster"),...state(room)});announce(room);}catch(error){console.error("Screen lock error",error);reply(ack,{ok:false,error:"Não foi possível preparar a tela."});}});
     socket.on("release-screen-share",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room||room.activeScreenSharerId!==socket.id)return reply(ack,{ok:false,error:"Participante não autorizado."});release(room);reply(ack,{ok:true});});
     socket.on("screen-provider-changed",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input),provider=(input as {provider?:ScreenProvider})?.provider;if(!room||room.activeScreenSharerId!==socket.id||provider!=="livekit")return reply(ack,{ok:false,error:"Participante não autorizado."});room.screenProvider="livekit";io.to(room.id).emit("screen-provider-changed",{screenProvider:"livekit"});announce(room);reply(ack,{ok:true});});
     socket.on("broadcast-started",(input:unknown)=>{if(!allowed(socket))return;const room=member(input);if(!room||room.activeScreenSharerId!==socket.id)return;room.live=true;io.to(room.id).emit("broadcast-started");announce(room);});
     socket.on("broadcast-ended",(input:unknown)=>{if(!allowed(socket))return;const room=member(input);if(room&&room.activeScreenSharerId===socket.id)release(room);});
 
-    socket.on("renew-agora-token",(input:unknown,ack:Ack)=>{if(!allowed(socket,30,60_000,"credentials"))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room)return reply(ack,{ok:false,error:"Participante não autorizado."});try{const screen=room.activeScreenSharerId===socket.id&&(input as {screen?:boolean})?.screen===true,uid=screen?room.activeScreenUid:rooms.getUid(room,socket.id);if(uid==null)return reply(ack,{ok:false,error:"UID inválido."});reply(ack,{ok:true,agoraToken:createAgoraCredentials(room.id,uid,screen?"broadcaster":"viewer").agoraToken});}catch(error){console.error("Agora renewal error",error);reply(ack,{ok:false,error:"Não foi possível renovar a conexão."});}});
-    socket.on("get-livekit-token",async(input:unknown,ack:Ack)=>{if(!allowed(socket,30,60_000,"credentials"))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room)return reply(ack,{ok:false,error:"Participante não autorizado."});try{const screen=room.activeScreenSharerId===socket.id,token=await createLiveKitToken(room.id,socket.id,screen);reply(ack,{ok:true,livekitUrl:process.env.LIVEKIT_URL,livekitToken:token});}catch(error){console.error("LiveKit token error",error);reply(ack,{ok:false,error:"Não foi possível conectar ao LiveKit."});}});
+    socket.on("renew-agora-token",(input:unknown,ack:Ack)=>{if(!allowed(socket,30,60_000,"credentials"))return reply(ack,{ok:false,error:"Muitas tentativas."});if(!rtcReady(ack))return;const room=member(input);if(!room)return reply(ack,{ok:false,error:"Participante não autorizado."});try{const screen=room.activeScreenSharerId===socket.id&&(input as {screen?:boolean})?.screen===true,uid=screen?room.activeScreenUid:rooms.getUid(room,socket.id);if(uid==null)return reply(ack,{ok:false,error:"UID inválido."});reply(ack,{ok:true,agoraToken:createAgoraCredentials(room.id,uid,screen?"broadcaster":"viewer").agoraToken});}catch(error){console.error("Agora renewal error",error);reply(ack,{ok:false,error:"Não foi possível renovar a conexão."});}});
+    socket.on("get-livekit-token",async(input:unknown,ack:Ack)=>{if(!allowed(socket,30,60_000,"credentials"))return reply(ack,{ok:false,error:"Muitas tentativas."});if(!rtcReady(ack))return;const room=member(input);if(!room)return reply(ack,{ok:false,error:"Participante não autorizado."});try{const screen=room.activeScreenSharerId===socket.id,token=await createLiveKitToken(room.id,socket.id,screen);reply(ack,{ok:true,livekitUrl:process.env.LIVEKIT_URL,livekitToken:token});}catch(error){console.error("LiveKit token error",error);reply(ack,{ok:false,error:"Não foi possível conectar ao LiveKit."});}});
 
     socket.on("livekit-media-active",(input:unknown)=>{if(!allowed(socket))return;const room=member(input),participant=room?.participants.get(socket.id);if(!room)return;if(participant)participant.livekitActive=!!(input as {active?:boolean}).active;else room.ownerLivekitActive=!!(input as {active?:boolean}).active;announce(room);});
     socket.on("leave-room",(input:unknown)=>{if(!allowed(socket))return;const room=member(input);if(!room)return;const participant=room.participants.get(socket.id);if(participant){room.participants.delete(socket.id);socket.leave(room.id);if(room.activeScreenSharerId===socket.id)release(room);announce(room);}});
