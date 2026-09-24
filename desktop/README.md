@@ -22,11 +22,11 @@ O desktop começa em Automático + 30 FPS para usar a infraestrutura de mídia d
 
 ## Desenvolvimento
 
-Na raiz do repositório instale as dependências web uma vez com npm ci. Depois, dentro de desktop/, execute npm install e npm run tauri:dev.
+Na raiz do repositório instale as dependências web uma vez com npm ci. Depois, dentro de desktop/, execute npm install e npm run electron:dev.
 
 ## Build Windows
 
-No Windows com Rust, WebView2 e toolchain C++ instalados, dentro de desktop/ execute npm run tauri:build.
+No Windows, dentro de desktop/, execute npm run electron:build. O instalador NSIS é gerado em desktop/release/.
 
 O endpoint público padrão de signaling é https://lunira-screen.onrender.com. Segredos Agora/LiveKit permanecem exclusivamente no servidor.
 
@@ -39,8 +39,8 @@ Regra de release: cada atualização distribuível do app incrementa o último n
 
 Use `npm run version:next` dentro de `desktop/` para atualizar em conjunto:
 - `desktop/package.json`;
-- `desktop/src-tauri/Cargo.toml`;
-- `desktop/src-tauri/tauri.conf.json`.
+- `desktop/main.js` e `desktop/preload.js` para a integração Electron;
+- `desktop/src-tauri/` permanece no repositório apenas como implementação legada e referência de versão.
 
 O CI valida se as três versões são iguais. O artefato Windows recebe a versão no nome e, depois de um build bem-sucedido, os instaladores desktop antigos do GitHub Actions são apagados automaticamente, deixando somente o mais recente.
 
