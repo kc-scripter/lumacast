@@ -37,7 +37,9 @@ TEXT_REPLACEMENTS={
     "A ligar…":"Conectando…",
     "Ligado ao servidor":"Conectado ao servidor",
     "Partilha interrompida":"Compartilhamento interrompido",
-    "As câmaras dos participantes aparecem aqui quando estão ligadas.":"Participantes da sala aparecem aqui."
+    "As câmaras dos participantes aparecem aqui quando estão ligadas.":"Participantes da sala aparecem aqui.",
+    "Ligação protegida":"Transmissão protegida",
+    "Ligação segura e privada":"Transmissão segura e privada"
 }
 
 PARTICIPANT_OLD='const _e=w.cameras.map(Ae=>({id:Ae.identity,name:Ae.local?c:ee.find($e=>$e.id===Ae.identity)?.displayName||"Participante",track:Ae.track,local:Ae.local}));return _e.some(Ae=>Ae.local)||_e.unshift({id:"self",name:c,local:!0})'
