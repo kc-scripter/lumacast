@@ -33,7 +33,7 @@ O endpoint público padrão de signaling é https://lunira-screen.onrender.com. 
 
 ## Versionamento do desktop
 
-A versão atual é `0.1.4`.
+A versão atual é `0.1.5`.
 
 Regra de release: cada atualização distribuível do app incrementa o último número da versão (`0.1.1` → `0.1.2` → `0.1.3`).
 
@@ -48,3 +48,8 @@ O CI valida se as três versões são iguais. O artefato Windows recebe a versã
 ## Cold start do Render
 
 O desktop chama `/api/wake` ao abrir para iniciar o Web Service Free do Render. Ele só considera o backend pronto depois de confirmar também a conexão Socket.IO. O endpoint de wake é propositalmente leve e não depende da configuração Agora/LiveKit.
+
+
+## Tela de boas-vindas
+
+A v0.1.5 abre em uma tela introdutória com os recursos reais do Lunira Screen. O botão "Começar agora" leva à segunda etapa, onde o usuário escolhe criar uma sala ou entrar por código. Ao sair de uma sala, o app volta para a etapa de criar/entrar, sem repetir a introdução durante a mesma execução.
