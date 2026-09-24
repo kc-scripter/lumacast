@@ -8,7 +8,8 @@ on:
       - "client/src/services/**"
       - "client/src/components/**"
       - "client/src/types.ts"
-      - "tests/desktop-cross-platform-smoke.mjs"\n      - "tests/desktop-visual-smoke.mjs"
+      - "tests/desktop-cross-platform-smoke.mjs"
+      - "tests/desktop-visual-smoke.mjs"
       - ".github/workflows/desktop-ci.yml"
   workflow_dispatch:
 
