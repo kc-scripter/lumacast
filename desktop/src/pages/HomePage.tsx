@@ -41,7 +41,7 @@ export function HomePage({
       <article className="action-card">
         <div className="card-icon"><Users/></div>
         <div className="card-copy"><span>ENTRAR EM UMA SALA</span><h2>Usar um código</h2><p>Entre na mesma sala criada no site ou em outro desktop.</p></div>
-        <label className="room-code-field"><span>CÓDIGO DA SALA</span><div><input value={code} onChange={event=>setCode(normalizeCode(event.target.value))} maxLength={8} placeholder="AB12CD34" autoComplete="off"/><button type="button" disabled={!validName||!validCode} aria-label="Entrar na sala" onClick={()=>onJoin(code,name.trim())}><ArrowRight/></button></div></label>
+        <label className="room-code-field"><span>CÓDIGO DA SALA</span><div><input value={code} onChange={event=>setCode(normalizeCode(event.target.value))} maxLength={8} placeholder="AB12CD34" autoComplete="off" onKeyDown={event=>{if(event.key==="Enter"&&validName&&validCode)onJoin(code,name.trim());}}/><button type="button" disabled={!validName||!validCode} aria-label="Entrar na sala" onClick={()=>onJoin(code,name.trim())}><ArrowRight/></button></div></label>
         <small>8 caracteres · letras maiúsculas e números</small>
       </article>
     </section>
