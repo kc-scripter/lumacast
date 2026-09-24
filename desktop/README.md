@@ -33,7 +33,7 @@ O endpoint público padrão de signaling é https://lunira-screen.onrender.com. 
 
 ## Versionamento do desktop
 
-A versão atual é `0.1.3`.
+A versão atual é `0.1.4`.
 
 Regra de release: cada atualização distribuível do app incrementa o último número da versão (`0.1.1` → `0.1.2` → `0.1.3`).
 
@@ -43,3 +43,8 @@ Use `npm run version:next` dentro de `desktop/` para atualizar em conjunto:
 - `desktop/src-tauri/tauri.conf.json`.
 
 O CI valida se as três versões são iguais. O artefato Windows recebe a versão no nome e, depois de um build bem-sucedido, os instaladores desktop antigos do GitHub Actions são apagados automaticamente, deixando somente o mais recente.
+
+
+## Cold start do Render
+
+O desktop chama `/api/wake` ao abrir para iniciar o Web Service Free do Render. Ele só considera o backend pronto depois de confirmar também a conexão Socket.IO. O endpoint de wake é propositalmente leve e não depende da configuração Agora/LiveKit.
