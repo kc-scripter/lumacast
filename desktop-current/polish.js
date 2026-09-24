@@ -162,11 +162,15 @@ async function nativeGetDisplayMedia(constraints={}){
   let busy=false;
   let lastFrameAt=0;
   const minFrameInterval=1000/target.fps;
+  const frameGate=minFrameInterval*.9;
   const expectedBytes=target.width*target.height*4;
   const render=async now=>{
     if(capture.stopped) return;
     capture.raf=requestAnimationFrame(render);
-    if(busy||now-lastFrameAt<minFrameInterval) return;
+    // rAF timestamps around 60 Hz fluctuate slightly below 16.67 ms. A small
+    // tolerance prevents every other frame from being discarded at 60 FPS,
+    // while 30 FPS still naturally runs on every second refresh.
+    if(busy||now-lastFrameAt<frameGate) return;
     busy=true;
     lastFrameAt=now;
     try{
