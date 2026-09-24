@@ -30,7 +30,7 @@ export function App(){
 
   return <div className="app-shell">
     <AmbientBackground/>
-    <Titlebar status={route.type==="room"?"Em sala":"Desktop"} tone="ready"/>
+    <Titlebar status={route.type==="room"?"Em sala":"Pronto"} tone="ready"/>
     <div className="app-content">
       {route.type==="home"
         ?<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)}/>
