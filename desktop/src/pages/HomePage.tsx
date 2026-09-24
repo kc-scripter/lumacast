@@ -28,7 +28,7 @@ export function HomePage({
     <section className="home-main">
       <div className="home-story">
         <span className="hero-kicker"><i/> TRANSMISSÃO EM TEMPO REAL</span>
-        <h1>Compartilhe sua tela<br/><em>com mais facilidade.</em></h1>
+        <h1 className="hero-flow-title"><span>Compartilhe sua tela</span><br/><span>com mais facilidade.</span></h1>
         <p>Crie uma sala no desktop e conecte quem está no navegador. O mesmo código funciona entre Web e Desktop.</p>
 
         <div className="home-benefits">

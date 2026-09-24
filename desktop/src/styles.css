@@ -320,3 +320,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-s
   .room-v2-camera-grid{max-height:160px}
   .room-v2-invite-panel{padding:10px}
 }
+
+
+/* Hero animated purple sweep */
+.hero-flow-title{color:#f7f4fb}
+.hero-flow-title span{display:inline-block;background:linear-gradient(100deg,#f7f4fb 0%,#f7f4fb 34%,#d9b6ff 42%,#a565ff 49%,#7c4dff 53%,#d5afff 60%,#f7f4fb 68%,#f7f4fb 100%);background-size:320% 100%;background-position:115% 50%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:hero-purple-sweep 5.2s cubic-bezier(.45,0,.2,1) infinite;will-change:background-position}
+.hero-flow-title span:nth-of-type(2){animation-delay:.14s}
+@keyframes hero-purple-sweep{0%,12%{background-position:115% 50%}70%,100%{background-position:-35% 50%}}
+@media(prefers-reduced-motion:reduce){.hero-flow-title span{animation:none!important;background-position:50% 50%}}
