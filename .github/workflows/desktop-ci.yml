@@ -37,6 +37,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify existing web/client type safety
+        run: npm run typecheck
+      - name: Verify existing web production build
+        run: npm run build:client
       - run: npm run build:server
       - name: Verify Desktop ↔ Web signaling contract
         shell: bash
