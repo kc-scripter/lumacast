@@ -44,6 +44,69 @@ function nativeTargetSize(constraints,sourceWidth,sourceHeight){
   };
 }
 
+function createNativeRenderer(canvas,width,height,bgra){
+  const options={alpha:false,antialias:false,depth:false,stencil:false,desynchronized:true,preserveDrawingBuffer:false};
+  const gl=canvas.getContext("webgl2",options)||canvas.getContext("webgl",options);
+  if(gl){
+    const compile=(type,source)=>{
+      const shader=gl.createShader(type);
+      gl.shaderSource(shader,source);
+      gl.compileShader(shader);
+      if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader)||"Falha ao compilar shader de captura.");
+      return shader;
+    };
+    const vertex=compile(gl.VERTEX_SHADER,"attribute vec2 a_position; varying vec2 v_uv; void main(){v_uv=(a_position+1.0)*0.5;gl_Position=vec4(a_position,0.0,1.0);}");
+    const fragment=compile(gl.FRAGMENT_SHADER,"precision mediump float; varying vec2 v_uv; uniform sampler2D u_texture; uniform float u_bgra; void main(){vec4 c=texture2D(u_texture,vec2(v_uv.x,1.0-v_uv.y));gl_FragColor=mix(c,c.bgra,u_bgra);}");
+    const program=gl.createProgram();
+    gl.attachShader(program,vertex);
+    gl.attachShader(program,fragment);
+    gl.linkProgram(program);
+    if(!gl.getProgramParameter(program,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program)||"Falha ao ligar shader de captura.");
+    gl.useProgram(program);
+
+    const positions=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,positions);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+    const positionLocation=gl.getAttribLocation(program,"a_position");
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation,2,gl.FLOAT,false,0,0);
+
+    const texture=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,width,height,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    gl.uniform1i(gl.getUniformLocation(program,"u_texture"),0);
+    gl.uniform1f(gl.getUniformLocation(program,"u_bgra"),bgra?1:0);
+    gl.viewport(0,0,width,height);
+
+    return bytes=>{
+      gl.bindTexture(gl.TEXTURE_2D,texture);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,bytes);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      gl.flush();
+    };
+  }
+
+  const context=canvas.getContext("2d",{alpha:false,desynchronized:true});
+  if(!context) throw new Error("Canvas indisponível para captura nativa.");
+  const imageData=context.createImageData(width,height);
+  return bytes=>{
+    imageData.data.set(bytes);
+    if(bgra){
+      for(let i=0;i<imageData.data.length;i+=4){
+        const red=imageData.data[i];
+        imageData.data[i]=imageData.data[i+2];
+        imageData.data[i+2]=red;
+      }
+    }
+    context.putImageData(imageData,0,0);
+  };
+}
+
 async function stopNativeDisplayCapture(capture){
   if(!capture||capture.stopped) return;
   capture.stopped=true;
@@ -74,24 +137,17 @@ async function nativeGetDisplayMedia(constraints={}){
   const canvas=document.createElement("canvas");
   canvas.width=target.width;
   canvas.height=target.height;
-  const context=canvas.getContext("2d",{alpha:false,desynchronized:true});
-  if(!context){
-    await tauriCommand("native_capture_stop").catch(()=>undefined);
-    throw new Error("Canvas 2D indisponível para captura nativa.");
-  }
+  const formatCode=Number(info?.[4]);
+  const renderer=createNativeRenderer(canvas,target.width,target.height,formatCode===1);
 
-  const sourceCanvas=document.createElement("canvas");
-  sourceCanvas.width=sourceWidth;
-  sourceCanvas.height=sourceHeight;
-  const sourceContext=sourceCanvas.getContext("2d",{alpha:false,desynchronized:true});
-  if(!sourceContext){
-    await tauriCommand("native_capture_stop").catch(()=>undefined);
-    throw new Error("Canvas 2D de origem indisponível para captura nativa.");
+  let stream=canvas.captureStream(0);
+  let videoTrack=stream.getVideoTracks()[0];
+  const manualFrames=Boolean(videoTrack&&typeof videoTrack.requestFrame==="function");
+  if(videoTrack&&!manualFrames){
+    videoTrack.stop();
+    stream=canvas.captureStream(target.fps);
+    videoTrack=stream.getVideoTracks()[0];
   }
-
-  const imageData=sourceContext.createImageData(sourceWidth,sourceHeight);
-  const stream=canvas.captureStream(target.fps);
-  const videoTrack=stream.getVideoTracks()[0];
   if(!videoTrack){
     await tauriCommand("native_capture_stop").catch(()=>undefined);
     throw new Error("A captura nativa não criou uma faixa de vídeo.");
@@ -106,6 +162,7 @@ async function nativeGetDisplayMedia(constraints={}){
   let busy=false;
   let lastFrameAt=0;
   const minFrameInterval=1000/target.fps;
+  const expectedBytes=target.width*target.height*4;
   const render=async now=>{
     if(capture.stopped) return;
     capture.raf=requestAnimationFrame(render);
@@ -113,16 +170,15 @@ async function nativeGetDisplayMedia(constraints={}){
     busy=true;
     lastFrameAt=now;
     try{
-      const payload=await tauriCommand("native_capture_frame");
+      const payload=await tauriCommand("native_capture_frame",{width:target.width,height:target.height});
       if(capture.stopped) return;
       const bytes=payload instanceof Uint8Array?payload:new Uint8Array(payload||0);
       if(bytes.byteLength===0) return;
-      if(bytes.byteLength!==imageData.data.byteLength){
-        throw new Error(`Quadro DXGI inválido: ${bytes.byteLength} bytes; esperado ${imageData.data.byteLength}.`);
+      if(bytes.byteLength!==expectedBytes){
+        throw new Error(`Quadro DXGI inválido: ${bytes.byteLength} bytes; esperado ${expectedBytes}.`);
       }
-      imageData.data.set(bytes);
-      sourceContext.putImageData(imageData,0,0);
-      context.drawImage(sourceCanvas,0,0,target.width,target.height);
+      renderer(bytes);
+      if(manualFrames) videoTrack.requestFrame();
     }catch(error){
       console.error("[Lunira] DXGI frame failed",error);
       if(String(error).includes("DXGI_ACCESS_LOST")){
@@ -144,6 +200,7 @@ async function nativeGetDisplayMedia(constraints={}){
     source:`${sourceWidth}x${sourceHeight}`,
     output:`${target.width}x${target.height}`,
     fps:target.fps,
+    renderer:formatCode===1?"webgl-bgra":"webgl-rgba",
     refreshHz:info?.[3]?Math.round(Number(info[2])/Number(info[3])):undefined
   });
   return stream;
@@ -214,22 +271,39 @@ document.addEventListener("click",event=>{
 
 let focusedTile=null;
 function clearCameraFocus(){
-  focusedTile?.classList.remove("lunira-camera-focused");
+  focusedTile?.classList.remove("lunira-camera-source-focused");
   focusedTile=null;
-  qs(".lunira-focus-backdrop")?.remove();
+  qs(".lunira-focus-layer")?.remove();
   document.body.classList.remove("lunira-camera-focus");
 }
 function focusCamera(tile){
   clearCameraFocus();
   focusedTile=tile;
-  tile.classList.add("lunira-camera-focused");
+  tile.classList.add("lunira-camera-source-focused");
+  const layer=document.createElement("div");
+  layer.className="lunira-focus-layer";
   const backdrop=document.createElement("div");
   backdrop.className="lunira-focus-backdrop";
   backdrop.addEventListener("click",clearCameraFocus);
-  document.body.appendChild(backdrop);
+  const clone=tile.cloneNode(true);
+  clone.classList.remove("lunira-camera-source-focused");
+  clone.classList.add("lunira-camera-focused");
+  const sourceVideo=qs("video",tile);
+  const cloneVideo=qs("video",clone);
+  if(sourceVideo&&cloneVideo){
+    try{cloneVideo.srcObject=sourceVideo.srcObject;}catch{}
+    cloneVideo.muted=true;
+    cloneVideo.autoplay=true;
+    cloneVideo.playsInline=true;
+    cloneVideo.play?.().catch(()=>undefined);
+  }
+  clone.addEventListener("click",event=>{event.stopPropagation();clearCameraFocus();});
+  layer.append(backdrop,clone);
+  document.body.appendChild(layer);
   document.body.classList.add("lunira-camera-focus");
 }
 document.addEventListener("click",event=>{
+  if(event.target.closest?.(".lunira-focus-layer")) return;
   const tile=event.target.closest?.(".camera-tile");
   if(!tile) return;
   if(tile===focusedTile) clearCameraFocus(); else focusCamera(tile);
