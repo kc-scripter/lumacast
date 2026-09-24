@@ -55,7 +55,7 @@ export function App(){
 
   return <div className="app-shell">
     <AmbientBackground/>
-    <Titlebar status={titleStatus} tone="ready"/>
+    <Titlebar status={titleStatus} tone={backendState==="ready"?"ready":"warn"}/>
     <div className="app-content">
       {route.type==="home"
         ?<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend()}/>
