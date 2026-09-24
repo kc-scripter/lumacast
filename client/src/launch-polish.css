@@ -169,6 +169,37 @@ summary:focus-visible{
 .name-modal input{box-sizing:border-box;font-size:16px}
 .name-modal-actions button{min-width:0}
 
+.screen-source-modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(5,6,11,.7);backdrop-filter:blur(10px)}
+.screen-source-panel{position:relative;width:min(920px,100%);max-height:min(76vh,720px);overflow:auto;padding:24px;border:1px solid #2f3144;border-radius:22px;background:linear-gradient(180deg,#171a24,#101319);box-shadow:0 34px 100px rgba(0,0,0,.55)}
+.screen-source-close{position:absolute;top:18px;right:18px;display:grid;place-items:center;width:34px;height:34px;border:1px solid #3b3e4c;border-radius:10px;background:#1a1d28;color:#dfe3f6;cursor:pointer}
+.screen-source-header{padding-right:42px;margin-bottom:18px}
+.screen-source-kicker{display:inline-block;margin-bottom:8px;padding:6px 8px;border:1px solid #433e64;border-radius:999px;background:#1a162b;color:#c9b9ff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.screen-source-header h2{margin:0;color:#f3f5ff;font-size:clamp(26px,2.4vw,34px);font-weight:800;line-height:1.1}
+.screen-source-header p{margin:10px 0 0;color:#a4a8bb;font-size:13px}
+.screen-source-state{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #2d3343;border-radius:14px;background:#111621;color:#dfe2f0;margin-bottom:16px}
+.screen-source-spinner{width:18px;height:18px;border-radius:50%;border:2px solid rgba(163,146,255,.4);border-top-color:#a491ff;animation:screenPickerSpin .9s linear infinite}
+@keyframes screenPickerSpin{to{transform:rotate(360deg)}}
+.screen-source-state-error{border-color:#5d2f3d;background:#1c1016;color:#ffd7e1}
+.screen-source-empty{display:grid;place-items:center;gap:12px;padding:28px 24px;border:1px dashed #404864;border-radius:16px;background:#0f1219;color:#dfe6ff;text-align:center}
+.screen-source-empty-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#2d3b6b,#6848ef);color:#fff}
+.screen-source-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:8px}
+.screen-source-card{position:relative;display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid #303549;border-radius:16px;background:#121722;color:#edf1ff;text-align:left;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.screen-source-card:hover{transform:translateY(-2px);border-color:#4d5575;box-shadow:0 18px 38px rgba(0,0,0,.28)}
+.screen-source-card.selected{border-color:#9a8cff;background:linear-gradient(180deg,#191d2d,#171b26);box-shadow:0 0 0 1px rgba(153,140,255,.65),0 18px 40px rgba(101,85,216,.28)}
+.screen-source-thumb{position:relative;overflow:hidden;height:132px;border:1px solid #2a2d3b;border-radius:12px;background:linear-gradient(135deg,#1d2432,#0d121b)}
+.screen-source-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.screen-source-thumb-fallback{display:grid;place-items:center;width:100%;height:100%;color:#c3c9ff;background:radial-gradient(circle at top,#2d3550,#101720)}
+.screen-source-meta{display:flex;flex-direction:column;gap:6px;min-width:0}
+.screen-source-meta strong{font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen-source-meta small{color:#9aa1b3;font-size:11px;font-weight:600}
+.screen-source-check{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#7c6df0;color:#fff;border:2px solid rgba(17,18,23,.8);box-shadow:0 10px 22px rgba(124,109,240,.45)}
+.screen-source-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #2b2f3d}
+.screen-source-button{min-width:130px;height:42px;padding:0 16px;border-radius:12px;font-weight:700;cursor:pointer}
+.screen-source-cancel{background:transparent;border:1px solid #3a3f52;color:#dfe3f5}
+.screen-source-confirm{border:1px solid #8b7ae8;background:linear-gradient(180deg,#856af5,#6853d7);color:white}
+.screen-source-button:disabled{cursor:not-allowed;opacity:.45}
+@media(max-width:640px){.screen-source-panel{padding:18px}.screen-source-header{padding-right:38px}.screen-source-grid{grid-template-columns:1fr}.screen-source-actions{flex-direction:column-reverse}.screen-source-button{width:100%;min-width:0}}
+
 /* Loading/error states should look like the same product. */
 .app-loading,.app-crash{box-sizing:border-box}
 .app-loading b{letter-spacing:.01em}
