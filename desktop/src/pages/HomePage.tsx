@@ -36,10 +36,6 @@ export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendM
         <span className="hero-kicker"><i/> TRANSMISSÃO EM TEMPO REAL</span>
         <h1 className="hero-flow-title"><span>Compartilhe sua tela</span><br/><span>com mais facilidade.</span></h1>
         <p>Crie uma sala no desktop e conecte quem está no navegador. O mesmo código funciona entre Web e Desktop.</p>
-        <div className="home-quick-points">
-          <span><Gauge/><b>Tempo real</b><small>Baixa latência</small></span>
-          <span><Users/><b>Web + Desktop</b><small>Mesma sala</small></span>
-        </div>
       </div>
 
       <section className="home-control-card" aria-label="Acessar uma sala">
