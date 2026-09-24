@@ -17,8 +17,39 @@ struct NativeCaptureState {
 
 fn create_capture_session() -> Result<DxgiDuplicationApi, String> {
     let monitor = Monitor::primary().map_err(|error| format!("Falha ao localizar o monitor principal: {error}"))?;
-    DxgiDuplicationApi::new_options(monitor, &[DxgiDuplicationFormat::Rgba8])
+    // BGRA is the native Desktop Duplication format on Windows. Keeping it in
+    // that layout avoids a full 4K/1080p channel-swap on the CPU every frame;
+    // the WebGL shader performs the inexpensive swizzle on the GPU instead.
+    DxgiDuplicationApi::new_options(monitor, &[DxgiDuplicationFormat::Bgra8])
         .map_err(|error| format!("Falha ao iniciar a captura DXGI: {error}"))
+}
+
+fn downscale_nearest(
+    source: &[u8],
+    source_width: u32,
+    source_height: u32,
+    target_width: u32,
+    target_height: u32,
+) -> Vec<u8> {
+    let mut target = vec![0u8; target_width as usize * target_height as usize * 4];
+    let source_width_usize = source_width as usize;
+    let target_width_usize = target_width as usize;
+
+    for y in 0..target_height as usize {
+        let source_y = y * source_height as usize / target_height as usize;
+        let source_row = source_y * source_width_usize * 4;
+        let target_row = y * target_width_usize * 4;
+
+        for x in 0..target_width_usize {
+            let source_x = x * source_width_usize / target_width_usize;
+            let source_offset = source_row + source_x * 4;
+            let target_offset = target_row + x * 4;
+            target[target_offset..target_offset + 4]
+                .copy_from_slice(&source[source_offset..source_offset + 4]);
+        }
+    }
+
+    target
 }
 
 #[tauri::command]
@@ -27,18 +58,31 @@ fn native_capture_start(state: State<'_, Mutex<NativeCaptureState>>) -> Result<V
     let width = session.width();
     let height = session.height();
     let (refresh_num, refresh_den) = session.refresh_rate();
+    let format_code = match session.format() {
+        DxgiDuplicationFormat::Rgba8 => 0,
+        DxgiDuplicationFormat::Bgra8 => 1,
+        DxgiDuplicationFormat::Rgba16F => 2,
+    };
 
     let mut capture = state.lock().map_err(|_| "Estado da captura nativa indisponível.".to_string())?;
     capture.session = Some(session);
     capture.width = width;
     capture.height = height;
 
-    Ok(vec![width, height, refresh_num, refresh_den.max(1)])
+    Ok(vec![width, height, refresh_num, refresh_den.max(1), format_code])
 }
 
 #[tauri::command]
-fn native_capture_frame(state: State<'_, Mutex<NativeCaptureState>>) -> Result<Response, String> {
+fn native_capture_frame(
+    width: u32,
+    height: u32,
+    state: State<'_, Mutex<NativeCaptureState>>,
+) -> Result<Response, String> {
     let mut capture = state.lock().map_err(|_| "Estado da captura nativa indisponível.".to_string())?;
+    let source_width = capture.width;
+    let source_height = capture.height;
+    let target_width = width.max(2).min(source_width);
+    let target_height = height.max(2).min(source_height);
     let session = capture.session.as_mut().ok_or_else(|| "A captura DXGI ainda não foi iniciada.".to_string())?;
 
     let mut frame = match session.acquire_next_frame(12) {
@@ -51,26 +95,17 @@ fn native_capture_frame(state: State<'_, Mutex<NativeCaptureState>>) -> Result<R
         Err(error) => return Err(format!("Falha ao capturar quadro DXGI: {error}")),
     };
 
-    let actual_format = frame.format();
-
     let mut packed = Vec::new();
     let buffer = frame.buffer().map_err(|error| format!("Falha ao mapear quadro DXGI: {error}"))?;
     let bytes = buffer.as_nopadding_buffer(&mut packed);
-    let mut rgba = bytes.to_vec();
 
-    match actual_format {
-        DxgiDuplicationFormat::Rgba8 => {}
-        DxgiDuplicationFormat::Bgra8 => {
-            for pixel in rgba.chunks_exact_mut(4) {
-                pixel.swap(0, 2);
-            }
-        }
-        DxgiDuplicationFormat::Rgba16F => {
-            return Err("Formato HDR de 16 bits não é suportado pela ponte de captura atual.".to_string());
-        }
-    }
+    let output = if target_width == source_width && target_height == source_height {
+        bytes.to_vec()
+    } else {
+        downscale_nearest(bytes, source_width, source_height, target_width, target_height)
+    };
 
-    Ok(Response::new(rgba))
+    Ok(Response::new(output))
 }
 
 #[tauri::command]
