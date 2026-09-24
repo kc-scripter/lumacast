@@ -33,7 +33,7 @@ O endpoint público padrão de signaling é https://lunira-screen.onrender.com. 
 
 ## Versionamento do desktop
 
-A versão atual é `0.1.1`.
+A versão atual é `0.1.3`.
 
 Regra de release: cada atualização distribuível do app incrementa o último número da versão (`0.1.1` → `0.1.2` → `0.1.3`).
 
