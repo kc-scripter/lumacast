@@ -29,3 +29,17 @@ Na raiz do repositório instale as dependências web uma vez com npm ci. Depois,
 No Windows com Rust, WebView2 e toolchain C++ instalados, dentro de desktop/ execute npm run tauri:build.
 
 O endpoint público padrão de signaling é https://lunira-screen.onrender.com. Segredos Agora/LiveKit permanecem exclusivamente no servidor.
+
+
+## Versionamento do desktop
+
+A versão atual é `0.1.1`.
+
+Regra de release: cada atualização distribuível do app incrementa o último número da versão (`0.1.1` → `0.1.2` → `0.1.3`).
+
+Use `npm run version:next` dentro de `desktop/` para atualizar em conjunto:
+- `desktop/package.json`;
+- `desktop/src-tauri/Cargo.toml`;
+- `desktop/src-tauri/tauri.conf.json`.
+
+O CI valida se as três versões são iguais. O artefato Windows recebe a versão no nome e, depois de um build bem-sucedido, os instaladores desktop antigos do GitHub Actions são apagados automaticamente, deixando somente o mais recente.
