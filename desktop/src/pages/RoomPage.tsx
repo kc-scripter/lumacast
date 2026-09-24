@@ -20,12 +20,14 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
   const webBase=(import.meta.env.VITE_PUBLIC_WEB_URL||"https://lunira-screen.onrender.com").replace(/\/$/,"");
   const invite=room.roomId?webBase+"/?room="+encodeURIComponent(room.roomId):"";
   const canShare=typeof navigator.mediaDevices?.getDisplayMedia==="function";
+  const missing=room.status==="missing";
+  const reconnecting=room.status==="Reconectando";
   const busy=!!room.roomState.activeScreenSharerId&&!room.ownsScreenLock;
   const starting=!!room.roomState.activeScreenSharerId&&!room.roomState.live;
   const sharer=room.roomState.activeScreenSharerName||room.roomState.ownerName||"Participante";
 
-  const stageTitle=room.switching?"Trocando rota de mídia…":starting?(room.ownsScreenLock?"Preparando sua tela…":sharer+" está preparando a tela…"):room.roomState.live?"Conectando à transmissão":"Pronto para compartilhar";
-  const stageText=room.roomState.live?"A transmissão aparecerá aqui assim que a faixa de vídeo estiver pronta.":starting?"Aguarde alguns segundos.":"Qualquer participante pode assumir a tela quando ela estiver livre.";
+  const stageTitle=missing?"Sala não encontrada":room.switching?"Trocando rota de mídia…":starting?(room.ownsScreenLock?"Preparando sua tela…":sharer+" está preparando a tela…"):room.roomState.live?"Conectando à transmissão":"Pronto para compartilhar";
+  const stageText=missing?"Confira o código e volte ao início para tentar novamente.":room.roomState.live?"A transmissão aparecerá aqui assim que a faixa de vídeo estiver pronta.":starting?"Aguarde alguns segundos.":"Qualquer participante pode assumir a tela quando ela estiver livre.";
 
   const copyInvite=async()=>{
     try{
@@ -47,7 +49,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
       <button type="button" className="back-button" onClick={onBack}>← <span>Início</span></button>
       <div className="room-heading"><span>SALA</span><strong>{room.roomId||requestedRoomId||"--------"}</strong></div>
       <div className="room-header-actions">
-        <span className={"room-status "+(room.roomState.live?"live":room.status==="Conectado"?"online":"")}><i/>{room.roomState.live?"Ao vivo":room.status}</span>
+        <span className={"room-status "+(reconnecting?"warn":room.roomState.live?"live":room.status==="Conectado"?"online":"")}><i/>{reconnecting?"Reconectando":room.roomState.live?"Ao vivo":room.status}</span>
         <span className="participant-count"><Users/>{room.roomState.participants.length}</span>
         <button type="button" className="copy-room" disabled={!invite} onClick={()=>void copyInvite()}>{copied?<Check/>:<Clipboard/>}<span>{copied?"Copiado":"Copiar convite"}</span></button>
       </div>
@@ -65,7 +67,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
             <span className="stage-orb"><MonitorUp/></span>
             <h2>{stageTitle}</h2>
             <p>{stageText}</p>
-            {!room.roomState.live&&!starting&&!busy&&<button type="button" className="stage-cta" disabled={!room.roomId||!canShare} onClick={()=>void room.startScreen(quality,fps)}><MonitorUp/>Compartilhar tela</button>}
+            {!room.roomState.live&&!starting&&!busy&&<button type="button" className="stage-cta" disabled={!room.roomId||!canShare||missing} onClick={()=>void room.startScreen(quality,fps)}><MonitorUp/>Compartilhar tela</button>}
           </div>
         </div>
       </div>
@@ -93,7 +95,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
     <div className="room-toolbar" aria-label="Controles da sala">
       {room.isScreenSharer
         ?<button type="button" className="tool active danger-on-hover" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button>
-        :<button type="button" className="tool" disabled={busy||!canShare||!room.roomId} onClick={()=>void room.startScreen(quality,fps)}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
+        :<button type="button" className="tool" disabled={busy||!canShare||!room.roomId||missing} onClick={()=>void room.startScreen(quality,fps)}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
       {room.isScreenSharer&&<button type="button" className={"tool "+(room.muted?"":"active")} onClick={()=>void room.toggleScreenAudio()}>{room.muted?<VolumeX/>:<Volume2/>}<span>{room.muted?"Áudio off":"Áudio"}</span></button>}
       <button type="button" className={"tool "+(room.cameraOn?"active":"")} onClick={()=>void room.toggleCamera()}>{room.cameraOn?<Video/>:<VideoOff/>}<span>Câmera</span></button>
       <button type="button" className={"tool "+(showStats?"active":"")} onClick={()=>setShowStats(value=>!value)}><BarChart3/><span>Estatísticas</span></button>
