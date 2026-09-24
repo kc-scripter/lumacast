@@ -36,7 +36,7 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       - name: Install web dependencies
         run: npm install --no-audit --no-fund
