@@ -1,9 +1,13 @@
 import { Minus, Square, X } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Brand } from "./Brand";
 
 async function windowAction(action:"minimize"|"maximize"|"close"){
   try{
+    if(window.luniraDesktop){
+      await window.luniraDesktop.windowControl(action);
+      return;
+    }
+    const {getCurrentWindow}=await import("@tauri-apps/api/window");
     const win=getCurrentWindow();
     if(action==="minimize")await win.minimize();
     if(action==="maximize")await win.toggleMaximize();
