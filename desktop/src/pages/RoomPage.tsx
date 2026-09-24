@@ -4,6 +4,7 @@ import { OptimizedVideo, OptimizedVideoTile } from "../../../client/src/componen
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
 import { useAdaptiveScreenQuality } from "../../../client/src/hooks/useAdaptiveScreenQuality";
 import { copyText, safeSessionGet } from "../../../client/src/services/browser";
+import { connectSocket } from "../../../client/src/services/socket";
 import { useCollaborativeRoom } from "../../../client/src/services/useCollaborativeRoom";
 import type { Quality } from "../../../client/src/types";
 import { SettingsDialog } from "../components/SettingsDialog";
@@ -44,9 +45,14 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
     if(next!=="auto")await room.updateScreenFrameRate(fps);
   };
 
+  const leaveAndBack=()=>{
+    if(!owner&&room.roomId)connectSocket().emit("leave-room",{roomId:room.roomId});
+    onBack();
+  };
+
   return <main className="room-page">
     <section className="room-header">
-      <button type="button" className="back-button" onClick={onBack}>← <span>Início</span></button>
+      <button type="button" className="back-button" onClick={leaveAndBack}>← <span>Início</span></button>
       <div className="room-heading"><span>SALA</span><strong>{room.roomId||requestedRoomId||"--------"}</strong></div>
       <div className="room-header-actions">
         <span className={"room-status "+(reconnecting?"warn":room.roomState.live?"live":room.status==="Conectado"?"online":"")}><i/>{reconnecting?"Reconectando":room.roomState.live?"Ao vivo":room.status}</span>

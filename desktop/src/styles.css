@@ -233,3 +233,14 @@ button:disabled{opacity:.42;cursor:not-allowed}
   .ambient-orb,.ambient-grid{animation:none!important}
   .action-card,.primary-button,.room-toolbar,.modal,.participant-card{transition:none!important}
 }
+
+.participant-list{scrollbar-width:thin;scrollbar-color:#3a3048 transparent}
+.participant-list::-webkit-scrollbar,.settings-content::-webkit-scrollbar{width:8px}
+.participant-list::-webkit-scrollbar-thumb,.settings-content::-webkit-scrollbar-thumb{background:#3a3048;border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+.app-crash{height:100%;display:grid;place-items:center;padding:32px;background:radial-gradient(circle at 50% 35%,#171020,#09080d 58%)}
+.app-crash>div{width:min(520px,90vw);border:1px solid #382d46;background:#121018;border-radius:18px;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.app-crash span{font-size:9px;letter-spacing:.14em;color:#9d75cc;font-weight:800}
+.app-crash h1{font-size:24px;letter-spacing:-.03em;margin:10px 0 8px}
+.app-crash p{font-size:12px;line-height:1.6;color:#8f8798}
+.app-crash button{height:38px;margin-top:8px;padding:0 14px;border:1px solid #503a69;background:#21162e;color:#c89bff;border-radius:10px}
+.app-crash button:hover{background:#2a1c39}
