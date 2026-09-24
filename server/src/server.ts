@@ -30,8 +30,9 @@ const corsOptions:CorsOptions={
   methods:["GET","POST"]
 };
 
-const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS||0);
-const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:0;
+const defaultProxyHops=process.env.RENDER_SERVICE_TYPE==="web"?1:0;
+const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS??defaultProxyHops);
+const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:defaultProxyHops;
 
 const runtimeIssues=()=>{
   const issues:string[]=[];
@@ -59,11 +60,13 @@ app.use((_req,res,next)=>{
 app.use(cors(corsOptions));
 app.use("/api",rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",legacyHeaders:false}));
 app.get("/api/wake",(_req,res)=>{
+  const issues=runtimeIssues();
   res.setHeader("Cache-Control","no-store");
-  res.status(200).json({
-    ok:true,
+  res.status(issues.length?503:200).json({
+    ok:issues.length===0,
     service:"lunira-screen-signaling",
-    ready:true,
+    ready:issues.length===0,
+    issues,
     uptimeSeconds:Math.floor(process.uptime())
   });
 });
