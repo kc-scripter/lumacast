@@ -8,3 +8,20 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface DesktopCaptureSource {
+  id:string;
+  name:string;
+  kind:"screen"|"window";
+  thumbnail:string|null;
+  appIcon:string|null;
+}
+
+interface Window {
+  luniraDesktop?:{
+    platform:"electron";
+    listCaptureSources:()=>Promise<DesktopCaptureSource[]>;
+    selectCaptureSource:(sourceId:string)=>Promise<boolean>;
+    windowControl:(action:"minimize"|"maximize"|"close")=>Promise<boolean>;
+  };
+}
