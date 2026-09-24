@@ -1,4 +1,4 @@
-import { ArrowRight, CircleHelp, Gauge, KeyRound, MonitorUp, RotateCcw, Server, Settings, UserRound, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleHelp, Gauge, KeyRound, MonitorUp, RotateCcw, Server, Settings, UserRound, Users } from "lucide-react";
 import { useState } from "react";
 import { safeSessionGet } from "../../../client/src/services/browser";
 import type { BackendWakeState } from "../services/backendWake";
@@ -6,7 +6,7 @@ import type { BackendWakeState } from "../services/backendWake";
 const normalizeCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"").slice(0,8);
 type Mode="create"|"join";
 
-export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendMessage,onRetry}:{
+export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendMessage,onRetry,onBack}:{
   onCreate:(name:string)=>Promise<void>;
   onJoin:(roomId:string,name:string)=>Promise<void>;
   onHow:()=>void;
@@ -14,6 +14,7 @@ export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendM
   backendState:BackendWakeState;
   backendMessage:string;
   onRetry:()=>void;
+  onBack:()=>void;
 }){
   const [name,setName]=useState(()=>safeSessionGet("lumacast-display-name")||"");
   const [code,setCode]=useState("");
@@ -28,6 +29,8 @@ export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendM
 
   return <main className="home-page home-v3">
     <nav className="home-actions" aria-label="Ações">
+      <button type="button" className="home-back" onClick={onBack}><ArrowLeft/>Voltar</button>
+      <span className="home-actions-spacer"/>
       <button type="button" onClick={onHow}><CircleHelp/>Como funciona</button>
       <button type="button" onClick={onSettings}><Settings/>Configurações</button>
     </nav>
