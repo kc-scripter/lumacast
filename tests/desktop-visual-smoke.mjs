@@ -10,6 +10,13 @@ const page=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFa
 await page.goto(base,{waitUntil:"domcontentloaded"});
 await page.locator("#display-name").waitFor({state:"visible",timeout:15000});
 await page.getByText(/Servidor disponível|Preparando servidor/).first().waitFor({timeout:15000});
+const waveBefore=await page.locator(".wave-layer-top").evaluate(element=>getComputedStyle(element).transform);
+const titleBefore=await page.locator(".hero-flow-title span").first().evaluate(element=>getComputedStyle(element).backgroundPosition);
+await page.waitForTimeout(900);
+const waveAfter=await page.locator(".wave-layer-top").evaluate(element=>getComputedStyle(element).transform);
+const titleAfter=await page.locator(".hero-flow-title span").first().evaluate(element=>getComputedStyle(element).backgroundPosition);
+if(waveBefore===waveAfter)throw new Error("Animated background wave did not move.");
+if(titleBefore===titleAfter)throw new Error("Hero purple sweep did not animate.");
 await page.screenshot({path:output+"/home.png",fullPage:true});
 
 await page.locator("#display-name").fill("Kauã");
