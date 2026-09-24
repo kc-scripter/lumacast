@@ -7,7 +7,9 @@ await mkdir(output,{recursive:true});
 
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1});
-await page.goto(base,{waitUntil:"domcontentloaded"});\nawait page.locator("#display-name").waitFor({state:"visible",timeout:15000});\nawait page.getByText(/Servidor disponível|Preparando servidor/).first().waitFor({timeout:15000});
+await page.goto(base,{waitUntil:"domcontentloaded"});
+await page.locator("#display-name").waitFor({state:"visible",timeout:15000});
+await page.getByText(/Servidor disponível|Preparando servidor/).first().waitFor({timeout:15000});
 await page.screenshot({path:output+"/home.png",fullPage:true});
 
 await page.locator("#display-name").fill("Kauã");
