@@ -1,7 +1,7 @@
 {
   "name": "lunira-screen-desktop-recovered",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scripts": {
     "recover": "python recovery/extract_v0_3_0.py input/Lunira Screen_0.3.0_x64-setup.exe",
     "tauri": "tauri",
