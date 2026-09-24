@@ -58,6 +58,15 @@ app.use((_req,res,next)=>{
 });
 app.use(cors(corsOptions));
 app.use("/api",rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",legacyHeaders:false}));
+app.get("/api/wake",(_req,res)=>{
+  res.setHeader("Cache-Control","no-store");
+  res.status(200).json({
+    ok:true,
+    service:"lunira-screen-signaling",
+    ready:true,
+    uptimeSeconds:Math.floor(process.uptime())
+  });
+});
 app.get("/api/health",(_req,res)=>{
   const issues=runtimeIssues();
   res.setHeader("Cache-Control","no-store");
