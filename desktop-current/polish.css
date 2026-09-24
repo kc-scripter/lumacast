@@ -954,3 +954,55 @@
   .ambient::after{animation:none!important}
   .ambient>i{animation:none!important}
 }
+
+
+/* === v7: focus layer, dock spacing and animated title accent === */
+.lunira-focus-layer{
+  position:fixed;
+  z-index:210;
+  inset:54px 0 0;
+  pointer-events:none;
+}
+.lunira-focus-layer .lunira-focus-backdrop{
+  position:absolute!important;
+  z-index:0!important;
+  inset:0!important;
+  pointer-events:auto;
+}
+.lunira-focus-layer .camera-tile.lunira-camera-focused{
+  position:absolute!important;
+  z-index:1!important;
+  inset:30px 4vw 92px!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:none!important;
+  flex:none!important;
+  transform:none!important;
+  pointer-events:auto;
+  cursor:zoom-out;
+  border-color:rgba(168,85,247,.66)!important;
+  border-radius:16px!important;
+  background:#09090d!important;
+  box-shadow:0 34px 110px rgba(0,0,0,.72),0 0 72px rgba(139,92,246,.14)!important;
+}
+.camera-tile.lunira-camera-source-focused{
+  border-color:rgba(168,85,247,.46)!important;
+  box-shadow:0 0 0 1px rgba(168,85,247,.14) inset!important;
+}
+.studio-bottom{
+  bottom:22px!important;
+}
+.launcher-heading h1 span{
+  background-image:linear-gradient(90deg,#9d6cff 0%,#c7a8ff 18%,#7f4cff 38%,#e18bff 58%,#a26fff 78%,#cdb5ff 100%)!important;
+  background-size:240% 100%!important;
+  animation:lunira-heading-purple 2.8s linear infinite!important;
+  will-change:background-position;
+}
+@keyframes lunira-heading-purple{
+  from{background-position:0% 50%}
+  to{background-position:200% 50%}
+}
+@media(max-height:700px){
+  .lunira-focus-layer .camera-tile.lunira-camera-focused{inset:18px 3vw 76px!important}
+  .studio-bottom{bottom:16px!important}
+}
