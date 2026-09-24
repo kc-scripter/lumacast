@@ -8,6 +8,7 @@ on:
       - "client/src/services/**"
       - "client/src/components/**"
       - "client/src/types.ts"
+      - "tests/desktop-cross-platform-smoke.mjs"
       - ".github/workflows/desktop-ci.yml"
   workflow_dispatch:
 
@@ -15,9 +16,44 @@ permissions:
   contents: read
 
 jobs:
+  cross-platform-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PORT: "3001"
+      CLIENT_ORIGIN: "http://localhost:5173"
+      PUBLIC_URL: "http://localhost:5173"
+      AGORA_APP_ID: "11111111111111111111111111111111"
+      AGORA_APP_CERTIFICATE: "22222222222222222222222222222222"
+      LIVEKIT_URL: "wss://example.invalid"
+      LIVEKIT_API_KEY: "ci-key"
+      LIVEKIT_API_SECRET: "ci-secret"
+      TRUST_PROXY_HOPS: "0"
+      MAX_ROOM_PARTICIPANTS: "8"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:server
+      - name: Verify Desktop ↔ Web signaling contract
+        shell: bash
+        run: |
+          node server/dist/server.js > /tmp/lunira-desktop-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true; cat /tmp/lunira-desktop-server.log' EXIT
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:3001/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:3001/api/health
+          node tests/desktop-cross-platform-smoke.mjs
+
   windows-build:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
