@@ -6,6 +6,7 @@ on:
     paths:
       - "desktop/**"
       - "client/src/services/**"
+      - "server/**"
       - "client/src/components/**"
       - "client/src/types.ts"
       - "tests/desktop-cross-platform-smoke.mjs"
@@ -87,6 +88,13 @@ jobs:
       - name: Typecheck desktop
         working-directory: desktop
         run: npm run typecheck
+      - name: Verify release hides console window
+        shell: pwsh
+        run: |
+          $main = Get-Content desktop/src-tauri/src/main.rs -Raw
+          if ($main -notmatch 'windows_subsystem\s*=\s*"windows"') {
+            throw "Windows release subsystem guard is missing."
+          }
       - name: Build desktop frontend
         working-directory: desktop
         run: npm run build
