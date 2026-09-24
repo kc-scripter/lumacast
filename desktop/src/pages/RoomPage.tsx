@@ -1,6 +1,6 @@
 import { BarChart3, Check, Clipboard, MonitorUp, Settings, Square, Users, Video, VideoOff, Volume2, VolumeX, WifiOff } from "lucide-react";
-import { useState } from "react";
-import { OptimizedVideo, OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
+import { useEffect, useState } from "react";
+import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
 import { useAdaptiveScreenQuality } from "../../../client/src/hooks/useAdaptiveScreenQuality";
 import { copyText } from "../../../client/src/services/browser";
@@ -16,6 +16,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
   const [showSettings,setShowSettings]=useState(false);
   const [showStats,setShowStats]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [screenPlaying,setScreenPlaying]=useState(false);
   useAdaptiveScreenQuality({enabled:quality==="auto"&&room.isScreenSharer&&room.roomState.screenProvider==="agora",stats:room.stats,preferredFps:fps,updateQuality:room.updateScreenQuality,updateFrameRate:room.updateScreenFrameRate});
   const selfId=getSocket().id||"";
   const webBase=(import.meta.env.VITE_PUBLIC_WEB_URL||"https://lunira-screen.onrender.com").replace(/\/$/,"");
@@ -26,7 +27,8 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
   const busy=!!room.roomState.activeScreenSharerId&&!room.ownsScreenLock;
   const starting=!!room.roomState.activeScreenSharerId&&!room.roomState.live;
   const sharer=room.roomState.activeScreenSharerName||room.roomState.ownerName||"Participante";
-  const stageHasVideo=room.roomState.live&&(room.isScreenSharer||room.roomState.screenProvider==="livekit"||room.ready);
+  const stageHasVideo=room.roomState.live&&screenPlaying;
+  useEffect(()=>{if(!room.roomState.live)setScreenPlaying(false);},[room.roomState.live,room.roomState.activeScreenSharerId,room.roomState.screenProvider]);
 
   const stageTitle=missing?"Sala não encontrada":room.switching?"Trocando rota de mídia…":starting?(room.ownsScreenLock?"Preparando sua tela…":sharer+" está preparando a tela…"):room.roomState.live?"Conectando à transmissão":"Pronto para compartilhar";
   const stageText=missing?"Confira o código e volte ao início para tentar novamente.":room.roomState.live?"A transmissão aparecerá aqui assim que a faixa de vídeo estiver pronta.":starting?"Aguarde alguns segundos.":"Qualquer participante pode assumir a tela quando ela estiver livre.";
@@ -69,7 +71,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
           <small>{missing?"Aguardando uma sala válida":<>{room.roomState.screenProvider==="livekit"?"Fallback LiveKit":"Agora RTC"} · {quality==="auto"?"AUTO":quality} · {room.stats?.fps??fps} FPS</>}</small>
         </div>
         <div className={"stage "+(stageHasVideo?"has-video":"")}>
-          <OptimizedVideo videoRef={room.videoRef} muted={room.isScreenSharer}/>
+          <video ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
           <div className="stage-empty">
             <span className="stage-orb"><MonitorUp/></span>
             <h2>{stageTitle}</h2>

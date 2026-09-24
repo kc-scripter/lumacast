@@ -136,13 +136,13 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .stage-cta:hover:not(:disabled){background:rgba(167,101,255,.19)}
 .participants-panel{padding:13px;display:flex;flex-direction:column}
 .panel-title{display:flex;justify-content:space-between;align-items:center;padding:0 2px 11px}
-.panel-title span{font-size:8px;letter-spacing:.12em;color:#67606e;font-weight:750}
+.panel-title span{font-size:9px;letter-spacing:.12em;color:#67606e;font-weight:750}
 .panel-title h3{font-size:13px;margin:3px 0 0}
 .panel-count{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#ffffff06;border:1px solid #ffffff09}
 .participant-list{display:flex;flex-direction:column;gap:9px;overflow:auto}
 .participant-card{border:1px solid #ffffff09;background:#100e16;border-radius:12px;overflow:hidden;transition:border-color .16s ease,transform .16s ease}
 .participant-card:hover{border-color:#41344f;transform:translateY(-1px)}
-.participant-media{height:92px;background:linear-gradient(150deg,#17131f,#0c0a10);position:relative;display:grid;place-items:center;font-size:22px;font-weight:700;color:#b58aff}
+.participant-media{height:118px;background:linear-gradient(150deg,#17131f,#0c0a10);position:relative;display:grid;place-items:center;font-size:22px;font-weight:700;color:#b58aff}
 .participant-media video{width:100%;height:100%;object-fit:cover}
 .sharing-badge{position:absolute;right:7px;top:7px;font-style:normal;font-size:7px;letter-spacing:.09em;font-weight:800;padding:4px 5px;border-radius:6px;background:#9b59ef;color:#fff}
 .participant-meta{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px}
