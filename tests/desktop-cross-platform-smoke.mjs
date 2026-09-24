@@ -5,6 +5,12 @@ const url=process.env.TEST_SIGNALING_URL||"http://localhost:3001";
 const webOrigin=process.env.TEST_WEB_ORIGIN||"http://localhost:5173";
 const desktopOrigin="https://tauri.localhost";
 
+const wakeResponse=await fetch(url+"/api/wake",{headers:{Origin:desktopOrigin}});
+assert.equal(wakeResponse.status,200);
+const wakeBody=await wakeResponse.json();
+assert.equal(wakeBody.ok,true);
+assert.equal(wakeBody.ready,true);
+
 const ack=(socket,event,data)=>new Promise((resolve,reject)=>{
   socket.timeout(5000).emit(event,data,(error,result)=>error?reject(error):resolve(result));
 });
