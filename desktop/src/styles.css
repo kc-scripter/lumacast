@@ -357,3 +357,78 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-s
 .home-primary-cta:active:not(:disabled){transform:translate3d(0,0,0) scale(.992)}
 .home-actions button:hover,.home-mode-tabs button:hover{transform:translate3d(0,-1px,0)}
 .home-actions button:active,.home-mode-tabs button:active{transform:translate3d(0,0,0) scale(.992)}
+
+
+/* Welcome v0.1.5 */
+.welcome-page{height:100%;max-width:1480px;margin:0 auto;padding:20px 42px 24px;display:grid;grid-template-rows:40px minmax(0,1fr) 34px;gap:10px}
+.welcome-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.welcome-actions button{height:38px;border:1px solid rgba(153,100,230,.20);background:rgba(12,10,20,.52);backdrop-filter:blur(14px);color:#aaa2b6;border-radius:11px;padding:0 14px;display:flex;align-items:center;gap:7px;font-size:11px;transition:transform .28s var(--ease-ui),background .28s var(--ease-ui),color .28s var(--ease-ui),border-color .28s var(--ease-ui),box-shadow .28s var(--ease-ui)}
+.welcome-actions button:hover{color:#fff;background:rgba(34,25,48,.72);border-color:rgba(174,110,255,.36);transform:translate3d(0,-1px,0);box-shadow:0 10px 26px rgba(45,20,85,.18)}
+.welcome-actions button:active{transform:translate3d(0,0,0) scale(.992)}
+.welcome-actions svg{width:14px;height:14px}
+.welcome-layout{min-height:0;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(440px,.92fr);gap:54px;align-items:center;padding:2vh 2vw 3vh}
+.welcome-copy{min-width:0;max-width:720px}
+.welcome-copy h1{margin:20px 0 14px;font-size:58px;line-height:1.01;letter-spacing:-.052em;font-weight:740}
+.welcome-copy h1 em{font-style:normal;background:linear-gradient(100deg,#f3eaff 0%,#d0a5ff 40%,#a765ff 72%,#8c5cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome-copy>p{max-width:620px;margin:0;color:#aaa2b5;font-size:15px;line-height:1.65}
+.welcome-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin-top:26px}
+.welcome-feature{min-height:72px;border:1px solid rgba(255,255,255,.065);background:linear-gradient(180deg,rgba(16,13,25,.58),rgba(11,9,17,.46));backdrop-filter:blur(10px);border-radius:14px;padding:12px;display:flex;align-items:center;gap:11px;transition:transform .28s var(--ease-ui),border-color .28s var(--ease-ui),background .28s var(--ease-ui),box-shadow .28s var(--ease-ui)}
+.welcome-feature:hover{transform:translate3d(0,-2px,0);border-color:rgba(164,103,255,.22);background:linear-gradient(180deg,rgba(23,18,35,.74),rgba(13,10,21,.58));box-shadow:0 14px 30px rgba(29,12,57,.16)}
+.welcome-feature>span{width:40px;height:40px;flex:0 0 40px;border-radius:12px;border:1px solid rgba(167,101,255,.18);background:linear-gradient(145deg,rgba(135,76,225,.16),rgba(88,53,151,.08));display:grid;place-items:center;color:#b576ff}
+.welcome-feature svg{width:18px;height:18px}
+.welcome-feature strong{display:block;font-size:11px;color:#e6e0ea}
+.welcome-feature small{display:block;margin-top:4px;color:#777080;font-size:9px;line-height:1.35}
+.welcome-start{width:100%;max-width:430px;height:64px;margin-top:22px;border:1px solid rgba(206,147,255,.22);border-radius:15px;background:linear-gradient(105deg,#7547ec 0%,#9d52ed 48%,#c15be9 100%);box-shadow:0 16px 42px rgba(128,68,220,.24);display:grid;grid-template-columns:1fr 24px;grid-template-rows:1fr 1fr;align-items:center;text-align:left;padding:0 17px 0 20px;transition:transform .28s var(--ease-ui),filter .28s var(--ease-ui),box-shadow .28s var(--ease-ui)}
+.welcome-start span{align-self:end;font-size:12px;font-weight:760}
+.welcome-start small{align-self:start;margin-top:2px;font-size:8.5px;color:rgba(255,255,255,.72)}
+.welcome-start svg{grid-column:2;grid-row:1/3;width:18px;justify-self:end;transition:transform .28s var(--ease-ui)}
+.welcome-start:hover{transform:translate3d(0,-2px,0);filter:brightness(1.06);box-shadow:0 20px 50px rgba(128,68,220,.32)}
+.welcome-start:hover svg{transform:translateX(4px)}
+.welcome-start:active{transform:translate3d(0,0,0) scale(.994)}
+.welcome-visual{position:relative;min-height:500px;display:grid;place-items:center;isolation:isolate}
+.welcome-visual:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(150,83,245,.18),rgba(102,59,186,.05) 52%,transparent 72%);filter:blur(8px);z-index:-3}
+.welcome-orbit{position:absolute;border:1px solid rgba(170,103,255,.17);border-radius:50%;transform:rotate(-16deg);z-index:-2}
+.orbit-a{width:500px;height:270px;animation:welcome-orbit-a 16s ease-in-out infinite alternate}
+.orbit-b{width:410px;height:220px;transform:rotate(12deg);border-color:rgba(105,82,255,.11);animation:welcome-orbit-b 19s ease-in-out infinite alternate}
+@keyframes welcome-orbit-a{from{transform:rotate(-16deg) scale(1)}to{transform:rotate(-11deg) scale(1.04)}}
+@keyframes welcome-orbit-b{from{transform:rotate(12deg) scale(1.02)}to{transform:rotate(17deg) scale(.98)}}
+.welcome-device{position:absolute;border:1px solid rgba(168,104,255,.24);background:linear-gradient(180deg,rgba(17,13,28,.94),rgba(8,7,13,.96));box-shadow:0 26px 80px rgba(0,0,0,.42);backdrop-filter:blur(18px);overflow:hidden}
+.desktop-device{width:420px;height:286px;border-radius:20px;transform:translate(-38px,-20px) rotate(3deg)}
+.web-device{width:250px;height:184px;border-radius:16px;right:2%;bottom:11%;transform:rotate(-2deg);box-shadow:0 20px 58px rgba(0,0,0,.48)}
+.welcome-device header{height:42px;border-bottom:1px solid #ffffff08;padding:0 12px;display:flex;align-items:center;gap:8px;color:#8e8798;font-size:9px}
+.welcome-device header b{color:#d9d2df;font-size:9px}.welcome-device header i{margin-left:auto;font-style:normal;color:#a879e9;font-size:7px;letter-spacing:.08em}
+.device-dot{width:7px;height:7px;border-radius:50%;background:#45d59a;box-shadow:0 0 10px rgba(69,213,154,.45)}
+.device-stage{height:188px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,rgba(128,71,217,.14),rgba(8,7,13,.92) 65%)}
+.device-stage svg{width:32px;color:#a86dff;margin-bottom:12px}.device-stage strong{font-size:13px}.device-stage small{margin-top:5px;color:#70687a;font-size:8px}
+.device-stage.compact{height:104px}.device-stage.compact svg{width:23px;margin-bottom:7px}.device-stage.compact strong{font-size:10px}
+.welcome-device footer{height:54px;border-top:1px solid #ffffff08;padding:0 12px;display:flex;align-items:center;gap:8px;color:#82798d;font-size:8px}
+.welcome-device footer span{font-size:12px;letter-spacing:.12em;color:#d7c7e9}.welcome-device footer small{margin-left:auto;color:#72d0aa}
+.welcome-link-line{position:absolute;left:9%;bottom:13%;height:30px;padding:0 10px;border:1px solid rgba(166,101,255,.16);background:rgba(11,8,18,.78);backdrop-filter:blur(10px);border-radius:999px;display:flex;align-items:center;gap:8px;color:#a995bd;font-size:8px}
+.welcome-link-line i{width:6px;height:6px;border-radius:50%;background:#a466ff}.welcome-link-line i:last-child{background:#45d59a}
+.welcome-footer{display:flex;align-items:center;justify-content:center;gap:10px;color:#696172;font-size:8px}
+.welcome-footer>span{color:#8a8192}.welcome-footer>div{display:flex;gap:5px}.welcome-footer i{width:16px;height:3px;border-radius:999px;background:#2a2233}.welcome-footer i.active{background:#8f55ee}.welcome-footer small{color:#625b69}
+.home-actions{justify-content:flex-start}
+.home-actions-spacer{flex:1}
+.home-back{margin-right:auto}
+
+@media(max-width:1180px){
+  .welcome-page{padding-left:26px;padding-right:26px}
+  .welcome-layout{grid-template-columns:minmax(0,1fr) 420px;gap:28px;padding-left:0;padding-right:0}
+  .welcome-copy h1{font-size:48px}
+  .welcome-device.desktop-device{width:360px;height:250px}
+  .welcome-device.web-device{width:220px;height:168px}
+}
+@media(max-height:700px){
+  .welcome-page{padding-top:12px;padding-bottom:14px}
+  .welcome-layout{padding-top:0;padding-bottom:0}
+  .welcome-copy h1{font-size:44px;margin-top:12px}
+  .welcome-copy>p{font-size:12px}
+  .welcome-feature-grid{margin-top:16px;gap:7px 10px}
+  .welcome-feature{min-height:60px;padding:9px}
+  .welcome-start{height:54px;margin-top:14px}
+  .welcome-visual{min-height:410px}
+  .desktop-device{transform:translate(-24px,-16px) rotate(3deg)}
+}
+@media(prefers-reduced-motion:reduce){
+  .welcome-orbit,.welcome-feature,.welcome-start,.welcome-actions button{animation:none!important;transition:none!important}
+}
