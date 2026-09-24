@@ -16,6 +16,7 @@ import { safeSessionRemove,safeSessionSet } from "../services/browser";
 const normalizeRoomCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"").slice(0,8);
 
 export function HomePage(){
+  const androidApp=import.meta.env.VITE_ANDROID_APP==="true";
   const [code,setCode]=useState("");
   const [codeError,setCodeError]=useState("");
   const [intent,setIntent]=useState<"broadcast"|"watch"|null>(null);
@@ -48,14 +49,14 @@ export function HomePage(){
     </header>
 
     <section className="home-content">
-      <div className="eyebrow"><span/> COMPARTILHAMENTO EM TEMPO REAL</div>
-      <h1>Sua tela, ao vivo.<br/><em>Sem complicação.</em></h1>
-      <p className="lede">Compartilhe uma janela, aba ou monitor com qualquer pessoa.<br className="home-lede-break"/> Direto do navegador, com baixa latência e sem instalar nada.</p>
+      <div className="eyebrow"><span/> {androidApp?"LUNIRA SCREEN · ANDROID":"COMPARTILHAMENTO EM TEMPO REAL"}</div>
+      <h1>{androidApp?<>Suas salas,<br/><em>onde você estiver.</em></>:<>Sua tela, ao vivo.<br/><em>Sem complicação.</em></>}</h1>
+      <p className="lede">{androidApp?<>Crie ou entre em salas do Lunira pelo celular. Assista transmissões, use câmera e áudio e continue conectado em tempo real.</>:<>Compartilhe uma janela, aba ou monitor com qualquer pessoa.<br className="home-lede-break"/> Direto do navegador, com baixa latência e sem instalar nada.</>}</p>
 
       <div className="home-action-stack">
         <button type="button" className="home-primary-action" onClick={()=>setIntent("broadcast")}>
           <span className="home-action-icon"><MonitorPlay/></span>
-          <span className="home-action-copy"><strong>Transmitir tela</strong><small>Crie uma sala e convide pessoas</small></span>
+          <span className="home-action-copy"><strong>{androidApp?"Criar sala":"Transmitir tela"}</strong><small>{androidApp?"Abra uma sala e conecte seus dispositivos":"Crie uma sala e convide pessoas"}</small></span>
           <ArrowRight className="home-action-arrow"/>
         </button>
 
@@ -85,7 +86,7 @@ export function HomePage(){
       <div className="benefit-row">
         <span><Zap/>Latência ultrabaixa</span>
         <span><LockKeyhole/>Conexão protegida</span>
-        <span><RadioTower/>Até 1080p · 60 FPS</span>
+        <span><RadioTower/>{androidApp?"Câmera e áudio em tempo real":"Até 1080p · 60 FPS"}</span>
       </div>
     </section>
 
