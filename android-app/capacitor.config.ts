@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "com.lunirascreen.app",
   appName: "Lunira Screen",
-  webDir: "../dist",
+  webDir: "web",
   server: {
     androidScheme: "https",
     cleartext: false
