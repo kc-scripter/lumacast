@@ -2,6 +2,7 @@ import { BarChart3, Check, Clipboard, MonitorUp, Settings, Square, Users, Video,
 import { useState } from "react";
 import { OptimizedVideo, OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
+import { useAdaptiveScreenQuality } from "../../../client/src/hooks/useAdaptiveScreenQuality";
 import { copyText, safeSessionGet } from "../../../client/src/services/browser";
 import { useCollaborativeRoom } from "../../../client/src/services/useCollaborativeRoom";
 import type { Quality } from "../../../client/src/types";
@@ -14,6 +15,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
   const [showSettings,setShowSettings]=useState(false);
   const [showStats,setShowStats]=useState(false);
   const [copied,setCopied]=useState(false);
+  useAdaptiveScreenQuality({enabled:quality==="auto"&&room.isScreenSharer&&room.roomState.screenProvider==="agora",stats:room.stats,preferredFps:fps,updateQuality:room.updateScreenQuality,updateFrameRate:room.updateScreenFrameRate});
   const selfName=safeSessionGet("lumacast-display-name")||"Você";
   const webBase=(import.meta.env.VITE_PUBLIC_WEB_URL||"https://lunira-screen.onrender.com").replace(/\/$/,"");
   const invite=room.roomId?webBase+"/?room="+encodeURIComponent(room.roomId):"";
