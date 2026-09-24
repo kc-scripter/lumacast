@@ -108,6 +108,7 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .room-status,.participant-count,.copy-room{height:30px;border:1px solid #ffffff0a;background:#ffffff05;border-radius:9px;display:flex;align-items:center;gap:7px;padding:0 9px;font-size:10px;color:#97909f}
 .room-status i{width:6px;height:6px;border-radius:50%;background:#777080}
 .room-status.online i{background:#42d392}
+.room-status.warn{color:#d9b879}.room-status.warn i{background:#f5bd62;box-shadow:0 0 9px #f5bd6245}
 .room-status.live i{background:#ff4d79;box-shadow:0 0 9px #ff4d7960}
 .participant-count svg,.copy-room svg{width:13px}
 .copy-room{cursor:pointer}
