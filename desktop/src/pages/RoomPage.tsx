@@ -25,7 +25,8 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
   const reconnecting=room.status==="Reconectando";
   const busy=!!room.roomState.activeScreenSharerId&&!room.ownsScreenLock;
   const starting=!!room.roomState.activeScreenSharerId&&!room.roomState.live;
-  const sharer=room.roomState.activeScreenSharerName||room.roomState.ownerName||"Participante";\n  const stageHasVideo=room.roomState.live&&(room.isScreenSharer||room.roomState.screenProvider==="livekit"||room.ready);
+  const sharer=room.roomState.activeScreenSharerName||room.roomState.ownerName||"Participante";
+  const stageHasVideo=room.roomState.live&&(room.isScreenSharer||room.roomState.screenProvider==="livekit"||room.ready);
 
   const stageTitle=missing?"Sala não encontrada":room.switching?"Trocando rota de mídia…":starting?(room.ownsScreenLock?"Preparando sua tela…":sharer+" está preparando a tela…"):room.roomState.live?"Conectando à transmissão":"Pronto para compartilhar";
   const stageText=missing?"Confira o código e volte ao início para tentar novamente.":room.roomState.live?"A transmissão aparecerá aqui assim que a faixa de vídeo estiver pronta.":starting?"Aguarde alguns segundos.":"Qualquer participante pode assumir a tela quando ela estiver livre.";
