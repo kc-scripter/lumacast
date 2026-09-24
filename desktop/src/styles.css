@@ -62,7 +62,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-s
 .titlebar-divider{width:1px;height:18px;background:#ffffff0d;margin-left:16px}
 .connection-pill{display:flex;align-items:center;gap:7px;font-size:11px;color:#9b95a5;padding:6px 9px;border-radius:999px;border:1px solid #ffffff0a;background:#ffffff05}
 .connection-pill i{width:6px;height:6px;border-radius:50%;background:#777080}
-.connection-pill.online i{background:var(--success);box-shadow:0 0 10px #45d59a55}
+.connection-pill.online i{background:var(--success);box-shadow:0 0 10px #45d59a55}\n.connection-pill.warn{color:#c7a96f}.connection-pill.warn i{background:#f5bd62;box-shadow:0 0 10px rgba(245,189,98,.35)}
 .connection-pill.live i{background:#ff4d79;box-shadow:0 0 10px #ff4d7966}
 .window-controls{height:100%;display:flex;margin-left:8px}
 .window-controls button{width:46px;height:100%;border:0;background:transparent;display:grid;place-items:center;color:#898391}
