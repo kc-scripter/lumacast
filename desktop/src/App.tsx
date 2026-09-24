@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { safeSessionRemove, safeSessionSet } from "../../client/src/services/browser";
 import { AmbientBackground } from "./components/AmbientBackground";
 import { HowItWorksDialog } from "./components/HowItWorksDialog";
@@ -7,8 +7,8 @@ import { Titlebar } from "./components/Titlebar";
 import { useDesktopMediaPreferences } from "./hooks/useDesktopMediaPreferences";
 import { signalingReady, wakeSignalingServer, type BackendWakeState } from "./services/backendWake";
 import { HomePage } from "./pages/HomePage";
+import { RoomPage } from "./pages/RoomPage";
 import { WelcomePage } from "./pages/WelcomePage";
-const RoomPage=lazy(()=>import("./pages/RoomPage").then(module=>({default:module.RoomPage})));
 
 type Route={type:"home"}|{type:"room";owner:boolean;roomId?:string};
 
@@ -70,7 +70,7 @@ export function App(){
         ?entryScreen==="welcome"
           ?<WelcomePage onStart={()=>setEntryScreen("home")} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)}/>
           :<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)} onBack={()=>setEntryScreen("welcome")}/>
-        :<Suspense fallback={<main className="room-loading" role="status"><span/><strong>Preparando a sala…</strong><small>Carregando mídia em tempo real</small></main>}><RoomPage owner={route.owner} roomId={route.roomId} onBack={()=>setRoute({type:"home"})}/></Suspense>}
+        :<RoomPage owner={route.owner} roomId={route.roomId} onBack={()=>setRoute({type:"home"})}/>}
     </div>
     {howOpen&&<HowItWorksDialog onClose={()=>setHowOpen(false)}/>}
     {settingsOpen&&<SettingsDialog onClose={()=>setSettingsOpen(false)} quality={quality} setQuality={setQuality} fps={fps} setFps={setFps}/>}
