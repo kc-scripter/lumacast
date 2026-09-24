@@ -1,11 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { safeSessionRemove, safeSessionSet } from "../../client/src/services/browser";
 import { AmbientBackground } from "./components/AmbientBackground";
 import { HowItWorksDialog } from "./components/HowItWorksDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { Titlebar } from "./components/Titlebar";
 import { useDesktopMediaPreferences } from "./hooks/useDesktopMediaPreferences";
-import { wakeSignalingServer, type BackendWakeState } from "./services/backendWake";
+import { signalingReady, wakeSignalingServer, type BackendWakeState } from "./services/backendWake";
 import { HomePage } from "./pages/HomePage";
 const RoomPage=lazy(()=>import("./pages/RoomPage").then(module=>({default:module.RoomPage})));
 
@@ -17,18 +17,25 @@ export function App(){
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [backendState,setBackendState]=useState<BackendWakeState>("waking");
   const [backendMessage,setBackendMessage]=useState("Verificando o servidor…");
+  const backendStateRef=useRef<BackendWakeState>("waking");
   const {quality,setQuality,fps,setFps}=useDesktopMediaPreferences();
 
-  const ensureBackend=useCallback(async()=>{
+  const ensureBackend=useCallback(async(force=false)=>{
+    if(!force&&backendStateRef.current==="ready"&&signalingReady())return true;
+
+    backendStateRef.current="waking";
     setBackendState("waking");
-    setBackendMessage("Acordando o servidor…");
+    setBackendMessage("Acordando o servidor gratuito…");
+
     try{
       await wakeSignalingServer();
+      backendStateRef.current="ready";
       setBackendState("ready");
-      setBackendMessage("Servidor pronto");
+      setBackendMessage("Servidor e conexão em tempo real prontos");
       return true;
     }catch(cause){
       const detail=cause instanceof Error?cause.message:"Não foi possível alcançar o servidor.";
+      backendStateRef.current="error";
       setBackendState("error");
       setBackendMessage(detail);
       return false;
@@ -58,7 +65,7 @@ export function App(){
     <Titlebar status={titleStatus} tone={backendState==="ready"?"ready":"warn"}/>
     <div className="app-content">
       {route.type==="home"
-        ?<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend()}/>
+        ?<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)}/>
         :<Suspense fallback={<main className="room-loading" role="status"><span/><strong>Preparando a sala…</strong><small>Carregando mídia em tempo real</small></main>}><RoomPage owner={route.owner} roomId={route.roomId} onBack={()=>setRoute({type:"home"})}/></Suspense>}
     </div>
     {howOpen&&<HowItWorksDialog onClose={()=>setHowOpen(false)}/>}
