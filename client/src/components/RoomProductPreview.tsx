@@ -46,9 +46,9 @@ export function RoomProductPreview({className="",compact=false}:Props){
       </section>
       <aside className="rpp-sidebar">
         <section className="rpp-card rpp-invite">
-          <div className="rpp-card-title"><span><Eye/></span><div><b>Convide espectadores</b><small>Compartilhe este link ou código</small></div></div>
+          <div className="rpp-card-title"><span><Eye/></span><div><b>Convide espectadores</b><small>Compartilhe o link privado</small></div></div>
           <div className="rpp-code"><strong>00000000</strong><span><Clipboard/></span></div>
-          <p>O código também pode ser digitado na página inicial.</p>
+          <p>O link completo contém a credencial privada da sala.</p>
         </section>
         <section className="rpp-card rpp-quality">
           <div className="rpp-card-title"><span><Settings2/></span><div><b>Qualidade</b><small>Defina antes de iniciar</small></div></div>

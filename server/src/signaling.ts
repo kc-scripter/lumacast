@@ -38,28 +38,28 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
       try{
         const existing=rooms.findByOwner(socket.id),room=existing??rooms.create(rooms.newId(),socket.id,requested,createAgoraUid());
         socket.join(room.id);
-        reply(ack,{ok:true,roomId:room.id,ownerToken:room.ownerToken||undefined,broadcasterToken:room.ownerToken||undefined,displayName:room.ownerName,...optionalAgoraCredentials(room.id,room.ownerUid,"viewer"),...state(room)});
+        reply(ack,{ok:true,roomId:room.id,ownerToken:room.ownerToken||undefined,broadcasterToken:room.ownerToken||undefined,inviteToken:room.inviteToken||undefined,displayName:room.ownerName,...optionalAgoraCredentials(room.id,room.ownerUid,"viewer"),...state(room)});
       }catch(error){console.error("Room creation error",error);reply(ack,{ok:false,error:"Não foi possível criar a sala."});}
     });
 
     socket.on("reclaim-room",(input:unknown,ack:Ack)=>{
       if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});
 
-      const data=input as {roomId?:unknown;token?:unknown};
+      const data=input as {roomId?:unknown;token?:unknown;inviteToken?:unknown};
       if(!validRoomId(data?.roomId)||!validSecret(data.token))return reply(ack,{ok:false,error:"Credenciais inválidas."});
       const room=rooms.get(data.roomId);
-      if(!room||!rooms.reclaim(room,data.token,socket.id))return reply(ack,{ok:false,error:"Sala expirada ou credenciais inválidas."});
-      try{socket.join(room.id);reply(ack,{ok:true,roomId:room.id,...optionalAgoraCredentials(room.id,room.ownerUid,"viewer"),...state(room)});announce(room);}
+      if(!room||!rooms.reclaim(room,data.token,socket.id,data.inviteToken))return reply(ack,{ok:false,error:"Sala expirada ou credenciais inválidas."});
+      try{socket.join(room.id);reply(ack,{ok:true,roomId:room.id,ownerToken:room.ownerToken||undefined,inviteToken:room.inviteToken||undefined,...optionalAgoraCredentials(room.id,room.ownerUid,"viewer"),...state(room)});announce(room);}
       catch(error){console.error("Owner reclaim error",error);reply(ack,{ok:false,error:"Não foi possível retomar a sala."});}
     });
 
     socket.on("join-room",(input:unknown,ack:Ack)=>{
-      if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});
+      if(!allowed(socket,60,60_000,"join"))return reply(ack,{ok:false,error:"Muitas tentativas. Aguarde um minuto."});
 
-      const data=input as {roomId?:unknown;participantToken?:unknown;displayName?:unknown};
+      const data=input as {roomId?:unknown;participantToken?:unknown;inviteToken?:unknown;displayName?:unknown};
       if(!validRoomId(data?.roomId))return reply(ack,{ok:false,error:"Código de sala inválido."});
       const room=rooms.get(data.roomId);
-      if(!room)return reply(ack,{ok:false,error:"Sala não encontrada."});
+      if(!room)return reply(ack,{ok:false,error:"Sala não encontrada ou convite inválido."});
       try{
         const reconnectToken=validSecret(data.participantToken)?data.participantToken:null;
         const old=reconnectToken?[...room.participants.values()].find(p=>secretMatches(reconnectToken,p.tokenHash)):undefined;
@@ -72,6 +72,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
             participant={...old,socketId:socket.id,token:reconnectToken,disconnectTimer:undefined};
             if(room.activeScreenSharerId===old.socketId){if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);room.screenDisconnectTimer=undefined;room.activeScreenSharerId=socket.id;}
           }else{
+            if(!validSecret(data.inviteToken)||!secretMatches(data.inviteToken,room.inviteTokenHash))return reply(ack,{ok:false,error:"Sala não encontrada ou convite inválido."});
             const requested=normalizeDisplayName(data.displayName);
             if(!requested)return reply(ack,{ok:false,error:"Informe um nome entre 2 e 20 caracteres."});
             let uid:number;do{uid=createAgoraUid();}while(uid===room.ownerUid||[...room.participants.values()].some(p=>p.agoraUid===uid));

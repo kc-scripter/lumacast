@@ -1,8 +1,8 @@
 import { Gauge, KeyRound, MonitorUp, RadioTower, Share2, Users } from "lucide-react";
 import { Modal } from "./Modal";
 const steps=[
-  {n:"01",icon:MonitorUp,title:"Crie ou entre em uma sala",text:"Crie uma sala no desktop ou entre com o mesmo código de 8 caracteres usado no navegador."},
-  {n:"02",icon:Share2,title:"Convide outras pessoas",text:"Copie o código ou o link web. Desktop e navegador entram na mesma sala."},
+  {n:"01",icon:MonitorUp,title:"Crie ou entre em uma sala",text:"Crie uma sala no desktop ou entre usando o link privado de convite."},
+  {n:"02",icon:Share2,title:"Convide outras pessoas",text:"Copie o link privado. Desktop e navegador entram na mesma sala."},
   {n:"03",icon:RadioTower,title:"Escolha o que transmitir",text:"Compartilhe sua tela em Automático, 720p ou 1080p, com 30 ou 60 FPS."},
   {n:"04",icon:Users,title:"Colabore em tempo real",text:"Participantes podem usar câmera e assumir a tela quando ela estiver livre."}
 ];
@@ -10,7 +10,7 @@ const features=[
   {icon:MonitorUp,title:"Tela em tempo real",text:"Compartilhe quando estiver pronto."},
   {icon:Gauge,title:"Até 1080p · 60 FPS",text:"Qualidade e FPS configuráveis."},
   {icon:Users,title:"Web + Desktop",text:"Compatíveis na mesma sala."},
-  {icon:KeyRound,title:"Sala por código",text:"Entre usando 8 caracteres."}
+  {icon:KeyRound,title:"Convite protegido",text:"Novas entradas exigem a credencial privada."}
 ];
 export function HowItWorksDialog({onClose}:{onClose:()=>void}){
   return <Modal title="Compartilhe sua tela em poucos segundos." eyebrow="COMO FUNCIONA" onClose={onClose} className="how-modal">

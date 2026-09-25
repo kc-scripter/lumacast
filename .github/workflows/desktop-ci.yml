@@ -86,6 +86,9 @@ jobs:
       - name: Install desktop dependencies
         working-directory: desktop
         run: npm install
+      - name: Audit desktop dependencies
+        working-directory: desktop
+        run: npm audit --audit-level=high
       - name: Validate desktop version
         id: desktop_version
         working-directory: desktop
@@ -98,9 +101,60 @@ jobs:
         working-directory: desktop
         run: npm run typecheck
       - uses: dtolnay/rust-toolchain@stable
+      - name: Prepare Windows code signing
+        id: windows_signing
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+            "enabled=false" >> $env:GITHUB_OUTPUT
+            Write-Host "Trusted Windows signing certificate is not configured."
+            exit 0
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP "lunira-signing.pfx"
+          $configPath = Join-Path $env:RUNNER_TEMP "tauri-signing.json"
+          $certificateBytes = [Convert]::FromBase64String(($env:WINDOWS_CERTIFICATE -replace '\s',''))
+          [IO.File]::WriteAllBytes($pfxPath, $certificateBytes)
+          $password = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if (-not $certificate -or -not $certificate.HasPrivateKey) { throw "Windows signing certificate has no usable private key." }
+          $config = @{
+            bundle = @{
+              windows = @{
+                certificateThumbprint = $certificate.Thumbprint
+                digestAlgorithm = "sha256"
+                timestampUrl = "http://timestamp.digicert.com"
+              }
+            }
+          } | ConvertTo-Json -Depth 6
+          Set-Content -LiteralPath $configPath -Value $config -Encoding utf8
+          "enabled=true" >> $env:GITHUB_OUTPUT
+          "config=$configPath" >> $env:GITHUB_OUTPUT
       - name: Build Windows installer
         working-directory: desktop
-        run: npm run tauri:build
+        shell: pwsh
+        run: |
+          if ('${{ steps.windows_signing.outputs.enabled }}' -eq 'true') {
+            npm run tauri:build -- --config '${{ steps.windows_signing.outputs.config }}'
+          } else {
+            npm run tauri:build
+          }
+      - name: Verify Windows signatures
+        if: steps.windows_signing.outputs.enabled == 'true'
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          $targets = @(
+            Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*.exe" -File
+            Get-ChildItem -Path "src-tauri/target/release" -Filter "*.exe" -File | Where-Object { $_.DirectoryName -notmatch 'bundle' }
+          )
+          if (-not $targets) { throw "No Windows executables found for signature verification." }
+          foreach ($target in $targets) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $target.FullName
+            if ($signature.Status -ne 'Valid') { throw "Invalid Authenticode signature: $($target.Name) ($($signature.Status))" }
+          }
       - name: Upload Windows installer
         id: upload_desktop
         uses: actions/upload-artifact@v6

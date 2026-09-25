@@ -10,19 +10,19 @@ import { useState } from "react";
 import { Logo } from "../components/Logo";
 import { NameDialog } from "../components/NameDialog";
 import { RoomProductPreview } from "../components/RoomProductPreview";
+import { parseRoomInvite } from "../services/invite";
 import { navigate } from "../services/navigation";
 import { safeSessionRemove,safeSessionSet } from "../services/browser";
 
-const normalizeRoomCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"").slice(0,8);
-
 export function HomePage(){
-  const [code,setCode]=useState("");
+  const [inviteValue,setInviteValue]=useState("");
   const [codeError,setCodeError]=useState("");
   const [intent,setIntent]=useState<"broadcast"|"watch"|null>(null);
   const [viewerOpen,setViewerOpen]=useState(false);
+  const invite=parseRoomInvite(inviteValue);
 
   const openViewer=()=>{
-    if(!/^[A-Z2-9]{8}$/.test(code)){setCodeError("Digite o código de 8 caracteres.");return;}
+    if(!invite){setCodeError("Cole o link de convite completo da sala.");return;}
     setIntent("watch");
   };
 
@@ -33,8 +33,10 @@ export function HomePage(){
       navigate("/broadcast");
       return;
     }
-    safeSessionRemove(`lumacast-participant-${code}`);
-    navigate(`/watch/${code}`);
+    if(!invite)return;
+    safeSessionRemove(`lumacast-participant-${invite.roomId}`);
+    safeSessionSet(`lumacast-invite-${invite.roomId}`,invite.inviteToken);
+    navigate(`/watch/${invite.roomId}#invite=${encodeURIComponent(invite.inviteToken)}`);
   };
 
   return <main className="home-shell">
@@ -62,21 +64,21 @@ export function HomePage(){
         <div className={`home-viewer-action ${viewerOpen?"expanded":""}`}>
           <button type="button" className="home-viewer-toggle" aria-expanded={viewerOpen} onClick={()=>{setViewerOpen(value=>!value);setCodeError("");}}>
             <span className="home-action-icon"><Users/></span>
-            <span className="home-action-copy"><strong>Assistir transmissão</strong><small>Entre com o código compartilhado</small></span>
+            <span className="home-action-copy"><strong>Assistir transmissão</strong><small>Cole o link privado de convite</small></span>
             <ArrowRight className="home-action-arrow"/>
           </button>
           <form className="home-viewer-form" onSubmit={event=>{event.preventDefault();openViewer();}}>
             <input
-              value={code}
-              onChange={event=>{setCode(normalizeRoomCode(event.target.value));setCodeError("");}}
-              placeholder="CÓDIGO DA SALA"
-              maxLength={8}
-              aria-label="Código da sala"
+              value={inviteValue}
+              onChange={event=>{setInviteValue(event.target.value.slice(0,512));setCodeError("");}}
+              placeholder="LINK DE CONVITE"
+              maxLength={512}
+              aria-label="Link de convite da sala"
               aria-invalid={!!codeError}
               aria-describedby={codeError?"room-code-error":undefined}
               autoComplete="off"
             />
-            <button type="submit" disabled={code.length!==8} aria-label="Entrar na sala"><ArrowRight/></button>
+            <button type="submit" disabled={!invite} aria-label="Entrar na sala"><ArrowRight/></button>
           </form>
           {codeError&&<small id="room-code-error" className="room-code-error" role="alert">{codeError}</small>}
         </div>
@@ -98,6 +100,6 @@ export function HomePage(){
       <span>Privacidade <i>·</i> <button type="button" className="footer-link" onClick={()=>navigate("/termos")}>Termos</button> <i>·</i> <button type="button" className="footer-link" onClick={()=>navigate("/como-funciona")}>Como funciona</button></span>
     </footer>
 
-    {intent&&<NameDialog eyebrow={intent==="broadcast"?"Como quer ser chamado?":`Entrar na sala ${code}`} submitLabel={intent==="broadcast"?"Criar sala":"Entrar na sala"} onSubmit={continueWithName} onCancel={()=>setIntent(null)}/>}
+    {intent&&<NameDialog eyebrow={intent==="broadcast"?"Como quer ser chamado?":`Entrar na sala ${invite?.roomId||""}`} submitLabel={intent==="broadcast"?"Criar sala":"Entrar na sala"} onSubmit={continueWithName} onCancel={()=>setIntent(null)}/>}
   </main>;
 }

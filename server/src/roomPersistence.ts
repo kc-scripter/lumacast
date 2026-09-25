@@ -1,5 +1,5 @@
 export type PersistedParticipant={socketId:string;displayName:string;agoraUid:number;tokenHash?:string;token?:string};
-export type PersistedRoom={id:string;ownerId:string;ownerName:string;ownerUid:number;ownerTokenHash?:string;ownerToken?:string;participants:PersistedParticipant[]};
+export type PersistedRoom={id:string;ownerId:string;ownerName:string;ownerUid:number;ownerTokenHash?:string;ownerToken?:string;inviteTokenHash?:string;inviteToken?:string;participants:PersistedParticipant[]};
 
 export interface RoomPersistence{
   load():Promise<PersistedRoom[]>;

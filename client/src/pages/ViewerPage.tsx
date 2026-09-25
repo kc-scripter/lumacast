@@ -16,14 +16,14 @@ import { navigate } from "../services/navigation";
 import { useCollaborativeRoom } from "../services/useCollaborativeRoom";
 import type { CameraPreset,Quality } from "../types";
 
-export function ViewerPage({roomId}:{roomId:string}){
+export function ViewerPage({roomId,inviteToken}:{roomId:string;inviteToken?:string}){
   const [nameReady,setNameReady]=useState(()=>!!safeSessionGet("lumacast-display-name"));
   if(!nameReady)return <main className="viewer-shell"><NameDialog eyebrow={`Entrar na sala ${roomId}`} submitLabel="Entrar" onSubmit={value=>{safeSessionSet("lumacast-display-name",value);setNameReady(true);}} onCancel={()=>navigate("/")}/></main>;
-  return <ViewerRoomPage roomId={roomId}/>;
+  return <ViewerRoomPage roomId={roomId} inviteToken={inviteToken}/>;
 }
 
-function ViewerRoomPage({roomId}:{roomId:string}){
-  const room=useCollaborativeRoom(false,roomId),[showStats,setShowStats]=useState(false),[focused,setFocused]=useState(false),{quality,setQuality,fps,setFps}=useMediaPreferences(),canShare=typeof navigator.mediaDevices?.getDisplayMedia==="function";
+function ViewerRoomPage({roomId,inviteToken}:{roomId:string;inviteToken?:string}){
+  const room=useCollaborativeRoom(false,roomId,inviteToken),[showStats,setShowStats]=useState(false),[focused,setFocused]=useState(false),{quality,setQuality,fps,setFps}=useMediaPreferences(),canShare=typeof navigator.mediaDevices?.getDisplayMedia==="function";
   useAdaptiveScreenQuality({enabled:quality==="auto"&&room.isScreenSharer&&room.roomState.screenProvider==="agora",stats:room.stats,preferredFps:fps,updateQuality:room.updateScreenQuality,updateFrameRate:room.updateScreenFrameRate});
   const selfName=safeSessionGet("lumacast-display-name")||"Você",sharerName=room.roomState.activeScreenSharerName||room.roomState.ownerName||"Participante",qualityLabel=`${quality==="auto"?"AUTO":quality} · ${room.stats?.fps??fps} FPS`,providerLabel=room.roomState.screenProvider==="agora"?"Agora":"LiveKit";
   const live=room.roomState.live,screenStarting=!!room.roomState.activeScreenSharerId&&!live,busy=!!room.roomState.activeScreenSharerId&&!room.ownsScreenLock,missing=room.status==="missing",reconnecting=room.status==="Reconectando",emptyTitle=room.switching?"Trocando servidor de transmissão…":screenStarting?(room.ownsScreenLock?"Preparando sua transmissão…":(room.roomState.activeScreenSharerName||"Alguém")+" está iniciando uma transmissão…"):live?"Conectando à transmissão":"Nenhuma tela sendo compartilhada",emptyText=screenStarting?(room.ownsScreenLock?"Escolha a tela ou janela que deseja compartilhar.":"Aguarde enquanto a tela é preparada."):live?"Conectando à distribuição segura de vídeo.":"Você está na sala certa. Qualquer participante pode começar.";

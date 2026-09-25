@@ -33,8 +33,9 @@ async function scenario(hostOrigin,viewerOrigin,label){
     const created=await ack(host,"create-room",{displayName:label+" Host"});
     assert.equal(created.ok,true);
     assert.match(created.roomId,/^[A-Z2-9]{8}$/);
+    assert.match(created.inviteToken,/^[A-Za-z0-9_-]{43}$/);
 
-    const joined=await ack(viewer,"join-room",{roomId:created.roomId,displayName:label+" Viewer"});
+    const joined=await ack(viewer,"join-room",{roomId:created.roomId,inviteToken:created.inviteToken,displayName:label+" Viewer"});
     assert.equal(joined.ok,true);
 
     const lock=await ack(viewer,"request-screen-share",{roomId:created.roomId});

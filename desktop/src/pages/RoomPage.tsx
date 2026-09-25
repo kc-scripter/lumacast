@@ -4,14 +4,15 @@ import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVide
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
 import { useAdaptiveScreenQuality } from "../../../client/src/hooks/useAdaptiveScreenQuality";
 import { copyText } from "../../../client/src/services/browser";
+import { buildRoomInvite } from "../../../client/src/services/invite";
 import { connectSocket, getSocket } from "../../../client/src/services/socket";
 import { useCollaborativeRoom } from "../../../client/src/services/useCollaborativeRoom";
 import type { Quality } from "../../../client/src/types";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { useDesktopMediaPreferences } from "../hooks/useDesktopMediaPreferences";
 
-export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;roomId?:string;onBack:()=>void}){
-  const room=useCollaborativeRoom(owner,requestedRoomId);
+export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInviteToken,onBack}:{owner:boolean;roomId?:string;inviteToken?:string;onBack:()=>void}){
+  const room=useCollaborativeRoom(owner,requestedRoomId,requestedInviteToken);
   const {quality,setQuality,fps,setFps}=useDesktopMediaPreferences();
   const [showSettings,setShowSettings]=useState(false);
   const [showStats,setShowStats]=useState(false);
@@ -29,7 +30,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
 
   const selfId=getSocket().id||"";
   const webBase=(import.meta.env.VITE_PUBLIC_WEB_URL||"https://lunirascreen.onrender.com").replace(/\/$/,"");
-  const invite=room.roomId?webBase+"/?room="+encodeURIComponent(room.roomId):"";
+  const invite=owner&&room.roomId&&room.inviteToken?buildRoomInvite(webBase,room.roomId,room.inviteToken):"";
   const roomCode=room.roomId||requestedRoomId||"--------";
   const canShare=typeof navigator.mediaDevices?.getDisplayMedia==="function";
   const missing=room.status==="missing";
@@ -115,7 +116,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
       </div>
       <div className="room-v2-header-right">
         <span className="room-v2-people"><Users/>{room.roomState.participants.length} {room.roomState.participants.length===1?"participante":"participantes"}</span>
-        <button type="button" className="room-v2-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>
+        {owner&&<button type="button" className="room-v2-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>}
       </div>
     </section>
 
@@ -169,10 +170,10 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
             :<div className="room-v2-camera-empty"><VideoOff/><strong>Nenhuma câmera ativa</strong><small>As câmeras ligadas aparecem aqui.</small></div>}
         </section>
 
-        {room.roomState.participants.length<=1&&<section className="room-v2-invite-panel">
+        {owner&&room.roomState.participants.length<=1&&<section className="room-v2-invite-panel">
           <Users/>
           <strong>Ninguém convidado ainda</strong>
-          <p>Envie o código da sala para alguém no Lunira Web.</p>
+          <p>Envie o link privado de convite para alguém no Lunira Web.</p>
           <div className="room-v2-code-copy"><span>{roomCode}</span><button type="button" disabled={!room.roomId} aria-label="Copiar código" onClick={()=>void copyRoomCode()}><Copy/></button></div>
           <button type="button" className="room-v2-copy-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>
         </section>}

@@ -10,7 +10,7 @@ import { HomePage } from "./pages/HomePage";
 import { RoomPage } from "./pages/RoomPage";
 import { WelcomePage } from "./pages/WelcomePage";
 
-type Route={type:"home"}|{type:"room";owner:boolean;roomId?:string};
+type Route={type:"home"}|{type:"room";owner:boolean;roomId?:string;inviteToken?:string};
 
 export function App(){
   const [route,setRoute]=useState<Route>({type:"home"});
@@ -54,11 +54,12 @@ export function App(){
     return true;
   };
 
-  const joinRoom=async(roomId:string,name:string)=>{
+  const joinRoom=async(roomId:string,inviteToken:string,name:string)=>{
     if(!await ensureBackend())return false;
     safeSessionSet("lumacast-display-name",name);
+    safeSessionSet("lumacast-invite-"+roomId,inviteToken);
     safeSessionRemove("lumacast-participant-"+roomId);
-    setRoute({type:"room",owner:false,roomId});
+    setRoute({type:"room",owner:false,roomId,inviteToken});
     return true;
   };
 
@@ -72,7 +73,7 @@ export function App(){
         ?entryScreen==="welcome"
           ?<WelcomePage onStart={()=>setEntryScreen("home")} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)}/>
           :<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)} onBack={()=>setEntryScreen("welcome")}/>
-        :<RoomPage owner={route.owner} roomId={route.roomId} onBack={()=>setRoute({type:"home"})}/>}
+        :<RoomPage owner={route.owner} roomId={route.roomId} inviteToken={route.inviteToken} onBack={()=>setRoute({type:"home"})}/>}
     </div>
     {howOpen&&<HowItWorksDialog onClose={()=>setHowOpen(false)}/>}
     {settingsOpen&&<SettingsDialog onClose={()=>setSettingsOpen(false)} quality={quality} setQuality={setQuality} fps={fps} setFps={setFps}/>}

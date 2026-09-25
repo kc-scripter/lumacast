@@ -14,22 +14,25 @@ const configuredOrigins=(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL||"htt
   .split(",").map(value=>value.trim()).filter(Boolean);
 const allowedOrigins=new Set(configuredOrigins);
 const desktopOrigins=new Set(["http://tauri.localhost","https://tauri.localhost","tauri://localhost"]);
-const desktopOriginAllowed=(value?:string)=>{
-  if(!value||value==="null")return true;
-  if(desktopOrigins.has(value))return true;
-  try{
-    const parsed=new URL(value);
-    const loopbackHosts=new Set(["tauri.localhost","localhost","127.0.0.1","::1"]);
-    return loopbackHosts.has(parsed.hostname)&&["http:","https:","tauri:"].includes(parsed.protocol);
-  }catch{
-    return false;
-  }
-};
-const originAllowed=(value?:string)=>desktopOriginAllowed(value)||Boolean(value&&allowedOrigins.has(value));
+const originAllowed=(value?:string)=>Boolean(value&&value!=="null"&&(desktopOrigins.has(value)||allowedOrigins.has(value)));
 const corsOptions:CorsOptions={
   origin(origin,callback){callback(null,originAllowed(origin));},
   methods:["GET","POST"]
 };
+const contentSecurityPolicy=[
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "media-src 'self' blob:",
+  "connect-src 'self' https: wss:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "form-action 'self'"
+].join("; ");
 
 const defaultProxyHops=process.env.RENDER_SERVICE_TYPE==="web"?1:0;
 const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS??defaultProxyHops);
@@ -44,6 +47,7 @@ app.use((_req,res,next)=>{
   res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy","camera=(self), microphone=(self), display-capture=(self)");
   res.setHeader("Cross-Origin-Resource-Policy","same-origin");
+  res.setHeader("Content-Security-Policy",contentSecurityPolicy);
   next();
 });
 app.use(cors(corsOptions));
@@ -60,16 +64,13 @@ app.get("/api/wake",(_req,res)=>{
     ok:status.ready,
     service:"lunira-screen-signaling",
     ready:status.ready,
-    code:status.ready?undefined:"RTC_CONFIGURATION_INCOMPLETE",
-    message:status.ready?undefined:status.message,
-    issues:status.issues,
-    uptimeSeconds:Math.floor(process.uptime())
+    code:status.ready?undefined:"SERVICE_NOT_READY"
   });
 });
 app.get("/api/health",(_req,res)=>{
   const status=res.locals.runtimeEnvironment as ReturnType<typeof runtimeEnvironmentStatus>;
   res.setHeader("Cache-Control","no-store");
-  res.status(status.ready?200:503).json({ok:status.ready,service:"lunira-screen-signaling",code:status.ready?undefined:"RTC_CONFIGURATION_INCOMPLETE",message:status.ready?undefined:status.message,issues:status.issues});
+  res.status(status.ready?200:503).json({ok:status.ready,service:"lunira-screen-signaling",code:status.ready?undefined:"SERVICE_NOT_READY"});
 });
 app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
