@@ -24,6 +24,8 @@ const titleAfter=await page.locator(".hero-flow-title span").first().evaluate(el
 if(titleBefore===titleAfter)throw new Error("Hero purple sweep did not animate.");
 await page.screenshot({path:output+"/home.png",fullPage:true});
 
+await page.getByRole("button",{name:/Criar sala e começar/i}).click();
+await page.getByRole("alert").filter({hasText:/Digite um nome/}).waitFor();
 await page.locator("#display-name").fill("Kauã");
 await page.getByRole("button",{name:/Começar a transmitir/i}).click();
 await page.getByText(/Pronto para compartilhar|Preparando sua tela|Tela principal/i).first().waitFor({timeout:15000});

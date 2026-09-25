@@ -432,3 +432,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-s
 @media(prefers-reduced-motion:reduce){
   .welcome-orbit,.welcome-feature,.welcome-start,.welcome-actions button{animation:none!important;transition:none!important}
 }
+
+.home-form-error{margin:11px 2px -5px;color:#ff9cab;font-size:10px;line-height:1.4;display:flex;align-items:center;gap:7px}
+.home-form-error:before{content:"!";width:17px;height:17px;flex:0 0 17px;border-radius:50%;display:grid;place-items:center;background:rgba(255,103,126,.12);border:1px solid rgba(255,120,140,.22);font-size:9px;font-weight:800}

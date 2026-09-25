@@ -11,6 +11,9 @@ export default defineConfig(({mode})=>{
     root:rootDir,
     base:"./",
     plugins:[react()],
+    resolve:{
+      dedupe:["react","react-dom"]
+    },
     define:{
       "import.meta.env.VITE_SIGNALING_URL":JSON.stringify(env.VITE_SIGNALING_URL||"https://lunirascreen.onrender.com"),
       "import.meta.env.VITE_PUBLIC_WEB_URL":JSON.stringify(env.VITE_PUBLIC_WEB_URL||"https://lunirascreen.onrender.com")

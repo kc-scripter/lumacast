@@ -47,17 +47,19 @@ export function App(){
   useEffect(()=>{void ensureBackend();},[ensureBackend]);
 
   const createRoom=async(name:string)=>{
-    if(!await ensureBackend())return;
+    if(!await ensureBackend())return false;
     safeSessionSet("lumacast-display-name",name);
     safeSessionRemove("lumacast-broadcaster");
     setRoute({type:"room",owner:true});
+    return true;
   };
 
   const joinRoom=async(roomId:string,name:string)=>{
-    if(!await ensureBackend())return;
+    if(!await ensureBackend())return false;
     safeSessionSet("lumacast-display-name",name);
     safeSessionRemove("lumacast-participant-"+roomId);
     setRoute({type:"room",owner:false,roomId});
+    return true;
   };
 
   const titleStatus=route.type==="room"?"Em sala":backendState==="ready"?"Pronto":backendState==="error"?"Servidor offline":"Acordando…";

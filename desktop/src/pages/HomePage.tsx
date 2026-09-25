@@ -7,8 +7,8 @@ const normalizeCode=(value:string)=>value.toUpperCase().replace(/[^A-Z2-9]/g,"")
 type Mode="create"|"join";
 
 export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendMessage,onRetry,onBack}:{
-  onCreate:(name:string)=>Promise<void>;
-  onJoin:(roomId:string,name:string)=>Promise<void>;
+  onCreate:(name:string)=>Promise<boolean>;
+  onJoin:(roomId:string,name:string)=>Promise<boolean>;
   onHow:()=>void;
   onSettings:()=>void;
   backendState:BackendWakeState;
@@ -20,12 +20,27 @@ export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendM
   const [code,setCode]=useState("");
   const [mode,setMode]=useState<Mode>("create");
   const [pending,setPending]=useState<Mode|null>(null);
+  const [formError,setFormError]=useState("");
   const validName=name.trim().length>=2&&name.trim().length<=20;
   const validCode=/^[A-Z2-9]{8}$/.test(code);
   const waking=backendState==="waking";
 
-  const create=async()=>{if(!validName||pending)return;setPending("create");try{await onCreate(name.trim());}finally{setPending(null);}};
-  const join=async()=>{if(!validName||!validCode||pending)return;setPending("join");try{await onJoin(code,name.trim());}finally{setPending(null);}};
+  const create=async()=>{
+    if(pending)return;
+    if(!validName){setFormError("Digite um nome entre 2 e 20 caracteres.");return;}
+    setFormError("");setPending("create");
+    try{if(!await onCreate(name.trim()))setFormError("Não foi possível conectar ao servidor. Tente novamente.");}
+    finally{setPending(null);}
+  };
+  const join=async()=>{
+    if(pending)return;
+    if(!validName){setFormError("Digite um nome entre 2 e 20 caracteres.");return;}
+    if(!validCode){setFormError("Digite o código completo da sala com 8 caracteres.");return;}
+    setFormError("");setPending("join");
+    try{if(!await onJoin(code,name.trim()))setFormError("Não foi possível conectar ao servidor. Confira o código e tente novamente.");}
+    finally{setPending(null);}
+  };
+  const selectMode=(next:Mode)=>{setMode(next);setFormError("");};
 
   return <main className="home-page home-v3">
     <nav className="home-actions" aria-label="Ações">
@@ -43,13 +58,14 @@ export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendM
 
       <section className="home-control-card" aria-label="Acessar uma sala">
         <div className="home-mode-tabs" role="tablist" aria-label="Modo">
-          <button type="button" role="tab" aria-selected={mode==="create"} className={mode==="create"?"active":""} onClick={()=>setMode("create")}><MonitorUp/>Criar uma sala</button>
-          <button type="button" role="tab" aria-selected={mode==="join"} className={mode==="join"?"active":""} onClick={()=>setMode("join")}><Users/>Entrar com código</button>
+          <button type="button" role="tab" aria-selected={mode==="create"} className={mode==="create"?"active":""} onClick={()=>selectMode("create")}><MonitorUp/>Criar uma sala</button>
+          <button type="button" role="tab" aria-selected={mode==="join"} className={mode==="join"?"active":""} onClick={()=>selectMode("join")}><Users/>Entrar com código</button>
         </div>
-        <div className="home-control-body">
-          <label className="home-field" htmlFor="display-name"><span>SEU NOME</span><div><UserRound/><input id="display-name" value={name} maxLength={20} onChange={event=>setName(event.target.value)} placeholder="Como você quer aparecer?" autoComplete="nickname"/></div></label>
-          {mode==="join"&&<label className="home-field room-field"><span>CÓDIGO DA SALA</span><div><KeyRound/><input value={code} onChange={event=>setCode(normalizeCode(event.target.value))} maxLength={8} placeholder="AB12CD34" autoComplete="off" onKeyDown={event=>{if(event.key==="Enter")void join();}}/></div></label>}
-          <button type="button" className={"home-primary-cta "+(waking?"loading":"")} disabled={mode==="create"?!validName||!!pending:!validName||!validCode||!!pending} onClick={()=>void(mode==="create"?create():join())}>
+        <form className="home-control-body" onSubmit={event=>{event.preventDefault();void(mode==="create"?create():join());}} noValidate>
+          <label className="home-field" htmlFor="display-name"><span>SEU NOME</span><div><UserRound/><input id="display-name" value={name} maxLength={20} onChange={event=>{setName(event.target.value);setFormError("");}} placeholder="Como você quer aparecer?" autoComplete="nickname"/></div></label>
+          {mode==="join"&&<label className="home-field room-field" htmlFor="room-code"><span>CÓDIGO DA SALA</span><div><KeyRound/><input id="room-code" value={code} onChange={event=>{setCode(normalizeCode(event.target.value));setFormError("");}} maxLength={8} placeholder="AB12CD34" autoComplete="off"/></div></label>}
+          {formError&&<p className="home-form-error" role="alert">{formError}</p>}
+          <button type="submit" className={"home-primary-cta "+(waking?"loading":"")} disabled={!!pending}>
             <span className="cta-leading">{waking?<Server/>:mode==="create"?<MonitorUp/>:<Users/>}</span>
             <span>{waking?"Acordando servidor…":mode==="create"?"Criar sala e começar a transmitir":"Entrar na sala"}</span>
             <ArrowRight className="cta-arrow"/>
@@ -61,7 +77,7 @@ export function HomePage({onCreate,onJoin,onHow,onSettings,backendState,backendM
             {backendState==="error"&&<button type="button" onClick={onRetry}><RotateCcw/>Tentar novamente</button>}
           </div>
           <div className="home-inline-meta"><span><MonitorUp/>Auto / 720p / 1080p</span><span><Gauge/>30 / 60 FPS</span></div>
-        </div>
+        </form>
       </section>
     </section>
   </main>;
