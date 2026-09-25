@@ -5,6 +5,8 @@ const { RtcRole, RtcTokenBuilder }=agoraToken;
 
 const TOKEN_TTL_SECONDS=3_600;
 const credential=(name:"AGORA_APP_ID"|"AGORA_APP_CERTIFICATE")=>{const value=process.env[name];if(!value)throw new Error(`${name} não configurada.`);if(!/^[0-9a-f]{32}$/i.test(value))throw new Error(`${name} inválida.`);return value;};
+export const agoraConfigured=()=>/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_ID||"")&&/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_CERTIFICATE||"");
+export const optionalAgoraCredentials=(roomId:string,uid:number,role:AgoraRole)=>agoraConfigured()?createAgoraCredentials(roomId,uid,role):{};
 
 export type AgoraRole="broadcaster"|"viewer";
 export const agoraChannel=(roomId:string)=>`lumacast-${roomId.toLowerCase()}`;

@@ -3,10 +3,11 @@ import { createServer } from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import cors, { type CorsOptions } from "cors";
-import express from "express";
+import express, { type RequestHandler } from "express";
 import rateLimit from "express-rate-limit";
 import { Server } from "socket.io";
 import { registerSignaling } from "./signaling.js";
+import { logRuntimeEnvironment,runtimeEnvironmentStatus } from "./environment.js";
 
 const port=Number(process.env.PORT||3001);
 const configuredOrigins=(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL||"http://localhost:5173")
@@ -30,20 +31,9 @@ const corsOptions:CorsOptions={
   methods:["GET","POST"]
 };
 
-const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS||0);
-const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:0;
-
-const runtimeIssues=()=>{
-  const issues:string[]=[];
-  if(!(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL))issues.push("CLIENT_ORIGIN/PUBLIC_URL");
-  if(!/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_ID||""))issues.push("AGORA_APP_ID");
-  if(!/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_CERTIFICATE||""))issues.push("AGORA_APP_CERTIFICATE");
-  const livekitUrl=process.env.LIVEKIT_URL?.trim();
-  if(!livekitUrl||!/^wss?:\/\//i.test(livekitUrl))issues.push("LIVEKIT_URL");
-  if(!process.env.LIVEKIT_API_KEY?.trim())issues.push("LIVEKIT_API_KEY");
-  if(!process.env.LIVEKIT_API_SECRET?.trim())issues.push("LIVEKIT_API_SECRET");
-  return issues;
-};
+const defaultProxyHops=process.env.RENDER_SERVICE_TYPE==="web"?1:0;
+const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS??defaultProxyHops);
+const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:defaultProxyHops;
 
 const app=express();
 if(proxyHops>0)app.set("trust proxy",proxyHops);
@@ -58,21 +48,28 @@ app.use((_req,res,next)=>{
 });
 app.use(cors(corsOptions));
 app.use("/api",rateLimit({windowMs:60_000,limit:120,standardHeaders:"draft-8",legacyHeaders:false}));
+const environmentMiddleware:RequestHandler=(_req,res,next)=>{
+  res.locals.runtimeEnvironment=runtimeEnvironmentStatus();
+  next();
+};
+app.use("/api",environmentMiddleware);
 app.get("/api/wake",(_req,res)=>{
-  const issues=runtimeIssues();
+  const status=res.locals.runtimeEnvironment as ReturnType<typeof runtimeEnvironmentStatus>;
   res.setHeader("Cache-Control","no-store");
-  res.status(issues.length?503:200).json({
-    ok:issues.length===0,
+  res.status(status.ready?200:503).json({
+    ok:status.ready,
     service:"lunira-screen-signaling",
-    ready:issues.length===0,
-    issues,
+    ready:status.ready,
+    code:status.ready?undefined:"RTC_CONFIGURATION_INCOMPLETE",
+    message:status.ready?undefined:status.message,
+    issues:status.issues,
     uptimeSeconds:Math.floor(process.uptime())
   });
 });
 app.get("/api/health",(_req,res)=>{
-  const issues=runtimeIssues();
+  const status=res.locals.runtimeEnvironment as ReturnType<typeof runtimeEnvironmentStatus>;
   res.setHeader("Cache-Control","no-store");
-  res.status(issues.length?503:200).json({ok:issues.length===0,service:"lunira-screen-signaling",issues});
+  res.status(status.ready?200:503).json({ok:status.ready,service:"lunira-screen-signaling",code:status.ready?undefined:"RTC_CONFIGURATION_INCOMPLETE",message:status.ready?undefined:status.message,issues:status.issues});
 });
 app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 
@@ -93,7 +90,6 @@ app.use(express.static(clientDist,{
 }));
 app.get(/.*/,(_req,res)=>{res.setHeader("Cache-Control","no-cache");res.sendFile(join(clientDist,"index.html"));});
 httpServer.listen(port,()=>{
-  const issues=runtimeIssues();
-  if(issues.length)console.warn(`Lunira Screen started with incomplete RTC config: ${issues.join(", ")}`);
+  logRuntimeEnvironment();
   console.log(`Lunira Screen signaling on http://localhost:${port} · ${rooms.count()} active rooms`);
 });
