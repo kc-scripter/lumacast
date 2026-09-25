@@ -15,7 +15,7 @@ export function runtimeEnvironmentStatus():RuntimeEnvironmentStatus{
   if(!livekitUrl||!/^wss?:\/\//i.test(livekitUrl))issues.push("LIVEKIT_URL");
   if(!process.env.LIVEKIT_API_KEY?.trim())issues.push("LIVEKIT_API_KEY");
   if(!process.env.LIVEKIT_API_SECRET?.trim())issues.push("LIVEKIT_API_SECRET");
-  return {ready:issues.length===0,issues,message:configurationMessage};
+  return {ready:true,issues,message:configurationMessage};
 }
 
 export function configurationError(){
@@ -25,10 +25,10 @@ export function configurationError(){
 
 export function logRuntimeEnvironment(){
   const status=runtimeEnvironmentStatus();
-  if(status.ready){
+  if(!status.issues.length){
     console.log("Lunira Screen RTC configuration verified.");
   }else{
-    console.error(`Lunira Screen RTC configuration incomplete. Missing or invalid: ${status.issues.join(", ")}. Room creation is disabled until these values are configured.`);
+    console.warn(`Lunira Screen RTC configuration incomplete. Missing or invalid: ${status.issues.join(", ")}. Signaling remains available.`);
   }
   return status;
 }
