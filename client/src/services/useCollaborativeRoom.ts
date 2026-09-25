@@ -11,7 +11,7 @@ type Camera={identity:string;track:MediaStreamTrack;local:boolean};
 type ScreenAck=RoomAck&{error?:string};
 type LiveKitAck={ok:boolean;livekitUrl?:string;livekitToken?:string;error?:string};
 type ExtendedMediaTrackConstraints=MediaTrackConstraints&{resizeMode?:"none"|"crop-and-scale"};
-const initial:RoomState={live:false,count:0,activeScreenSharerId:null,activeScreenUid:null,activeScreenSharerName:null,screenProvider:"agora",livekitActive:false,ownerName:"",locked:false,guestCodeEnabled:false,participants:[]};
+const initial:RoomState={live:false,count:0,activeScreenSharerId:null,activeScreenUid:null,activeScreenSharerName:null,screenProvider:"agora",livekitActive:false,ownerName:"",locked:false,participants:[]};
 const valid=(track?:MediaStreamTrack|null):track is MediaStreamTrack=>!!track&&track.readyState==="live";
 const emitAck=<T,>(event:string,payload:object)=>new Promise<T>((resolve,reject)=>connectSocket().timeout(12_000).emit(event,payload,(error:Error|null,ack:T)=>error?reject(error):resolve(ack)));
 const videoSize=(quality:Quality,settings:MediaTrackSettings)=>quality==="1080p"?{width:1920,height:1080}:quality==="720p"?{width:1280,height:720}:{width:settings.width||1920,height:settings.height||1080};
@@ -595,22 +595,6 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string,reque
       return ack.inviteToken;
     }catch(cause){setError(cause instanceof Error?cause.message:"Não foi possível renovar o convite.");return null;}
   },[]);
-  const rotateGuestCode=useCallback(async()=>{
-    try{
-      const ack=await emitAck<{ok:boolean;guestCode?:string;error?:string}>("rotate-room-guest-code",{roomId:roomIdRef.current});
-      if(!ack.ok||!ack.guestCode)throw new Error(ack.error||"Não foi possível gerar o código temporário.");
-      updateState({guestCodeEnabled:true});
-      return ack.guestCode;
-    }catch(cause){setError(cause instanceof Error?cause.message:"Não foi possível gerar o código temporário.");return null;}
-  },[updateState]);
-  const disableGuestCode=useCallback(async()=>{
-    try{
-      const ack=await emitAck<{ok:boolean;error?:string}>("disable-room-guest-code",{roomId:roomIdRef.current});
-      if(!ack.ok)throw new Error(ack.error||"Não foi possível desativar o código temporário.");
-      updateState({guestCodeEnabled:false});
-      return true;
-    }catch(cause){setError(cause instanceof Error?cause.message:"Não foi possível desativar o código temporário.");return false;}
-  },[updateState]);
   const kickParticipant=useCallback(async(participantId:string)=>{
     try{
       const ack=await emitAck<{ok:boolean;error?:string}>("kick-participant",{roomId:roomIdRef.current,participantId});
@@ -626,7 +610,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string,reque
       }
       const next:AgoraCredentials|null=ack.agoraAppId&&ack.agoraChannel&&ack.agoraUid!==undefined&&ack.agoraToken?{agoraAppId:ack.agoraAppId,agoraChannel:ack.agoraChannel,agoraUid:ack.agoraUid,agoraToken:ack.agoraToken}:null;
       credentialsRef.current=next;setCredentials(next);
-      updateState({live:!!ack.live,count:ack.count||0,activeScreenSharerId:ack.activeScreenSharerId||null,activeScreenUid:ack.activeScreenUid??null,activeScreenSharerName:ack.activeScreenSharerName||null,screenProvider:ack.screenProvider||"agora",livekitActive:!!ack.livekitActive,ownerName:ack.ownerName||"",locked:!!ack.locked,guestCodeEnabled:!!ack.guestCodeEnabled,participants:ack.participants||[]});
+      updateState({live:!!ack.live,count:ack.count||0,activeScreenSharerId:ack.activeScreenSharerId||null,activeScreenUid:ack.activeScreenUid??null,activeScreenSharerName:ack.activeScreenSharerName||null,screenProvider:ack.screenProvider||"agora",livekitActive:!!ack.livekitActive,ownerName:ack.ownerName||"",locked:!!ack.locked,participants:ack.participants||[]});
       if("roomId" in ack&&ack.roomId){roomIdRef.current=ack.roomId;setRoomId(ack.roomId);}
       if("inviteToken" in ack&&ack.inviteToken)setInviteToken(ack.inviteToken);
       if("ownerToken" in ack&&ack.ownerToken)safeSessionSet("lumacast-broadcaster",JSON.stringify({roomId:roomIdRef.current,token:ack.ownerToken,inviteToken:"inviteToken" in ack?ack.inviteToken:undefined}));
@@ -665,7 +649,7 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string,reque
         const inviteKey=`lumacast-invite-${requestedRoomId}`;
         const joinInvite=requestedInviteToken||safeSessionGet(inviteKey);
         if(requestedInviteToken)safeSessionSet(inviteKey,requestedInviteToken);
-        socket.emit("join-room",{roomId:requestedRoomId,participantToken:safeSessionGet(`lumacast-participant-${requestedRoomId}`),inviteToken:joinInvite,guestCode:safeSessionGet(`lumacast-guest-${requestedRoomId}`),displayName:safeSessionGet("lumacast-display-name")},(ack:JoinAck)=>apply(ack));
+        socket.emit("join-room",{roomId:requestedRoomId,participantToken:safeSessionGet(`lumacast-participant-${requestedRoomId}`),inviteToken:joinInvite,displayName:safeSessionGet("lumacast-display-name")},(ack:JoinAck)=>apply(ack));
       }
     };
     const onState=(next:RoomState)=>{
@@ -743,5 +727,5 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string,reque
     return()=>clearInterval(timer);
   },[localScreenActive,recoverMedia,roomState.live]);
   useEffect(()=>()=>{const room=livekitRef.current;if(room)void room.disconnect();livekitAudioRef.current.forEach(element=>element.remove());cameraRef.current?.stop();pendingScreenRef.current?.getTracks().forEach(track=>track.stop());if(streamRef.current)void stopScreen();},[stopScreen]);
-  return{videoRef,roomId,inviteToken,roomState,ready,status,error,setError,stats,cameras,cameraOn,cameraPreset,setCameraPreset,switching,muted,isScreenSharer:localScreenActive,ownsScreenLock:!!roomState.activeScreenSharerId&&roomState.activeScreenSharerId===socketIdRef.current,startScreen,prepareScreen,previewStream,cancelScreenPreview,switchPreparedScreen,stopScreen,updateScreenFrameRate,updateScreenQuality,toggleCamera,toggleScreenAudio,recoverMedia,recovering,setRoomLocked,rotateInvite,rotateGuestCode,disableGuestCode,kickParticipant,kicked};
+  return{videoRef,roomId,inviteToken,roomState,ready,status,error,setError,stats,cameras,cameraOn,cameraPreset,setCameraPreset,switching,muted,isScreenSharer:localScreenActive,ownsScreenLock:!!roomState.activeScreenSharerId&&roomState.activeScreenSharerId===socketIdRef.current,startScreen,prepareScreen,previewStream,cancelScreenPreview,switchPreparedScreen,stopScreen,updateScreenFrameRate,updateScreenQuality,toggleCamera,toggleScreenAudio,recoverMedia,recovering,setRoomLocked,rotateInvite,kickParticipant,kicked};
 }

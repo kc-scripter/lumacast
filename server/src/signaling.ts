@@ -1,7 +1,7 @@
 import type { Server,Socket } from "socket.io";
 import { agoraConfigured,createAgoraCredentials,createAgoraUid,optionalAgoraCredentials } from "./agora.js";
 import { createLiveKitToken,livekitConfigured } from "./livekit.js";
-import { guestCodeMatches,hashSecret,newGuestCode,newSecret,normalizeDisplayName,RoomStore,secretMatches,validGuestCode,validRoomId,validSecret,type Room,type ScreenProvider } from "./rooms.js";
+import { hashSecret,newSecret,normalizeDisplayName,RoomStore,secretMatches,validRoomId,validSecret,type Room,type ScreenProvider } from "./rooms.js";
 import { createRoomPersistenceFromEnv } from "./roomPersistence.js";
 
 type Ack=(payload:Record<string,unknown>)=>void;
@@ -23,7 +23,7 @@ function rateAddress(socket:Socket){
 }
 function allowed(socket:Socket,limit=140,windowMs=10_000,scope="general"){const now=Date.now(),key=`${scope}:${rateAddress(socket)}`;let entry=limiter.get(key);if(!entry||now-entry.start>windowMs)entry={start:now,count:0};entry.count++;limiter.set(key,entry);return entry.count<=limit;}
 const livekitActive=(room:Room)=>room.ownerLivekitActive||[...room.participants.values()].some(p=>p.livekitActive)||room.live&&room.screenProvider==="livekit";
-const state=(room:Room)=>({live:room.live,count:room.participants.size,activeScreenSharerId:room.activeScreenSharerId,activeScreenUid:room.activeScreenUid,activeScreenSharerName:room.activeScreenSharerId===room.ownerId?room.ownerName:room.participants.get(room.activeScreenSharerId||"")?.displayName||null,screenProvider:room.screenProvider,livekitActive:livekitActive(room),ownerName:room.ownerName,locked:room.locked,guestCodeEnabled:!!room.guestCodeHash,participants:[{id:room.ownerId,displayName:room.ownerName,role:"owner" as const},...[...room.participants.values()].map(p=>({id:p.socketId,displayName:p.displayName,role:"participant" as const}))]});
+const state=(room:Room)=>({live:room.live,count:room.participants.size,activeScreenSharerId:room.activeScreenSharerId,activeScreenUid:room.activeScreenUid,activeScreenSharerName:room.activeScreenSharerId===room.ownerId?room.ownerName:room.participants.get(room.activeScreenSharerId||"")?.displayName||null,screenProvider:room.screenProvider,livekitActive:livekitActive(room),ownerName:room.ownerName,locked:room.locked,participants:[{id:room.ownerId,displayName:room.ownerName,role:"owner" as const},...[...room.participants.values()].map(p=>({id:p.socketId,displayName:p.displayName,role:"participant" as const}))]});
 export async function registerSignaling(io:Server){const rooms=new RoomStore(createRoomPersistenceFromEnv());await rooms.hydrate();
   const announce=(room:Room)=>{rooms.persist(room);io.to(room.id).emit("room-state",state(room));io.to(room.ownerId).emit("viewer-count",{count:room.participants.size});};
   const release=(room:Room)=>{if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);room.screenDisconnectTimer=undefined;room.activeScreenSharerId=null;room.activeScreenUid=null;room.screenProvider="agora";room.live=false;io.to(room.id).emit("broadcast-ended");announce(room);};
@@ -56,7 +56,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
     socket.on("join-room",(input:unknown,ack:Ack)=>{
       if(!allowed(socket,60,60_000,"join"))return reply(ack,{ok:false,error:"Muitas tentativas. Aguarde um minuto."});
 
-      const data=input as {roomId?:unknown;participantToken?:unknown;inviteToken?:unknown;guestCode?:unknown;displayName?:unknown};
+      const data=input as {roomId?:unknown;participantToken?:unknown;inviteToken?:unknown;displayName?:unknown};
       if(!validRoomId(data?.roomId))return reply(ack,{ok:false,error:"Código de sala inválido."});
       const room=rooms.get(data.roomId);
       if(!room)return reply(ack,{ok:false,error:"Sala não encontrada ou convite inválido."});
@@ -74,8 +74,7 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
             if(room.activeScreenSharerId===old.socketId){if(room.screenDisconnectTimer)clearTimeout(room.screenDisconnectTimer);room.screenDisconnectTimer=undefined;room.activeScreenSharerId=socket.id;}
           }else{
             const inviteOk=validSecret(data.inviteToken)&&secretMatches(data.inviteToken,room.inviteTokenHash);
-            const codeOk=validGuestCode(data.guestCode)&&guestCodeMatches(data.guestCode,room.guestCodeHash);
-            if(!inviteOk&&!codeOk)return reply(ack,{ok:false,error:"Sala não encontrada ou convite/código inválido."});
+            if(!inviteOk)return reply(ack,{ok:false,error:"Sala não encontrada ou convite inválido."});
             const requested=normalizeDisplayName(data.displayName);
             if(!requested)return reply(ack,{ok:false,error:"Informe um nome entre 2 e 20 caracteres."});
             let uid:number;do{uid=createAgoraUid();}while(uid===room.ownerUid||[...room.participants.values()].some(p=>p.agoraUid===uid));
@@ -102,8 +101,6 @@ export async function registerSignaling(io:Server){const rooms=new RoomStore(cre
     socket.on("livekit-media-active",(input:unknown)=>{if(!allowed(socket))return;const room=member(input),participant=room?.participants.get(socket.id);if(!room)return;if(participant)participant.livekitActive=!!(input as {active?:boolean}).active;else room.ownerLivekitActive=!!(input as {active?:boolean}).active;announce(room);});
     socket.on("set-room-lock",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room||room.ownerId!==socket.id)return reply(ack,{ok:false,error:"Apenas o anfitrião pode trancar a sala."});room.locked=!!(input as {locked?:boolean}).locked;announce(room);reply(ack,{ok:true,locked:room.locked});});
     socket.on("rotate-room-invite",(input:unknown,ack:Ack)=>{if(!allowed(socket,20,60_000,"invite"))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room||room.ownerId!==socket.id)return reply(ack,{ok:false,error:"Apenas o anfitrião pode renovar o convite."});const inviteToken=newSecret();room.inviteToken=inviteToken;room.inviteTokenHash=hashSecret(inviteToken);rooms.persist(room);reply(ack,{ok:true,inviteToken});});
-    socket.on("rotate-room-guest-code",(input:unknown,ack:Ack)=>{if(!allowed(socket,20,60_000,"guest-code"))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room||room.ownerId!==socket.id)return reply(ack,{ok:false,error:"Apenas o anfitrião pode gerar um código temporário."});const guestCode=newGuestCode();room.guestCodeHash=hashSecret(guestCode);announce(room);reply(ack,{ok:true,guestCode});});
-    socket.on("disable-room-guest-code",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input);if(!room||room.ownerId!==socket.id)return reply(ack,{ok:false,error:"Apenas o anfitrião pode desativar o código temporário."});room.guestCodeHash=null;announce(room);reply(ack,{ok:true});});
     socket.on("kick-participant",(input:unknown,ack:Ack)=>{if(!allowed(socket))return reply(ack,{ok:false,error:"Muitas tentativas."});const room=member(input),targetId=(input as {participantId?:unknown})?.participantId;if(!room||room.ownerId!==socket.id||typeof targetId!=="string")return reply(ack,{ok:false,error:"Apenas o anfitrião pode remover participantes."});const participant=room.participants.get(targetId);if(!participant)return reply(ack,{ok:false,error:"Participante não encontrado."});if(participant.disconnectTimer)clearTimeout(participant.disconnectTimer);room.participants.delete(targetId);if(room.activeScreenSharerId===targetId)release(room);io.to(targetId).emit("kicked",{roomId:room.id,reason:"Você foi removido da sala pelo anfitrião."});io.sockets.sockets.get(targetId)?.leave(room.id);announce(room);reply(ack,{ok:true});});
     socket.on("leave-room",(input:unknown)=>{if(!allowed(socket))return;const room=member(input);if(!room)return;const participant=room.participants.get(socket.id);if(participant){room.participants.delete(socket.id);socket.leave(room.id);if(room.activeScreenSharerId===socket.id)release(room);announce(room);}});
 

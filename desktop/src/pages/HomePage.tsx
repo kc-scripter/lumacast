@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CircleHelp, Clock3, Gauge, KeyRound, MonitorUp, RotateCcw, Server, Settings, UserRound, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleHelp, Clock3, Gauge, Link2, MonitorUp, RotateCcw, Server, Settings, UserRound, Users } from "lucide-react";
 import { useState } from "react";
 import { safeSessionGet } from "../../../client/src/services/browser";
 import { parseRoomInvite } from "../../../client/src/services/invite";
@@ -9,7 +9,7 @@ type Mode="create"|"join";
 
 export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState,backendMessage,onRetry,onBack}:{
   onCreate:(name:string)=>Promise<boolean>;
-  onJoin:(roomId:string,inviteToken:string,name:string,guestCode?:string)=>Promise<boolean>;
+  onJoin:(roomId:string,inviteToken:string,name:string)=>Promise<boolean>;
   onResume:(roomId:string,owner:boolean,name:string)=>Promise<boolean>;
   onHow:()=>void;
   onSettings:()=>void;
@@ -31,7 +31,6 @@ export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState
   });
   const validName=name.trim().length>=2&&name.trim().length<=20;
   const invite=parseRoomInvite(inviteValue);
-  const guestMatch=inviteValue.trim().toUpperCase().match(/^([A-Z2-9]{8})[\s:/-]+([A-Z2-9]{6})$/);
   const waking=backendState==="waking";
 
   const create=async()=>{
@@ -44,9 +43,9 @@ export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState
   const join=async()=>{
     if(pending)return;
     if(!validName){setFormError("Digite um nome entre 2 e 20 caracteres.");return;}
-    if(!invite&&!guestMatch){setFormError("Cole o link de convite ou informe CÓDIGO-DA-SALA + CÓDIGO-TEMPORÁRIO.");return;}
+    if(!invite){setFormError("Cole o link de convite completo da sala.");return;}
     setFormError("");setPending("join");
-    try{if(!await onJoin(invite?.roomId||guestMatch![1],invite?.inviteToken||"",name.trim(),guestMatch?.[2]))setFormError("Não foi possível conectar ao servidor. Confira o convite/código e tente novamente.");}
+    try{if(!await onJoin(invite.roomId,invite.inviteToken,name.trim()))setFormError("Não foi possível conectar ao servidor. Confira o convite e tente novamente.");}
     finally{setPending(null);}
   };
   const selectMode=(next:Mode)=>{setMode(next);setFormError("");};
@@ -78,14 +77,14 @@ export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState
         </div>
         <form className="home-control-body" onSubmit={event=>{event.preventDefault();void(mode==="create"?create():join());}} noValidate>
           <label className="home-field" htmlFor="display-name"><span>SEU NOME</span><div><UserRound/><input id="display-name" value={name} maxLength={20} onChange={event=>{setName(event.target.value);setFormError("");}} placeholder="Como você quer aparecer?" autoComplete="nickname"/></div></label>
-          {mode==="join"&&<label className="home-field room-field" htmlFor="room-code"><span>CONVITE OU CÓDIGO TEMPORÁRIO</span><div><KeyRound/><input id="room-code" value={inviteValue} onChange={event=>{setInviteValue(event.target.value.slice(0,512));setFormError("");}} maxLength={512} placeholder="Link privado ou ABCD2345 X7Y8Z9" autoComplete="off"/></div></label>}
+          {mode==="join"&&<label className="home-field room-field" htmlFor="room-code"><span>LINK DE CONVITE</span><div><Link2/><input id="room-code" value={inviteValue} onChange={event=>{setInviteValue(event.target.value.slice(0,512));setFormError("");}} maxLength={512} placeholder="Cole o link privado da sala" autoComplete="off"/></div></label>}
           {formError&&<p className="home-form-error" role="alert">{formError}</p>}
           <button type="submit" className={"home-primary-cta "+(waking?"loading":"")} disabled={!!pending}>
             <span className="cta-leading">{waking?<Server/>:mode==="create"?<MonitorUp/>:<Users/>}</span>
             <span>{waking?"Acordando servidor…":mode==="create"?"Criar sala e começar a transmitir":"Entrar na sala"}</span>
             <ArrowRight className="cta-arrow"/>
           </button>
-          <p className="home-control-hint">{mode==="create"?"A sala será criada e você poderá compartilhar sua tela quando estiver pronto.":"Use o link privado ou o código temporário de 6 caracteres gerado pelo anfitrião."}</p>
+          <p className="home-control-hint">{mode==="create"?"A sala será criada e você poderá compartilhar sua tela quando estiver pronto.":"Use o link privado enviado pelo anfitrião para entrar na sala."}</p>
           <div className={"backend-state "+backendState} role={backendState==="error"?"alert":"status"}>
             <span className="backend-state-dot"/>
             <div><strong>{backendState==="ready"?"Servidor disponível":backendState==="error"?"Não foi possível conectar":"Preparando servidor"}</strong><small>{backendMessage}</small></div>

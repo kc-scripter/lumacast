@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Check, Clipboard, Copy, Expand, KeyRound, Lock, LogOut, Maximize2, MonitorUp, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Check, Clipboard, Copy, Expand, Lock, LogOut, Maximize2, MonitorUp, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
@@ -25,7 +25,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
   const [expandedCameraId,setExpandedCameraId]=useState<string|null>(null);
   const [shareDialog,setShareDialog]=useState<"start"|"switch"|null>(null);
   const [shareBusy,setShareBusy]=useState(false);
-  const [guestCode,setGuestCode]=useState<string|null>(null);
+  const [lockBusy,setLockBusy]=useState(false);
   const stageRef=useRef<HTMLDivElement>(null);
 
   useAdaptiveScreenQuality({
@@ -130,12 +130,12 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     if(!token)return;
     setCopied(false);
   };
-  const renewGuestCode=async()=>{const code=await room.rotateGuestCode();if(code)setGuestCode(code);};
-  const copyGuestCode=async()=>{
-    if(!guestCode)return;
-    try{await copyText(`${roomCode} ${guestCode}`);setCopied(true);setTimeout(()=>setCopied(false),1600);}catch{room.setError("Não foi possível copiar o código temporário.");}
+  const toggleRoomLock=async()=>{
+    if(lockBusy||!room.roomId)return;
+    setLockBusy(true);
+    try{await room.setRoomLocked(!room.roomState.locked);}
+    finally{setLockBusy(false);}
   };
-  const disableGuestCode=async()=>{if(await room.disableGuestCode())setGuestCode(null);};
 
   const leaveAndBack=()=>{
     if(!owner&&room.roomId)connectSocket().emit("leave-room",{roomId:room.roomId});
@@ -158,7 +158,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
       </div>
       <div className="room-v2-header-right">
         <span className="room-v2-people"><Users/>{room.roomState.participants.length} {room.roomState.participants.length===1?"participante":"participantes"}</span>
-        {owner&&<button type="button" className={"room-v2-security "+(room.roomState.locked?"locked":"")} title={room.roomState.locked?"Permitir novas entradas":"Bloquear novas entradas"} onClick={()=>void room.setRoomLocked(!room.roomState.locked)}>{room.roomState.locked?<Lock/>:<Unlock/>}{room.roomState.locked?"Sala trancada":"Trancar sala"}</button>}
+        {owner&&<button type="button" className={"room-v2-security "+(room.roomState.locked?"locked":"")} disabled={lockBusy||reconnecting||missing||!room.roomId} title={room.roomState.locked?"Permitir novas entradas":"Bloquear novas entradas"} onClick={()=>void toggleRoomLock()}>{room.roomState.locked?<Lock/>:<Unlock/>}{lockBusy?"Salvando…":room.roomState.locked?"Sala trancada":"Trancar sala"}</button>}
         {owner&&<button type="button" className="room-v2-security icon-only" title="Invalidar o convite atual e gerar outro" aria-label="Gerar novo convite temporário" onClick={()=>void renewInvite()}><RefreshCw/></button>}
         {owner&&<button type="button" className="room-v2-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>}
       </div>
@@ -217,13 +217,6 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
             </button>)}</div>
             :<div className="room-v2-camera-empty"><VideoOff/><strong>Nenhuma câmera ativa</strong><small>As câmeras ligadas aparecem aqui.</small></div>}
         </section>
-
-        {owner&&<section className="room-v2-security-panel">
-          <div className="room-v2-security-title"><span><KeyRound/>ACESSO TEMPORÁRIO</span><small>{room.roomState.guestCodeEnabled?"Ativo":"Desativado"}</small></div>
-          {guestCode
-            ?<><div className="room-v2-guest-code"><span>{roomCode}</span><b>{guestCode}</b><button type="button" aria-label="Copiar código temporário" onClick={()=>void copyGuestCode()}>{copied?<Check/>:<Copy/>}</button></div><div className="room-v2-security-actions"><button type="button" onClick={()=>void renewGuestCode()}><RefreshCw/>Renovar</button><button type="button" onClick={()=>void disableGuestCode()}><X/>Desativar</button></div></>
-            :<button type="button" className="room-v2-generate-code" onClick={()=>void renewGuestCode()}><KeyRound/>Gerar código temporário</button>}
-        </section>}
 
         {owner&&room.roomState.participants.length<=1&&<section className="room-v2-invite-panel">
           <Users/>

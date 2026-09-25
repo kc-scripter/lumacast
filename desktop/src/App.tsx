@@ -54,11 +54,11 @@ export function App(){
     return true;
   };
 
-  const joinRoom=async(roomId:string,inviteToken:string,name:string,guestCode?:string)=>{
+  const joinRoom=async(roomId:string,inviteToken:string,name:string)=>{
     if(!await ensureBackend())return false;
     safeSessionSet("lumacast-display-name",name);
     if(inviteToken)safeSessionSet("lumacast-invite-"+roomId,inviteToken);else safeSessionRemove("lumacast-invite-"+roomId);
-    if(guestCode)safeSessionSet("lumacast-guest-"+roomId,guestCode);else safeSessionRemove("lumacast-guest-"+roomId);
+    safeSessionRemove("lumacast-guest-"+roomId);
     safeSessionRemove("lumacast-participant-"+roomId);
     setRoute({type:"room",owner:false,roomId,inviteToken});
     return true;

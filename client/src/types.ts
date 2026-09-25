@@ -9,7 +9,7 @@ export interface AgoraCredentials { agoraAppId:string; agoraChannel:string; agor
 export interface TokenAck { ok:boolean; agoraToken?:string; error?:string; }
 export type ScreenProvider="agora"|"livekit";
 export interface RoomParticipant { id:string; displayName:string; role?:"owner"|"participant"; }
-export interface RoomState {live:boolean;count:number;activeScreenSharerId:string|null;activeScreenUid:number|null;activeScreenSharerName:string|null;screenProvider:ScreenProvider;livekitActive:boolean;ownerName:string;locked?:boolean;guestCodeEnabled?:boolean;participants:RoomParticipant[];}
+export interface RoomState {live:boolean;count:number;activeScreenSharerId:string|null;activeScreenUid:number|null;activeScreenSharerName:string|null;screenProvider:ScreenProvider;livekitActive:boolean;ownerName:string;locked?:boolean;participants:RoomParticipant[];}
 export interface RoomAck extends Partial<AgoraCredentials>,Partial<RoomState> { ok:boolean; roomId?:string; ownerToken?:string; broadcasterToken?:string; inviteToken?:string; participantToken?:string; error?:string; viewers?:number; }
 export interface JoinAck extends Partial<AgoraCredentials>,Partial<RoomState> { ok:boolean; participantToken?:string; error?:string; }
 

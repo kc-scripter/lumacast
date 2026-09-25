@@ -116,33 +116,15 @@ try{
   const oldInviteViewer=await connectAuthorized();controlSockets.push(oldInviteViewer);
   const oldInviteJoin=await ack(oldInviteViewer,"join-room",{roomId:created.roomId,inviteToken:created.inviteToken,displayName:"Old Invite"});
   assert.equal(oldInviteJoin.ok,false);
-  assert.match(oldInviteJoin.error,/convite|código/i);
+  assert.match(oldInviteJoin.error,/convite/i);
   const newInviteViewer=await connectAuthorized();controlSockets.push(newInviteViewer);
   const newInviteJoin=await ack(newInviteViewer,"join-room",{roomId:created.roomId,inviteToken:rotated.inviteToken,displayName:"New Invite"});
   assert.equal(newInviteJoin.ok,true);
 
-  const guest1=await ack(controlHost,"rotate-room-guest-code",{roomId:created.roomId});
-  assert.equal(guest1.ok,true);
-  assert.match(guest1.guestCode,/^[A-Z2-9]{6}$/);
-  const guestViewer=await connectAuthorized();controlSockets.push(guestViewer);
-  const guestJoin=await ack(guestViewer,"join-room",{roomId:created.roomId,guestCode:guest1.guestCode,displayName:"Guest Code"});
-  assert.equal(guestJoin.ok,true);
-
-  const guest2=await ack(controlHost,"rotate-room-guest-code",{roomId:created.roomId});
-  assert.equal(guest2.ok,true);
-  assert.match(guest2.guestCode,/^[A-Z2-9]{6}$/);
-  assert.notEqual(guest2.guestCode,guest1.guestCode);
-  const staleGuestViewer=await connectAuthorized();controlSockets.push(staleGuestViewer);
-  const staleGuestJoin=await ack(staleGuestViewer,"join-room",{roomId:created.roomId,guestCode:guest1.guestCode,displayName:"Stale Code"});
-  assert.equal(staleGuestJoin.ok,false);
-  const currentGuestViewer=await connectAuthorized();controlSockets.push(currentGuestViewer);
-  const currentGuestJoin=await ack(currentGuestViewer,"join-room",{roomId:created.roomId,guestCode:guest2.guestCode,displayName:"Current Code"});
-  assert.equal(currentGuestJoin.ok,true);
-  const disabled=await ack(controlHost,"disable-room-guest-code",{roomId:created.roomId});
-  assert.equal(disabled.ok,true);
-  const disabledGuestViewer=await connectAuthorized();controlSockets.push(disabledGuestViewer);
-  const disabledGuestJoin=await ack(disabledGuestViewer,"join-room",{roomId:created.roomId,guestCode:guest2.guestCode,displayName:"Disabled Code"});
-  assert.equal(disabledGuestJoin.ok,false);
+  const guestCodeViewer=await connectAuthorized();controlSockets.push(guestCodeViewer);
+  const guestCodeJoin=await ack(guestCodeViewer,"join-room",{roomId:created.roomId,guestCode:"ABC234",displayName:"Guest Code"});
+  assert.equal(guestCodeJoin.ok,false);
+  assert.match(guestCodeJoin.error,/convite/i);
 
   const kickedEvent=onceEvent(controlViewer,"kicked");
   const kicked=await ack(controlHost,"kick-participant",{roomId:created.roomId,participantId:controlViewer.id});
@@ -168,4 +150,4 @@ assert.equal("issues" in healthBody,false);
 assert.equal("message" in healthBody,false);
 assert.match(health.headers.get("content-security-policy")||"",/script-src 'self'/);
 
-console.log(JSON.stringify({ok:true,hashedPersistence:true,inviteSecretProtected:true,originRejected:true,originlessRejected:true,tauriOriginAccepted:true,healthRedacted:true,cspPresent:true,displayNameBounded:true,hostControls:true,inviteRotation:true,guestCodeLifecycle:true,kickEnforced:true,telemetryAccepted:true}));
+console.log(JSON.stringify({ok:true,hashedPersistence:true,inviteSecretProtected:true,originRejected:true,originlessRejected:true,tauriOriginAccepted:true,healthRedacted:true,cspPresent:true,displayNameBounded:true,hostControls:true,inviteRotation:true,guestCodeRemoved:true,kickEnforced:true,telemetryAccepted:true}));
