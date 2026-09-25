@@ -46,7 +46,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
   const busy=!!room.roomState.activeScreenSharerId&&!room.ownsScreenLock;
   const starting=!!room.roomState.activeScreenSharerId&&!room.roomState.live;
   const sharer=room.roomState.activeScreenSharerName||room.roomState.ownerName||"Participante";
-  const stageHasVideo=room.roomState.live&&screenPlaying;
+  const stageHasVideo=room.roomState.live&&(screenPlaying||room.isScreenSharer);
 
   const cameraEntries=useMemo(()=>room.cameras.map(camera=>{
     const participant=room.roomState.participants.find(person=>person.id===camera.identity);
@@ -60,8 +60,15 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
   const expandedCamera=cameraEntries.find(camera=>camera.identity===expandedCameraId)||null;
 
   useEffect(()=>{
+    if(!room.roomState.live){setScreenPlaying(false);return;}
+    const element=room.videoRef.current;
+    if(element?.srcObject&&element.readyState>=HTMLMediaElement.HAVE_CURRENT_DATA){
+      setScreenPlaying(true);
+      void element.play().catch(()=>undefined);
+      return;
+    }
     setScreenPlaying(false);
-  },[room.roomState.live,room.roomState.activeScreenSharerId,room.roomState.screenProvider]);
+  },[room.roomState.live,room.roomState.activeScreenSharerId,room.roomState.screenProvider,room.isScreenSharer,room.videoRef]);
 
   useEffect(()=>{
     if(room.status!=="Conectado"||!room.roomId)return;
