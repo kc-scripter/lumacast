@@ -1,5 +1,5 @@
-import { ArrowLeft, BarChart3, Check, Clipboard, Copy, LogOut, Maximize2, MonitorUp, Settings, Square, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, BarChart3, Check, Clipboard, Copy, Expand, KeyRound, Lock, LogOut, Maximize2, MonitorUp, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
 import { useAdaptiveScreenQuality } from "../../../client/src/hooks/useAdaptiveScreenQuality";
@@ -9,16 +9,24 @@ import { connectSocket, getSocket } from "../../../client/src/services/socket";
 import { useCollaborativeRoom } from "../../../client/src/services/useCollaborativeRoom";
 import type { Quality } from "../../../client/src/types";
 import { SettingsDialog } from "../components/SettingsDialog";
+import { DiagnosticsDrawer } from "../components/DiagnosticsDrawer";
+import { ScreenShareDialog } from "../components/ScreenShareDialog";
 import { useDesktopMediaPreferences } from "../hooks/useDesktopMediaPreferences";
+import { rememberRecentRoom } from "../services/recentRooms";
 
 export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInviteToken,onBack}:{owner:boolean;roomId?:string;inviteToken?:string;onBack:()=>void}){
   const room=useCollaborativeRoom(owner,requestedRoomId,requestedInviteToken);
   const {quality,setQuality,fps,setFps}=useDesktopMediaPreferences();
   const [showSettings,setShowSettings]=useState(false);
   const [showStats,setShowStats]=useState(false);
+  const [showDiagnostics,setShowDiagnostics]=useState(false);
   const [copied,setCopied]=useState(false);
   const [screenPlaying,setScreenPlaying]=useState(false);
   const [expandedCameraId,setExpandedCameraId]=useState<string|null>(null);
+  const [shareDialog,setShareDialog]=useState<"start"|"switch"|null>(null);
+  const [shareBusy,setShareBusy]=useState(false);
+  const [guestCode,setGuestCode]=useState<string|null>(null);
+  const stageRef=useRef<HTMLDivElement>(null);
 
   useAdaptiveScreenQuality({
     enabled:quality==="auto"&&room.isScreenSharer&&room.roomState.screenProvider==="agora",
@@ -54,6 +62,11 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
   useEffect(()=>{
     setScreenPlaying(false);
   },[room.roomState.live,room.roomState.activeScreenSharerId,room.roomState.screenProvider]);
+
+  useEffect(()=>{
+    if(room.status!=="Conectado"||!room.roomId)return;
+    rememberRecentRoom({roomId:room.roomId,owner});
+  },[owner,requestedInviteToken,room.inviteToken,room.roomId,room.status]);
 
   useEffect(()=>{
     if(expandedCameraId&&!cameraEntries.some(camera=>camera.identity===expandedCameraId))setExpandedCameraId(null);
@@ -95,6 +108,35 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     if(next!=="auto")await room.updateScreenFrameRate(fps);
   };
 
+  const pickScreen=async()=>{await room.prepareScreen(quality,fps);};
+  const closeShareDialog=()=>{if(shareBusy)return;room.cancelScreenPreview();setShareDialog(null);};
+  const confirmShare=async()=>{
+    if(!shareDialog)return;
+    setShareBusy(true);
+    try{
+      const ok=shareDialog==="switch"?await room.switchPreparedScreen(quality,fps):await room.startScreen(quality,fps);
+      if(ok)setShareDialog(null);
+    }finally{setShareBusy(false);}
+  };
+  const setPreset=(nextQuality:Quality,nextFps:30|60)=>{setQuality(nextQuality);setFps(nextFps);};
+  const toggleFullscreen=async()=>{
+    try{
+      if(document.fullscreenElement)await document.exitFullscreen();
+      else await stageRef.current?.requestFullscreen();
+    }catch{room.setError("Não foi possível abrir a transmissão em tela cheia.");}
+  };
+  const renewInvite=async()=>{
+    const token=await room.rotateInvite();
+    if(!token)return;
+    setCopied(false);
+  };
+  const renewGuestCode=async()=>{const code=await room.rotateGuestCode();if(code)setGuestCode(code);};
+  const copyGuestCode=async()=>{
+    if(!guestCode)return;
+    try{await copyText(`${roomCode} ${guestCode}`);setCopied(true);setTimeout(()=>setCopied(false),1600);}catch{room.setError("Não foi possível copiar o código temporário.");}
+  };
+  const disableGuestCode=async()=>{if(await room.disableGuestCode())setGuestCode(null);};
+
   const leaveAndBack=()=>{
     if(!owner&&room.roomId)connectSocket().emit("leave-room",{roomId:room.roomId});
     onBack();
@@ -116,17 +158,21 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
       </div>
       <div className="room-v2-header-right">
         <span className="room-v2-people"><Users/>{room.roomState.participants.length} {room.roomState.participants.length===1?"participante":"participantes"}</span>
+        {owner&&<button type="button" className={"room-v2-security "+(room.roomState.locked?"locked":"")} title={room.roomState.locked?"Permitir novas entradas":"Bloquear novas entradas"} onClick={()=>void room.setRoomLocked(!room.roomState.locked)}>{room.roomState.locked?<Lock/>:<Unlock/>}{room.roomState.locked?"Sala trancada":"Trancar sala"}</button>}
+        {owner&&<button type="button" className="room-v2-security icon-only" title="Invalidar o convite atual e gerar outro" aria-label="Gerar novo convite temporário" onClick={()=>void renewInvite()}><RefreshCw/></button>}
         {owner&&<button type="button" className="room-v2-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>}
       </div>
     </section>
 
     <section className="room-v2-layout">
-      <section className="room-v2-stage-shell">
+      <section className="room-v2-stage-shell" ref={stageRef}>
         <div className="room-v2-stage-chips">
           <span className="room-v2-stage-label"><MonitorUp/>Tela principal</span>
           <div>
+            {room.isScreenSharer&&<span className="room-v2-you-share"><ShieldCheck/>Você está compartilhando</span>}
             {room.roomState.live&&<span className="room-v2-live-chip"><i/>Ao vivo</span>}
             <span className="room-v2-fps-chip">{room.stats?.fps??fps} FPS</span>
+            <button type="button" className="room-v2-stage-action" aria-label="Tela cheia" title="Tela cheia" onClick={()=>void toggleFullscreen()}><Expand/></button>
           </div>
         </div>
         <div className={"room-v2-stage "+(stageHasVideo?"has-video":"")}>
@@ -135,7 +181,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
             <span className="room-v2-stage-icon"><MonitorUp/></span>
             <h2>{stageTitle}</h2>
             <p>{stageText}</p>
-            {!room.roomState.live&&!starting&&!busy&&<button type="button" className="room-v2-share-primary" disabled={!room.roomId||!canShare||missing} onClick={()=>void room.startScreen(quality,fps)}><MonitorUp/>Compartilhar tela</button>}
+            {!room.roomState.live&&!starting&&!busy&&<button type="button" className="room-v2-share-primary" disabled={!room.roomId||!canShare||missing} onClick={()=>setShareDialog("start")}><MonitorUp/>Escolher tela para compartilhar</button>}
           </div>
         </div>
       </section>
@@ -150,10 +196,12 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
               const camera=cameraEntries.find(item=>item.identity===person.id);
               const sharing=person.id===room.roomState.activeScreenSharerId;
               const mine=person.id===selfId;
+              const isOwner=person.role==="owner"||person.displayName===room.roomState.ownerName;
               return <div className="room-v2-member" key={person.id}>
                 <div className="room-v2-avatar">{person.displayName.slice(0,1).toUpperCase()}<i className={camera?"online":""}/></div>
-                <div className="room-v2-member-copy"><strong>{person.displayName}</strong><small>{mine?"Você":sharing?"Compartilhando":"Na sala"}</small></div>
+                <div className="room-v2-member-copy"><strong>{person.displayName}{isOwner&&<em>HOST</em>}</strong><small>{mine?"Você":sharing?"Compartilhando":"Na sala"}</small></div>
                 <span className={"room-v2-camera-state "+(camera?"on":"")} title={camera?"Câmera ativa":"Câmera desligada"}>{camera?<Video/>:<VideoOff/>}</span>
+                {owner&&!mine&&!isOwner&&<button type="button" className="room-v2-kick" title={"Remover "+person.displayName} aria-label={"Remover "+person.displayName} onClick={()=>void room.kickParticipant(person.id)}><UserX/></button>}
               </div>;
             })}
           </div>
@@ -170,6 +218,13 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
             :<div className="room-v2-camera-empty"><VideoOff/><strong>Nenhuma câmera ativa</strong><small>As câmeras ligadas aparecem aqui.</small></div>}
         </section>
 
+        {owner&&<section className="room-v2-security-panel">
+          <div className="room-v2-security-title"><span><KeyRound/>ACESSO TEMPORÁRIO</span><small>{room.roomState.guestCodeEnabled?"Ativo":"Desativado"}</small></div>
+          {guestCode
+            ?<><div className="room-v2-guest-code"><span>{roomCode}</span><b>{guestCode}</b><button type="button" aria-label="Copiar código temporário" onClick={()=>void copyGuestCode()}>{copied?<Check/>:<Copy/>}</button></div><div className="room-v2-security-actions"><button type="button" onClick={()=>void renewGuestCode()}><RefreshCw/>Renovar</button><button type="button" onClick={()=>void disableGuestCode()}><X/>Desativar</button></div></>
+            :<button type="button" className="room-v2-generate-code" onClick={()=>void renewGuestCode()}><KeyRound/>Gerar código temporário</button>}
+        </section>}
+
         {owner&&room.roomState.participants.length<=1&&<section className="room-v2-invite-panel">
           <Users/>
           <strong>Ninguém convidado ainda</strong>
@@ -182,12 +237,13 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
 
     <div className="room-v2-toolbar" aria-label="Controles da sala">
       {room.isScreenSharer
-        ?<button type="button" className="room-v2-tool active share" title="Parar compartilhamento" aria-pressed="true" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button>
-        :<button type="button" className="room-v2-tool share" title={busy?"Outra pessoa está compartilhando":"Compartilhar tela"} disabled={busy||!canShare||!room.roomId||missing} onClick={()=>void room.startScreen(quality,fps)}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
+        ?<><button type="button" className="room-v2-tool active share" title="Parar compartilhamento" aria-pressed="true" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button><button type="button" className="room-v2-tool" title="Trocar tela ou janela sem sair da sala" onClick={()=>setShareDialog("switch")}><RefreshCw/><span>Trocar fonte</span></button></>
+        :<button type="button" className="room-v2-tool share" title={busy?"Outra pessoa está compartilhando":"Compartilhar tela"} disabled={busy||!canShare||!room.roomId||missing} onClick={()=>setShareDialog("start")}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
       <span className="room-v2-tool-divider"/>
       {room.isScreenSharer&&<button type="button" className={"room-v2-tool "+(room.muted?"":"active")} title={room.muted?"Ativar áudio da tela":"Silenciar áudio da tela"} aria-pressed={!room.muted} onClick={()=>void room.toggleScreenAudio()}>{room.muted?<VolumeX/>:<Volume2/>}<span>{room.muted?"Áudio off":"Áudio da tela"}</span></button>}
       <button type="button" className={"room-v2-tool "+(room.cameraOn?"active":"")} title={room.cameraOn?"Desativar câmera":"Ativar câmera"} aria-pressed={room.cameraOn} disabled={!room.roomId||missing||reconnecting} onClick={()=>void room.toggleCamera()}>{room.cameraOn?<Video/>:<VideoOff/>}<span>Câmera</span></button>
       <button type="button" className={"room-v2-tool "+(showStats?"active":"")} title="Estatísticas da transmissão" aria-pressed={showStats} onClick={()=>setShowStats(value=>!value)}><BarChart3/><span>Estatísticas</span></button>
+      <button type="button" className={"room-v2-tool "+(showDiagnostics?"active":"")} title="Diagnóstico e recuperação" aria-pressed={showDiagnostics} onClick={()=>setShowDiagnostics(true)}><Wrench/><span>Diagnóstico</span></button>
       <button type="button" className="room-v2-tool" title="Configurações" onClick={()=>setShowSettings(true)}><Settings/><span>Configurações</span></button>
       <span className="room-v2-tool-divider"/>
       <button type="button" className="room-v2-tool leave" title="Sair da sala" onClick={leaveAndBack}><LogOut/><span>Sair da sala</span></button>
@@ -202,6 +258,9 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
 
     {showSettings&&<SettingsDialog onClose={()=>setShowSettings(false)} quality={quality} setQuality={setQuality} fps={fps} setFps={setFps} cameraPreset={room.cameraPreset} setCameraPreset={room.setCameraPreset} sharing={room.isScreenSharer} onApplyQuality={value=>void applyQuality(value)} onApplyFps={value=>void room.updateScreenFrameRate(value)}/>}
     {showStats&&<StatsDrawer title="Estatísticas da transmissão" stats={room.stats} onClose={()=>setShowStats(false)}/>}
+    {showDiagnostics&&<DiagnosticsDrawer onClose={()=>setShowDiagnostics(false)} onRecover={room.recoverMedia} recovering={room.recovering} status={room.status} provider={room.roomState.screenProvider} roomId={room.roomId} live={room.roomState.live} stats={room.stats} cameraCount={cameraEntries.length} participantCount={room.roomState.participants.length}/>}
+    {shareDialog&&<ScreenShareDialog mode={shareDialog} stream={room.previewStream} quality={quality} fps={fps} onPreset={setPreset} onPick={pickScreen} onConfirm={confirmShare} onCancel={closeShareDialog} busy={shareBusy}/>}
+    {room.kicked&&<div className="desktop-toast error persistent" role="alert"><UserX/><span>Você foi removido desta sala pelo anfitrião.</span><button type="button" onClick={leaveAndBack}>Voltar</button></div>}
     {room.error&&<div className="desktop-toast error" role="alert"><WifiOff/><span>{room.error}</span><button type="button" aria-label="Fechar aviso" onClick={()=>room.setError("")}>×</button></div>}
   </main>;
 }

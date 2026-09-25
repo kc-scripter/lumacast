@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { safeSessionRemove, safeSessionSet } from "../../client/src/services/browser";
+import { safeSessionGet, safeSessionRemove, safeSessionSet } from "../../client/src/services/browser";
 import { AmbientBackground } from "./components/AmbientBackground";
 import { HowItWorksDialog } from "./components/HowItWorksDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
@@ -54,12 +54,24 @@ export function App(){
     return true;
   };
 
-  const joinRoom=async(roomId:string,inviteToken:string,name:string)=>{
+  const joinRoom=async(roomId:string,inviteToken:string,name:string,guestCode?:string)=>{
     if(!await ensureBackend())return false;
     safeSessionSet("lumacast-display-name",name);
-    safeSessionSet("lumacast-invite-"+roomId,inviteToken);
+    if(inviteToken)safeSessionSet("lumacast-invite-"+roomId,inviteToken);else safeSessionRemove("lumacast-invite-"+roomId);
+    if(guestCode)safeSessionSet("lumacast-guest-"+roomId,guestCode);else safeSessionRemove("lumacast-guest-"+roomId);
     safeSessionRemove("lumacast-participant-"+roomId);
     setRoute({type:"room",owner:false,roomId,inviteToken});
+    return true;
+  };
+
+  const resumeRoom=async(roomId:string,owner:boolean,name:string)=>{
+    if(!await ensureBackend())return false;
+    if(owner){
+      const saved=safeSessionGet("lumacast-broadcaster");
+      try{if(!saved||(JSON.parse(saved) as {roomId?:string}).roomId!==roomId)return false;}catch{return false;}
+    }else if(!safeSessionGet("lumacast-participant-"+roomId))return false;
+    if(name.trim())safeSessionSet("lumacast-display-name",name.trim());
+    setRoute({type:"room",owner,roomId});
     return true;
   };
 
@@ -72,7 +84,7 @@ export function App(){
       {route.type==="home"
         ?entryScreen==="welcome"
           ?<WelcomePage onStart={()=>setEntryScreen("home")} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)}/>
-          :<HomePage onCreate={createRoom} onJoin={joinRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)} onBack={()=>setEntryScreen("welcome")}/>
+          :<HomePage onCreate={createRoom} onJoin={joinRoom} onResume={resumeRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)} onBack={()=>setEntryScreen("welcome")}/>
         :<RoomPage owner={route.owner} roomId={route.roomId} inviteToken={route.inviteToken} onBack={()=>setRoute({type:"home"})}/>}
     </div>
     {howOpen&&<HowItWorksDialog onClose={()=>setHowOpen(false)}/>}

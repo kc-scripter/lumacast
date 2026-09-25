@@ -7,6 +7,8 @@ const rootDir=fileURLToPath(new URL(".",import.meta.url));
 
 export default defineConfig(({mode})=>{
   const env=loadEnv(mode,rootDir,"");
+  const signalingUrl=process.env.VITE_SIGNALING_URL?.trim()||env.VITE_SIGNALING_URL||"https://lunirascreen.onrender.com";
+  const publicWebUrl=process.env.VITE_PUBLIC_WEB_URL?.trim()||env.VITE_PUBLIC_WEB_URL||"https://lunirascreen.onrender.com";
   return {
     root:rootDir,
     base:"./",
@@ -15,8 +17,8 @@ export default defineConfig(({mode})=>{
       dedupe:["react","react-dom"]
     },
     define:{
-      "import.meta.env.VITE_SIGNALING_URL":JSON.stringify(env.VITE_SIGNALING_URL||"https://lunirascreen.onrender.com"),
-      "import.meta.env.VITE_PUBLIC_WEB_URL":JSON.stringify(env.VITE_PUBLIC_WEB_URL||"https://lunirascreen.onrender.com")
+      "import.meta.env.VITE_SIGNALING_URL":JSON.stringify(signalingUrl),
+      "import.meta.env.VITE_PUBLIC_WEB_URL":JSON.stringify(publicWebUrl)
     },
     server:{
       host:"127.0.0.1",

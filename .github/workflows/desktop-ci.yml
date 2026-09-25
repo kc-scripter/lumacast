@@ -10,6 +10,8 @@ on:
       - "client/src/components/**"
       - "client/src/types.ts"
       - "tests/desktop-cross-platform-smoke.mjs"
+      - "tests/security-smoke.mjs"
+      - "tests/signaling-degraded-smoke.mjs"
       - "tests/desktop-visual-smoke.mjs"
       - ".github/workflows/desktop-ci.yml"
   pull_request:
@@ -21,6 +23,8 @@ on:
       - "client/src/components/**"
       - "client/src/types.ts"
       - "tests/desktop-cross-platform-smoke.mjs"
+      - "tests/security-smoke.mjs"
+      - "tests/signaling-degraded-smoke.mjs"
       - "tests/desktop-visual-smoke.mjs"
       - ".github/workflows/desktop-ci.yml"
   workflow_dispatch:
@@ -71,6 +75,20 @@ jobs:
           done
           curl --fail --silent http://localhost:3001/api/health
           node tests/desktop-cross-platform-smoke.mjs
+          node tests/security-smoke.mjs
+      - name: Verify signaling fallback without RTC credentials
+        shell: bash
+        run: |
+          unset AGORA_APP_ID AGORA_APP_CERTIFICATE LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET
+          PORT=3002 node server/dist/server.js > /tmp/lunira-degraded-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true; cat /tmp/lunira-degraded-server.log' EXIT
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:3002/api/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:3002/api/health
+          TEST_SIGNALING_URL=http://localhost:3002 node tests/signaling-degraded-smoke.mjs
 
   windows-build:
     runs-on: windows-latest
