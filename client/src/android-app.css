@@ -1,0 +1,324 @@
+/* Lunira Screen Android shell.
+   Loaded by every build, but scoped to html.android-app so the website remains unchanged. */
+html.android-app{
+  color-scheme:dark;
+  background:#07080d;
+  --android-accent:#8d6cff;
+  --android-accent-2:#b680ff;
+  --android-surface:#0e1017;
+  --android-surface-2:#141722;
+  --android-border:#292d3a;
+}
+html.android-app body{
+  background:#07080d;
+  overscroll-behavior:none;
+  -webkit-tap-highlight-color:transparent;
+}
+html.android-app button,
+html.android-app a,
+html.android-app input,
+html.android-app select{
+  touch-action:manipulation;
+}
+html.android-app .home-shell{
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  padding:
+    max(12px,var(--lc-safe-top,0px))
+    max(18px,var(--lc-safe-right,0px))
+    max(14px,var(--lc-safe-bottom,0px))
+    max(18px,var(--lc-safe-left,0px));
+  background:
+    radial-gradient(circle at 82% 12%,rgba(141,108,255,.16),transparent 31%),
+    radial-gradient(circle at 4% 72%,rgba(79,209,171,.08),transparent 34%),
+    linear-gradient(180deg,#0a0b11 0%,#07080d 62%,#090a10 100%);
+}
+html.android-app .home-ambient{opacity:.45}
+html.android-app .home-nav{
+  min-height:62px;
+  height:auto;
+  width:100%;
+  max-width:620px;
+  margin:0 auto;
+}
+html.android-app .home-nav-links>a{
+  border:1px solid #292d39;
+  background:rgba(18,20,29,.84);
+  backdrop-filter:blur(18px);
+}
+html.android-app .home-nav .secure-note{display:none}
+html.android-app .home-content{
+  width:100%;
+  max-width:620px;
+  min-height:0;
+  margin:auto;
+  padding:26px 0 18px;
+  justify-content:center;
+}
+html.android-app .home-content .eyebrow{
+  color:#bcaeff;
+  letter-spacing:.16em;
+}
+html.android-app .home-content h1{
+  max-width:560px;
+  margin:18px 0 16px;
+  font-size:clamp(42px,11.5vw,62px);
+  line-height:.98;
+  letter-spacing:-.055em;
+}
+html.android-app .home-content h1 em{
+  background:linear-gradient(105deg,#9f7cff,#c384ff 52%,#ed9dcc);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+html.android-app .home-content .lede{
+  max-width:500px;
+  margin-bottom:26px;
+  color:#a6aabb;
+  font-size:14px;
+  line-height:1.62;
+}
+html.android-app .home-lede-break{display:none}
+html.android-app .home-action-stack{
+  width:100%;
+  max-width:560px;
+  gap:11px;
+}
+html.android-app .home-primary-action,
+html.android-app .home-viewer-toggle{
+  min-height:86px;
+  border-radius:20px;
+  padding:15px 16px;
+  box-shadow:none;
+}
+html.android-app .home-primary-action{
+  border:1px solid #9a80ff;
+  background:linear-gradient(130deg,#7654f4 0%,#6240dd 56%,#873cb2 118%);
+  box-shadow:0 16px 42px rgba(90,59,209,.22);
+}
+html.android-app .home-viewer-action{
+  overflow:hidden;
+  border:1px solid #292d39;
+  border-radius:20px;
+  background:rgba(15,17,25,.9);
+}
+html.android-app .home-viewer-toggle{
+  border:0;
+  background:transparent;
+}
+html.android-app .home-action-icon{
+  width:46px;
+  height:46px;
+  border-radius:14px;
+}
+html.android-app .home-action-copy strong{font-size:15px}
+html.android-app .home-action-copy small{
+  margin-top:4px;
+  font-size:10px;
+  line-height:1.35;
+}
+html.android-app .home-viewer-form{
+  margin:0 14px 14px;
+}
+html.android-app .home-viewer-form input{
+  min-height:52px;
+  border-radius:13px;
+  background:#0c0e15;
+}
+html.android-app .home-viewer-form button{
+  width:50px;
+  min-height:50px;
+  border-radius:12px;
+}
+html.android-app .benefit-row{
+  width:100%;
+  max-width:560px;
+  margin-top:22px;
+  gap:10px;
+}
+html.android-app .benefit-row span{
+  border:0;
+  padding:0;
+  color:#7d8293;
+  font-size:9px;
+}
+html.android-app .home-visual-zone{display:none!important}
+html.android-app .home-shell>footer{
+  width:100%;
+  max-width:620px;
+  margin:0 auto;
+  padding:13px 0 max(4px,var(--lc-safe-bottom,0px));
+  border-top:1px solid rgba(255,255,255,.05);
+  color:#626777;
+  font-size:9px;
+}
+html.android-app .name-modal{
+  backdrop-filter:blur(14px);
+  background:rgba(5,6,10,.82);
+}
+html.android-app .name-modal form{
+  width:min(100%,430px);
+  border:1px solid #343044;
+  border-radius:24px;
+  background:linear-gradient(180deg,#141620,#0e1017);
+  box-shadow:0 28px 90px rgba(0,0,0,.48);
+}
+
+/* Native-room chrome */
+html.android-app .studio-shell,
+html.android-app .viewer-shell{
+  background:
+    radial-gradient(circle at 70% 0,rgba(141,108,255,.08),transparent 28%),
+    #08090e;
+}
+html.android-app .studio-shell>.room-v2-nav,
+html.android-app .viewer-shell>.room-v2-nav{
+  flex-basis:calc(58px + var(--lc-safe-top,0px));
+  min-height:calc(58px + var(--lc-safe-top,0px));
+  height:calc(58px + var(--lc-safe-top,0px));
+  padding-top:var(--lc-safe-top,0px);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  background:rgba(9,10,15,.92);
+  backdrop-filter:blur(18px);
+}
+html.android-app .room-self-avatar{
+  border-radius:50%;
+  border-color:#51436f;
+  background:#211a32;
+}
+html.android-app .screen-stage-frame{
+  border-color:#252936;
+  border-radius:18px;
+  background:#0d0f16;
+  box-shadow:0 16px 48px rgba(0,0,0,.22);
+}
+html.android-app .screen-stage-toolbar{
+  border-bottom-color:#20232e;
+  background:#10121a;
+}
+html.android-app .screen-stage-media{background:#090a0f}
+html.android-app .screen-stage-frame .broadcast-screen,
+html.android-app .screen-stage-frame .video-stage{
+  border-color:#20242f;
+  border-radius:14px;
+  background:#06070a;
+}
+html.android-app .screen-stage-frame .broadcast-screen.has-video,
+html.android-app .screen-stage-frame .video-stage.has-video{
+  border-color:#376e63;
+}
+html.android-app .screen-stage-meta{
+  border-top:1px solid #1e212b;
+  background:#0f1118;
+}
+html.android-app .screen-focus-button{
+  border-radius:12px;
+  background:#151821;
+}
+html.android-app .room-v2-layout .side-card{
+  border-color:#252936;
+  border-radius:16px;
+  background:#10121a;
+}
+html.android-app .room-v2-layout .settings-card label:nth-of-type(1),
+html.android-app .room-v2-layout .settings-card label:nth-of-type(2){
+  display:none;
+}
+html.android-app .viewer-share-options{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+html.android-app .viewer-share-options>select:nth-of-type(2),
+html.android-app .viewer-share-options>button{
+  display:none!important;
+}
+html.android-app .go-live:disabled{
+  display:none!important;
+}
+html.android-app .control-dock button{
+  border-radius:13px;
+}
+html.android-app .control-dock .control{
+  background:#151821;
+}
+html.android-app .stats-drawer,
+html.android-app .viewer-stats{
+  border-radius:22px;
+  background:#11131b;
+  box-shadow:0 22px 70px rgba(0,0,0,.46);
+}
+
+@media(max-width:760px){
+  html.android-app .home-nav-links>a{
+    min-height:38px;
+    padding:0 12px;
+    border-radius:12px;
+    font-size:10px;
+  }
+  html.android-app .home-content{
+    padding-top:18px;
+    padding-bottom:14px;
+  }
+  html.android-app .benefit-row{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:7px;
+  }
+  html.android-app .studio-main.room-v2-layout,
+  html.android-app .watch-area.room-v2-layout{
+    gap:8px!important;
+    padding:
+      8px max(9px,var(--lc-safe-right,0px))
+      max(9px,var(--lc-safe-bottom,0px))
+      max(9px,var(--lc-safe-left,0px))!important;
+  }
+  html.android-app .room-v2-layout .studio-side{
+    max-height:188px;
+  }
+  html.android-app .room-v2-layout .settings-card{
+    min-height:72px;
+  }
+  html.android-app .room-v2-layout .studio-controls-card .side-controls{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  html.android-app .room-v2-layout .studio-controls-card .side-controls button,
+  html.android-app .viewer-shell .collaborative-controls button{
+    min-height:42px;
+    height:42px;
+    font-size:10px;
+  }
+  html.android-app .viewer-shell .collaborative-controls{
+    grid-template-columns:1fr;
+  }
+  html.android-app .viewer-share-options>select:first-child{
+    min-height:42px;
+    height:42px;
+    border-radius:12px;
+  }
+}
+
+@media(max-width:390px){
+  html.android-app .home-shell{
+    padding-left:max(14px,var(--lc-safe-left,0px));
+    padding-right:max(14px,var(--lc-safe-right,0px));
+  }
+  html.android-app .home-content h1{font-size:40px}
+  html.android-app .home-primary-action,
+  html.android-app .home-viewer-toggle{min-height:80px}
+  html.android-app .home-shell>footer span{display:none}
+  html.android-app .screen-stage-meta{display:none}
+  html.android-app .room-v2-layout .studio-side{max-height:174px}
+}
+
+@media(max-width:900px) and (max-height:560px) and (orientation:landscape){
+  html.android-app .studio-shell>.room-v2-nav,
+  html.android-app .viewer-shell>.room-v2-nav{
+    flex-basis:calc(50px + var(--lc-safe-top,0px));
+    min-height:calc(50px + var(--lc-safe-top,0px));
+    height:calc(50px + var(--lc-safe-top,0px));
+  }
+  html.android-app .room-v2-layout .studio-side{display:none!important}
+  html.android-app .screen-stage-toolbar{min-height:44px}
+  html.android-app .screen-stage-meta{display:none}
+}
