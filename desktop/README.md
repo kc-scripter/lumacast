@@ -28,12 +28,12 @@ Na raiz do repositório instale as dependências web uma vez com npm ci. Depois,
 
 No Windows, dentro de desktop/, execute npm run tauri:build. O instalador NSIS é gerado em desktop/src-tauri/target/release/bundle/nsis/.
 
-O endpoint público padrão de signaling é https://lunira-screen.onrender.com. Segredos Agora/LiveKit permanecem exclusivamente no servidor.
+O endpoint público padrão de signaling é https://lunirascreen.onrender.com. Segredos Agora/LiveKit permanecem exclusivamente no servidor.
 
 
 ## Versionamento do desktop
 
-A versão atual é `0.1.8`.
+A versão atual é `0.1.9`.
 
 Regra de release: cada atualização distribuível do app incrementa o último número da versão (`0.1.1` → `0.1.2` → `0.1.3`).
 
@@ -51,4 +51,4 @@ O desktop chama `/api/wake` ao abrir para iniciar o Web Service Free do Render. 
 
 ## Tela de boas-vindas
 
-A v0.1.8 abre em uma tela introdutória com os recursos reais do Lunira Screen. O botão "Começar agora" leva à segunda etapa, onde o usuário escolhe criar uma sala ou entrar por código. Ao sair de uma sala, o app volta para a etapa de criar/entrar, sem repetir a introdução durante a mesma execução.
+A v0.1.9 abre em uma tela introdutória com os recursos reais do Lunira Screen. O botão "Começar agora" leva à segunda etapa, onde o usuário escolhe criar uma sala ou entrar por código. Ao sair de uma sala, o app volta para a etapa de criar/entrar, sem repetir a introdução durante a mesma execução.

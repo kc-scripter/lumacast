@@ -12,8 +12,8 @@ export default defineConfig(({mode})=>{
     base:"./",
     plugins:[react()],
     define:{
-      "import.meta.env.VITE_SIGNALING_URL":JSON.stringify(env.VITE_SIGNALING_URL||"https://lunira-screen.onrender.com"),
-      "import.meta.env.VITE_PUBLIC_WEB_URL":JSON.stringify(env.VITE_PUBLIC_WEB_URL||"https://lunira-screen.onrender.com")
+      "import.meta.env.VITE_SIGNALING_URL":JSON.stringify(env.VITE_SIGNALING_URL||"https://lunirascreen.onrender.com"),
+      "import.meta.env.VITE_PUBLIC_WEB_URL":JSON.stringify(env.VITE_PUBLIC_WEB_URL||"https://lunirascreen.onrender.com")
     },
     server:{
       host:"127.0.0.1",

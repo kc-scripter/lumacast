@@ -28,7 +28,7 @@ export function RoomPage({owner,roomId:requestedRoomId,onBack}:{owner:boolean;ro
   });
 
   const selfId=getSocket().id||"";
-  const webBase=(import.meta.env.VITE_PUBLIC_WEB_URL||"https://lunira-screen.onrender.com").replace(/\/$/,"");
+  const webBase=(import.meta.env.VITE_PUBLIC_WEB_URL||"https://lunirascreen.onrender.com").replace(/\/$/,"");
   const invite=room.roomId?webBase+"/?room="+encodeURIComponent(room.roomId):"";
   const roomCode=room.roomId||requestedRoomId||"--------";
   const canShare=typeof navigator.mediaDevices?.getDisplayMedia==="function";
