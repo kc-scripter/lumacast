@@ -22,27 +22,26 @@ O desktop começa em Automático + 30 FPS para usar a infraestrutura de mídia d
 
 ## Desenvolvimento
 
-Na raiz do repositório instale as dependências web uma vez com npm ci. Depois, dentro de desktop/, execute npm install e npm run electron:dev.
+Na raiz do repositório instale as dependências web uma vez com npm ci. Depois, dentro de desktop/, execute npm install e npm run tauri:dev.
 
 ## Build Windows
 
-No Windows, dentro de desktop/, execute npm run electron:build. O instalador NSIS é gerado em desktop/release/.
+No Windows, dentro de desktop/, execute npm run tauri:build. O instalador NSIS é gerado em desktop/src-tauri/target/release/bundle/nsis/.
 
 O endpoint público padrão de signaling é https://lunira-screen.onrender.com. Segredos Agora/LiveKit permanecem exclusivamente no servidor.
 
 
 ## Versionamento do desktop
 
-A versão atual é `0.1.5`.
+A versão atual é `0.1.8`.
 
 Regra de release: cada atualização distribuível do app incrementa o último número da versão (`0.1.1` → `0.1.2` → `0.1.3`).
 
 Use `npm run version:next` dentro de `desktop/` para atualizar em conjunto:
 - `desktop/package.json`;
-- `desktop/main.js` e `desktop/preload.js` para a integração Electron;
-- `desktop/src-tauri/` permanece no repositório apenas como implementação legada e referência de versão.
+- `desktop/src-tauri/tauri.conf.json` e `desktop/src-tauri/Cargo.toml` para o instalador Tauri.
 
-O CI valida se as três versões são iguais. O artefato Windows recebe a versão no nome e, depois de um build bem-sucedido, os instaladores desktop antigos do GitHub Actions são apagados automaticamente, deixando somente o mais recente.
+O CI valida se as três versões são iguais e publica o instalador Windows como artefato.
 
 
 ## Cold start do Render
@@ -52,4 +51,4 @@ O desktop chama `/api/wake` ao abrir para iniciar o Web Service Free do Render. 
 
 ## Tela de boas-vindas
 
-A v0.1.5 abre em uma tela introdutória com os recursos reais do Lunira Screen. O botão "Começar agora" leva à segunda etapa, onde o usuário escolhe criar uma sala ou entrar por código. Ao sair de uma sala, o app volta para a etapa de criar/entrar, sem repetir a introdução durante a mesma execução.
+A v0.1.8 abre em uma tela introdutória com os recursos reais do Lunira Screen. O botão "Começar agora" leva à segunda etapa, onde o usuário escolhe criar uma sala ou entrar por código. Ao sair de uma sala, o app volta para a etapa de criar/entrar, sem repetir a introdução durante a mesma execução.

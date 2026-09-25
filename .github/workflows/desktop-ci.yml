@@ -97,29 +97,16 @@ jobs:
       - name: Typecheck desktop
         working-directory: desktop
         run: npm run typecheck
-      - name: Verify Electron capture bridge
-        shell: pwsh
-        run: |
-          $main = Get-Content desktop/main.js -Raw
-          $preload = Get-Content desktop/preload.js -Raw
-          if ($main -notmatch 'desktopCapturer' -or $main -notmatch 'setDisplayMediaRequestHandler' -or $main -notmatch 'loopback') {
-            throw "Electron desktop capture handler is incomplete."
-          }
-          if ($preload -notmatch 'contextBridge' -or $preload -notmatch 'luniraDesktop') {
-            throw "Electron preload bridge is incomplete."
-          }
-      - name: Build desktop frontend
-        working-directory: desktop
-        run: npm run build
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build Windows installer
         working-directory: desktop
-        run: npm run electron:build
+        run: npm run tauri:build
       - name: Upload Windows installer
         id: upload_desktop
         uses: actions/upload-artifact@v6
         with:
           name: lunira-screen-desktop-v${{ steps.desktop_version.outputs.version }}-windows
-          path: desktop/release/*.exe
+          path: desktop/src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -181,37 +168,3 @@ jobs:
           path: /tmp/lunira-visual/*.png
           if-no-files-found: error
           retention-days: 3
-
-  cleanup-old-installers:
-    if: ${{ github.event_name != 'pull_request' && success() }}
-    needs: windows-build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-    steps:
-      - name: Delete older desktop installer artifacts
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prefix = "lunira-screen-desktop-";
-            const { data } = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100
-            });
-            const currentIds = new Set(
-              data.artifacts
-                .filter(a => a.workflow_run?.id === context.runId && a.name.startsWith(prefix))
-                .map(a => a.id)
-            );
-            for (const artifact of data.artifacts) {
-              if (!artifact.name.startsWith(prefix)) continue;
-              if (currentIds.has(artifact.id)) continue;
-              await github.rest.actions.deleteArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: artifact.id
-              });
-              core.info("Deleted old desktop artifact: " + artifact.name + " (" + artifact.id + ")");
-            }

@@ -1,6 +1,6 @@
 {
   "name": "lunira-screen-desktop",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,10 +11,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "version:next": "node scripts/bump-version.mjs",
-    "version:check": "node scripts/check-version.mjs",
-    "electron": "electron .",
-    "electron:dev": "concurrently -k -s first \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:1420 && cross-env LUNIRA_DEV_SERVER_URL=http://127.0.0.1:1420 electron .\"",
-    "electron:build": "tsc --noEmit && vite build && electron-builder --win nsis"
+    "version:check": "node scripts/check-version.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",
@@ -31,43 +28,6 @@
     "@types/react-dom": "19.1.9",
     "@vitejs/plugin-react": "5.0.4",
     "typescript": "5.9.2",
-    "vite": "7.1.7",
-    "concurrently": "^10.0.5",
-    "cross-env": "^10.1.0",
-    "electron": "^44.4.5",
-    "electron-builder": "^26.15.3",
-    "wait-on": "^9.1.0"
-  },
-  "main": "main.js",
-  "build": {
-    "appId": "com.lunira.screen",
-    "productName": "Lunira Screen",
-    "asar": true,
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "main.js",
-      "preload.js",
-      "package.json"
-    ],
-    "win": {
-      "icon": "src-tauri/icons/icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "Lunira-Screen-${version}-x64-setup.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
-    }
+    "vite": "7.1.7"
   }
 }

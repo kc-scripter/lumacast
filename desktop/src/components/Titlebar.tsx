@@ -3,10 +3,6 @@ import { Brand } from "./Brand";
 
 async function windowAction(action:"minimize"|"maximize"|"close"){
   try{
-    if(window.luniraDesktop){
-      await window.luniraDesktop.windowControl(action);
-      return;
-    }
     const {getCurrentWindow}=await import("@tauri-apps/api/window");
     const win=getCurrentWindow();
     if(action==="minimize")await win.minimize();
