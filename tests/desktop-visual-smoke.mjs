@@ -48,7 +48,7 @@ await page.getByRole("button",{name:"Expandir participantes"}).waitFor();
 await page.screenshot({path:output+"/room-sidebar-collapsed.png",fullPage:true});
 await page.getByRole("button",{name:"Expandir participantes"}).click();
 
-await page.getByRole("button",{name:/Compartilhar/i}).click();
+await page.getByRole("button",{name:"Compartilhar",exact:true}).click();
 await page.getByRole("dialog",{name:"Compartilhar tela"}).waitFor();
 await page.getByRole("button",{name:/Escolher tela ou janela/i}).click();
 await page.locator(".screen-picker-preview video").waitFor({state:"visible"});
