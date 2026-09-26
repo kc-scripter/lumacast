@@ -34,14 +34,17 @@ await page.getByText(/Servidor disponível/).first().waitFor({timeout:30000});
 await page.locator("#display-name").fill("Kauã");
 await page.getByRole("button",{name:/Criar sala/i}).click();
 await page.locator(".approved-room-page").waitFor({state:"visible",timeout:15000});
-await page.screenshot({path:output+"/room-collapsed-controls.png",fullPage:true});
-
-const controlsToggle=page.getByRole("button",{name:"Expandir controles"});
-await controlsToggle.click();
-await page.locator(".approved-controls-panel").waitFor({state:"visible"});
+await page.locator(".room-next-toolbar").waitFor({state:"visible"});
 const micCount=await page.getByText(/microfone|microphone/i).count();
 if(micCount!==0)throw new Error("Microphone UI must not exist in the desktop app.");
 await page.screenshot({path:output+"/room-controls-open.png",fullPage:true});
+
+const controlsToggle=page.getByRole("button",{name:"Recolher controles"});
+await controlsToggle.click();
+await page.getByRole("button",{name:"Expandir controles"}).waitFor();
+await page.screenshot({path:output+"/room-controls-collapsed.png",fullPage:true});
+await page.getByRole("button",{name:"Expandir controles"}).click();
+await page.locator(".room-next-toolbar").waitFor({state:"visible"});
 
 await page.getByRole("button",{name:"Recolher participantes"}).click();
 await page.getByRole("button",{name:"Expandir participantes"}).waitFor();
