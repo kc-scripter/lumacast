@@ -306,4 +306,3 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     {room.error&&<div className="desktop-toast error" role="alert"><WifiOff/><span>{room.error}</span><button type="button" aria-label="Fechar aviso" onClick={()=>room.setError("")}>×</button></div>}
   </main>;
 }
-}
