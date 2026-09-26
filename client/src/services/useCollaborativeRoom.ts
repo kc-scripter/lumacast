@@ -21,9 +21,11 @@ const captureConstraints=(quality:Quality,settings:MediaTrackSettings,captureFps
   const size=videoSize(quality,settings);
   return{width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:captureFps,max:captureFps}};
 };
-const cameraPresetConfig=(preset:CameraPreset)=>preset==="480p60"
-  ?{width:854,height:480,fps:60,maxBitrate:1_200_000}
-  :{width:1280,height:720,fps:40,maxBitrate:1_800_000};
+const cameraPresetConfig=(preset:CameraPreset)=>preset==="1080p50"
+  ?{width:1920,height:1080,fps:50,maxBitrate:4_500_000}
+  :preset==="480p60"
+    ?{width:854,height:480,fps:60,maxBitrate:1_200_000}
+    :{width:1280,height:720,fps:40,maxBitrate:1_800_000};
 const cameraCaptureOptions=(preset:CameraPreset):VideoCaptureOptions=>{
   const {width,height,fps}=cameraPresetConfig(preset);
   return{resolution:{width,height},frameRate:{ideal:fps,max:fps}};

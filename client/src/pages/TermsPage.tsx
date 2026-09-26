@@ -27,7 +27,7 @@ const termsSections=[
     title:"2. O que o Lunira Screen oferece",
     body:[
       "O Lunira Screen permite criar salas temporárias para compartilhar tela, câmera e áudio em tempo real pelo navegador. Uma sala pode reunir dono e participantes, e somente uma transmissão de tela fica ativa por vez.",
-      "Resolução, FPS, áudio e disponibilidade de recursos dependem também do navegador, sistema operacional, dispositivo, hardware e conexão. Perfis como 1080p60, 720p40 ou 480p60 são metas solicitadas, não garantias absolutas.",
+      "Resolução, FPS, áudio e disponibilidade de recursos dependem também do navegador, sistema operacional, dispositivo, hardware e conexão. Perfis como 1080p50, 1080p60, 720p40 ou 480p60 são metas solicitadas, não garantias absolutas.",
     ],
   },
   {
