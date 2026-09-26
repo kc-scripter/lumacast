@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Check, ChevronDown, ChevronUp, Clipboard, Copy, Expand, Link2, Lock, LogOut, MonitorUp, PanelRightClose, PanelRightOpen, Pin, PinOff, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench } from "lucide-react";
+import { ArrowLeft, BarChart3, Check, ChevronDown, ChevronUp, Clipboard, Copy, Expand, Link2, Lock, LogOut, MonitorUp, PanelRightClose, PanelRightOpen, Pin, PinOff, RefreshCw, Settings, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
