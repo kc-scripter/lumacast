@@ -682,3 +682,25 @@ body{color:var(--approved-text);background:var(--approved-bg)}
 /* generic transitions */
 button{transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(148,124,244,.72);outline-offset:2px}
+
+/* v0.1.17 approved full-page settings */
+.approved-settings-page{
+  position:fixed;z-index:70;left:0;right:0;top:54px;bottom:0;
+  display:grid;grid-template-columns:166px minmax(0,1fr);
+  background:rgba(5,9,20,.97);backdrop-filter:blur(20px)
+}
+.approved-settings-workspace{min-width:0;min-height:0;padding:22px 28px 28px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:18px}
+.approved-settings-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.approved-settings-header h2{font-size:24px;letter-spacing:-.03em;margin:6px 0 4px}.approved-settings-header p{margin:0;color:#858da5;font-size:10px}
+.approved-settings-header>button{width:38px;height:38px;border:1px solid var(--approved-line);border-radius:11px;background:#ffffff04;color:#a6aec3;display:grid;place-items:center}.approved-settings-header>button:hover{background:#ffffff08;color:#fff}.approved-settings-header>button svg{width:16px}
+.approved-settings-layout{min-height:0;border:1px solid var(--approved-line);border-radius:17px;background:rgba(8,13,27,.78);overflow:hidden;display:grid;grid-template-columns:210px minmax(0,1fr)}
+.approved-settings-sections{padding:14px 10px;border-right:1px solid var(--approved-line);background:rgba(5,9,19,.38);display:flex;flex-direction:column;gap:7px}
+.approved-settings-sections button{height:56px;border:1px solid transparent;border-radius:11px;background:transparent;color:#8d95ad;display:grid;grid-template-columns:32px 1fr;align-items:center;gap:8px;padding:0 10px;text-align:left}.approved-settings-sections button:hover{background:#ffffff04;color:#e9ebf4}.approved-settings-sections button.active{background:rgba(84,64,177,.22);border-color:rgba(126,102,226,.25);color:#fff}.approved-settings-sections button>svg{width:17px;color:#9d8ce9}.approved-settings-sections button>span{display:flex;flex-direction:column;gap:2px}.approved-settings-sections button strong{font-size:10px}.approved-settings-sections button small{font-size:8px;color:#737b94}
+.approved-settings-content{min-height:0;overflow:auto;padding:24px}.approved-settings-content>section{max-width:760px;display:flex;flex-direction:column;gap:12px}.approved-settings-title{margin-bottom:5px}.approved-settings-title h3{font-size:18px;margin:0 0 5px}.approved-settings-title p{margin:0;color:#7f879f;font-size:10px}
+.approved-setting-card{min-height:82px;border:1px solid var(--approved-line);border-radius:13px;background:rgba(13,18,34,.72);padding:14px 15px;display:flex;align-items:center;justify-content:space-between;gap:18px}.approved-setting-card>div:first-child{display:flex;flex-direction:column;gap:4px}.approved-setting-card strong{font-size:10px}.approved-setting-card small{font-size:8px;color:#747c95;line-height:1.4}.approved-setting-card select{height:38px;min-width:210px;border:1px solid var(--approved-line);border-radius:10px;background:#070b17;color:#dfe2ef;padding:0 10px;font-size:9px}
+.approved-settings-segmented{display:flex;border:1px solid var(--approved-line);border-radius:10px;background:#070b17;padding:3px;gap:3px}.approved-settings-segmented button{height:31px;min-width:70px;border-radius:7px;background:transparent;color:#8c94aa;font-size:9px}.approved-settings-segmented button.active{background:rgba(91,70,190,.28);color:#fff}
+.approved-settings-note{border:1px solid rgba(126,103,226,.18);border-radius:13px;background:rgba(65,50,137,.10);padding:13px 14px;display:flex;gap:10px;align-items:flex-start}.approved-settings-note>svg{width:18px;color:#9c88ec;margin-top:1px}.approved-settings-note>div{display:flex;flex-direction:column;gap:4px}.approved-settings-note strong{font-size:10px}.approved-settings-note p{margin:0;font-size:8px;color:#747d97;line-height:1.5}
+@media (max-width:920px){
+  .approved-settings-page{grid-template-columns:62px minmax(0,1fr)}
+  .approved-settings-layout{grid-template-columns:170px minmax(0,1fr)}
+}
