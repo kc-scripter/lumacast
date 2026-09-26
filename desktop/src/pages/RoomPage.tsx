@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Check, Clipboard, Copy, Expand, Lock, LogOut, Maximize2, MonitorUp, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, Copy, Expand, Lock, LogOut, Maximize2, MonitorUp, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
@@ -23,6 +23,8 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
   const [copied,setCopied]=useState(false);
   const [screenPlaying,setScreenPlaying]=useState(false);
   const [expandedCameraId,setExpandedCameraId]=useState<string|null>(null);
+  const [sidebarOpen,setSidebarOpen]=useState(true);
+  const [controlsOpen,setControlsOpen]=useState(false);
   const [shareDialog,setShareDialog]=useState<"start"|"switch"|null>(null);
   const [shareBusy,setShareBusy]=useState(false);
   const [lockBusy,setLockBusy]=useState(false);
@@ -171,11 +173,12 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
       </div>
     </section>
 
-    <section className="room-v2-layout">
+    <section className={"room-v2-layout "+(sidebarOpen?"":"sidebar-collapsed")+(controlsOpen?" controls-expanded":"")}>
       <section className="room-v2-stage-shell" ref={stageRef}>
         <div className="room-v2-stage-chips">
-          <span className="room-v2-stage-label"><MonitorUp/>Tela principal</span>
+          <span className="room-v2-stage-label">{expandedCamera?<Video/>:<MonitorUp/>}{expandedCamera?"Câmera · "+expandedCamera.displayName:"Tela principal"}</span>
           <div>
+            {expandedCamera&&<button type="button" className="room-v2-stage-action" aria-label="Voltar ao compartilhamento de tela" title="Voltar à tela" onClick={()=>setExpandedCameraId(null)}><MonitorUp/></button>}
             {room.isScreenSharer&&<span className="room-v2-you-share"><ShieldCheck/>Você está compartilhando</span>}
             {room.roomState.live&&<span className="room-v2-live-chip"><i/>Ao vivo</span>}
             <span className="room-v2-fps-chip">{room.stats?.fps??fps} FPS</span>
@@ -183,16 +186,17 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
           </div>
         </div>
         <div className={"room-v2-stage "+(stageHasVideo?"has-video":"")}>
-          <video ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
-          <div className="room-v2-stage-empty">
+          <video className={expandedCamera?"screen-video-hidden":""} ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
+          {expandedCamera&&<div className="room-v2-focused-camera"><OptimizedVideoTile track={expandedCamera.track}/></div>}
+          {!expandedCamera&&<div className="room-v2-stage-empty">
             <span className="room-v2-stage-icon"><MonitorUp/></span>
             <h2>{stageTitle}</h2>
             <p>{stageText}</p>
             {!room.roomState.live&&!starting&&!busy&&<button type="button" className="room-v2-share-primary" disabled={!room.roomId||!canShare||missing} onClick={()=>setShareDialog("start")}><MonitorUp/>Escolher tela para compartilhar</button>}
-          </div>
+          </div>}
         </div>
         {cameraEntries.length>0&&<section className="room-v2-camera-dock" aria-label="Câmeras ativas na sala">
-          <div className="room-v2-camera-strip">{cameraEntries.map(camera=><button type="button" className="room-v2-camera-tile" key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Expandir câmera de "+camera.displayName}>
+          <div className="room-v2-camera-strip">{cameraEntries.map(camera=><button type="button" className={"room-v2-camera-tile "+(expandedCameraId===camera.identity?"selected":"")} key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Focar câmera de "+camera.displayName} aria-pressed={expandedCameraId===camera.identity}>
             <OptimizedVideoTile track={camera.track}/>
             <span className="room-v2-camera-name"><i/>{camera.displayName}{camera.mine?" (Você)":""}</span>
             <span className="room-v2-expand"><Maximize2/></span>
@@ -200,7 +204,8 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
         </section>}
       </section>
 
-      <aside className="room-v2-sidebar">
+      <button type="button" className="room-v2-sidebar-toggle" aria-label={sidebarOpen?"Recolher participantes":"Mostrar participantes"} aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(value=>!value)}>{sidebarOpen?<ChevronRight/>:<ChevronLeft/>}</button>
+      {sidebarOpen&&<aside className="room-v2-sidebar">
         <header className="room-v2-sidebar-head"><h2>Participantes</h2><span>{room.roomState.participants.length} na sala</span></header>
 
         <section className="room-v2-members">
@@ -228,10 +233,11 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
           <div className="room-v2-code-copy"><span>{roomCode}</span><button type="button" disabled={!room.roomId} aria-label="Copiar código" onClick={()=>void copyRoomCode()}><Copy/></button></div>
           <button type="button" className="room-v2-copy-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>
         </section>}
-      </aside>
+      </aside>}
     </section>
 
-    <div className="room-v2-toolbar" aria-label="Controles da sala">
+    <button type="button" className={"room-v2-toolbar-toggle "+(controlsOpen?"expanded":"")} aria-label={controlsOpen?"Recolher controles":"Mostrar controles"} aria-expanded={controlsOpen} onClick={()=>setControlsOpen(value=>!value)}>{controlsOpen?<ChevronDown/>:<ChevronUp/>}</button>
+    <div className={"room-v2-toolbar "+(controlsOpen?"expanded":"collapsed")} aria-label="Controles da sala" aria-hidden={!controlsOpen}>
       {room.isScreenSharer
         ?<><button type="button" className="room-v2-tool active share" title="Parar compartilhamento" aria-pressed="true" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button><button type="button" className="room-v2-tool" title="Trocar tela ou janela sem sair da sala" onClick={()=>setShareDialog("switch")}><RefreshCw/><span>Trocar fonte</span></button></>
         :<button type="button" className="room-v2-tool share" title={busy?"Outra pessoa está compartilhando":"Compartilhar tela"} disabled={busy||!canShare||!room.roomId||missing} onClick={()=>setShareDialog("start")}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
@@ -244,13 +250,6 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
       <span className="room-v2-tool-divider"/>
       <button type="button" className="room-v2-tool leave" title="Sair da sala" onClick={leaveAndBack}><LogOut/><span>Sair da sala</span></button>
     </div>
-
-    {expandedCamera&&<div className="camera-focus-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setExpandedCameraId(null);}}>
-      <section className="camera-focus-dialog" role="dialog" aria-modal="true" aria-label={"Câmera de "+expandedCamera.displayName}>
-        <header><div><span>CÂMERA</span><strong>{expandedCamera.displayName}{expandedCamera.mine?" · Você":""}</strong></div><button type="button" aria-label="Fechar câmera expandida" onClick={()=>setExpandedCameraId(null)}><X/></button></header>
-        <div className="camera-focus-video"><OptimizedVideoTile track={expandedCamera.track}/></div>
-      </section>
-    </div>}
 
     {showSettings&&<SettingsDialog onClose={()=>setShowSettings(false)} quality={quality} setQuality={setQuality} fps={fps} setFps={setFps} cameraPreset={room.cameraPreset} setCameraPreset={room.setCameraPreset} sharing={room.isScreenSharer} onApplyQuality={value=>void applyQuality(value)} onApplyFps={value=>void room.updateScreenFrameRate(value)}/>}
     {showStats&&<StatsDrawer title="Estatísticas da transmissão" stats={room.stats} onClose={()=>setShowStats(false)}/>}

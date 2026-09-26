@@ -2,7 +2,7 @@ name: Desktop CI
 
 on:
   push:
-    branches: [feature/desktop-current-v1]
+    branches: [feature/desktop-current-v1, feature/desktop-0.1.14-room-redesign]
     paths:
       - "desktop/**"
       - "client/src/services/**"
@@ -15,7 +15,7 @@ on:
       - "tests/desktop-visual-smoke.mjs"
       - ".github/workflows/desktop-ci.yml"
   pull_request:
-    branches: [feature/desktop-current-v1]
+    branches: [feature/desktop-current-v1, main]
     paths:
       - "desktop/**"
       - "client/src/services/**"
