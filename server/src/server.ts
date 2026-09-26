@@ -16,6 +16,11 @@ const allowedOrigins=new Set(configuredOrigins);
 const desktopOrigins=new Set(["http://tauri.localhost","https://tauri.localhost","tauri://localhost"]);
 const originAllowed=(value?:string)=>Boolean(value&&value!=="null"&&(desktopOrigins.has(value)||allowedOrigins.has(value)));
 const sameOriginFetch=(value:string|string[]|undefined)=>value==="same-origin";
+const referrerAllowed=(value:string|string[]|undefined)=>{
+  const referrer=Array.isArray(value)?value[0]:value;
+  if(!referrer)return false;
+  try{return originAllowed(new URL(referrer).origin);}catch{return false;}
+};
 const telemetryText=(value:unknown,max:number)=>typeof value==="string"?value.replace(/([?&](?:invite|token|guest|code)=)[^&#\s]+/gi,"$1[redacted]").replace(/\b[A-Za-z0-9_-]{43}\b/g,"[secret]").slice(0,max):undefined;
 const telemetryNumber=(value:unknown)=>typeof value==="number"&&Number.isFinite(value)?value:undefined;
 const corsOptions:CorsOptions={
@@ -100,8 +105,8 @@ app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
   cors:corsOptions,
-  // Browser polling requests may omit Origin. Require Fetch Metadata in that case so non-browser clients cannot bypass origin validation.
-  allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)||(!req.headers.origin&&sameOriginFetch(req.headers["sec-fetch-site"]))),
+  // Same-origin polling may omit Origin. Older browsers can also omit Fetch Metadata, but still send a same-origin Referer.
+  allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)||(!req.headers.origin&&(sameOriginFetch(req.headers["sec-fetch-site"])||referrerAllowed(req.headers.referer)))),
   maxHttpBufferSize:64*1024,
   pingTimeout:20_000,
   pingInterval:25_000

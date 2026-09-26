@@ -9,8 +9,9 @@ const reply=(ack:unknown,payload:Record<string,unknown>)=>{if(typeof ack==="func
 const limiter=new Map<string,{start:number;count:number}>();
 const limiterCleanup=setInterval(()=>{const cutoff=Date.now()-120_000;for(const [key,value] of limiter)if(value.start<cutoff)limiter.delete(key);},60_000);
 limiterCleanup.unref();
-const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS||0);
-const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:0;
+const defaultProxyHops=process.env.RENDER_SERVICE_TYPE==="web"?1:0;
+const proxyHopsRaw=Number(process.env.TRUST_PROXY_HOPS??defaultProxyHops);
+const proxyHops=Number.isInteger(proxyHopsRaw)&&proxyHopsRaw>=0&&proxyHopsRaw<=10?proxyHopsRaw:defaultProxyHops;
 const maxParticipantsRaw=Number(process.env.MAX_ROOM_PARTICIPANTS||50);
 const maxParticipants=Number.isInteger(maxParticipantsRaw)&&maxParticipantsRaw>=1&&maxParticipantsRaw<=500?maxParticipantsRaw:50;
 function rateAddress(socket:Socket){
