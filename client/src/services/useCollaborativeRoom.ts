@@ -2,7 +2,7 @@ import AgoraRTC,{type IAgoraRTCClient,type IAgoraRTCRemoteUser,type ILocalAudioT
 import { Room,RoomEvent,Track,type Participant,type RemoteTrack,type RemoteTrackPublication,type TrackPublication,type TrackPublishOptions,type VideoCaptureOptions } from "livekit-client";
 import { useCallback,useEffect,useRef,useState } from "react";
 import { safeSessionGet,safeSessionRemove,safeSessionSet } from "./browser";
-import { recordDiagnostic } from "./diagnostics";
+import { recordDiagnostic,submitDiagnosticReport } from "./diagnostics";
 import { connectSocket } from "./socket";
 import { displayConstraints,readAgoraStats } from "./webrtc";
 import type { AgoraCredentials,CameraPreset,FrameRate,JoinAck,Quality,RoomAck,RoomState,ScreenProvider,StreamStats,TokenAck } from "../types";
@@ -664,11 +664,12 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string,reque
       }
     };
     const onDisconnect=()=>{setStatus("Reconectando");recordDiagnostic("warn","socket","Socket desconectado; aguardando reconexão");};
+    const onConnectError=(cause:Error)=>{setStatus("Servidor indisponível");setError("Não foi possível conectar ao servidor. Tentando novamente automaticamente.");recordDiagnostic("error","socket","Falha ao conectar ao servidor",cause);void submitDiagnosticReport({kind:"socket-connect-error",room:{roomId:roomIdRef.current,status:"unavailable"}}).catch(()=>undefined);};
     const onExpired=()=>{setStatus("missing");if(owner)safeSessionRemove("lumacast-broadcaster");else safeSessionRemove(`lumacast-participant-${roomIdRef.current}`);};
     const onKicked=(payload:{reason?:string})=>{safeSessionRemove(`lumacast-participant-${roomIdRef.current}`);safeSessionRemove(`lumacast-invite-${roomIdRef.current}`);safeSessionRemove(`lumacast-guest-${roomIdRef.current}`);setKicked(true);setStatus("missing");setError(payload?.reason||"Você foi removido da sala.");recordDiagnostic("warn","room","Participante removido da sala");};
-    socket.on("connect",connect);socket.on("disconnect",onDisconnect);socket.on("room-state",onState);socket.on("room-expired",onExpired);socket.on("kicked",onKicked);
+    socket.on("connect",connect);socket.on("disconnect",onDisconnect);socket.on("connect_error",onConnectError);socket.on("room-state",onState);socket.on("room-expired",onExpired);socket.on("kicked",onKicked);
     if(socket.connected)connect();
-    return()=>{socket.off("connect",connect);socket.off("disconnect",onDisconnect);socket.off("room-state",onState);socket.off("room-expired",onExpired);socket.off("kicked",onKicked);};
+    return()=>{socket.off("connect",connect);socket.off("disconnect",onDisconnect);socket.off("connect_error",onConnectError);socket.off("room-state",onState);socket.off("room-expired",onExpired);socket.off("kicked",onKicked);};
   },[clearVideo,ensureLivekit,fallback,owner,requestedInviteToken,requestedRoomId,showVideo,updateState]);
   useEffect(()=>{
     const shouldJoin=!!credentials&&roomState.live&&roomState.screenProvider==="agora"&&roomState.activeScreenUid!==null&&roomState.activeScreenSharerId!==socketIdRef.current;

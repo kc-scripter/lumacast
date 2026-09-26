@@ -63,8 +63,7 @@ export function buildDiagnosticReport(extra:Record<string,unknown>={}){
 export async function submitDiagnosticReport(extra:Record<string,unknown>={}){
   const explicit=import.meta.env.VITE_TELEMETRY_URL?.trim();
   const signaling=import.meta.env.VITE_SIGNALING_URL?.trim()?.replace(/\/$/,"");
-  const endpoint=explicit||(signaling?`${signaling}/api/telemetry`:"");
-  if(!endpoint)return false;
+  const endpoint=explicit||(signaling?`${signaling}/api/telemetry`:"/api/telemetry");
   const body=buildDiagnosticReport(extra);
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),6000);

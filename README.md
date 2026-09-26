@@ -82,7 +82,7 @@ Se o backend estiver atrás de um reverse proxy confiável, configure `TRUST_PRO
 
 ## Health check
 
-`GET /api/health` retorna HTTP 200 somente quando a configuração RTC mínima está presente. Credenciais ausentes ou formato inválido resultam em HTTP 503 e uma lista apenas com os nomes das variáveis problemáticas — nunca os valores secretos.
+`GET /api/health` retorna HTTP 200 somente quando a origem pública e pelo menos um provedor de mídia (Agora ou LiveKit) estão configurados. Credenciais ausentes ou formato inválido resultam em HTTP 503 e uma lista apenas com os nomes das variáveis problemáticas — nunca os valores secretos.
 
 Use `https://lunira-screen.onrender.com/api/health` como readiness/health check do serviço em produção.
 
