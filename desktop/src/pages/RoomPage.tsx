@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Check, Clipboard, Copy, Expand, Lock, LogOut, Maximize2, MonitorUp, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Check, ChevronDown, ChevronUp, Clipboard, Copy, Expand, Link2, Lock, LogOut, MonitorUp, PanelRightClose, PanelRightOpen, Pin, PinOff, RefreshCw, Settings, ShieldCheck, Square, Unlock, UserX, Users, Video, VideoOff, Volume2, VolumeX, WifiOff, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OptimizedVideoTile } from "../../../client/src/components/OptimizedVideo";
 import { StatsDrawer } from "../../../client/src/components/StatsDrawer";
@@ -26,6 +26,8 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
   const [shareDialog,setShareDialog]=useState<"start"|"switch"|null>(null);
   const [shareBusy,setShareBusy]=useState(false);
   const [lockBusy,setLockBusy]=useState(false);
+  const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
+  const [controlsExpanded,setControlsExpanded]=useState(false);
   const stageRef=useRef<HTMLDivElement>(null);
 
   useAdaptiveScreenQuality({
@@ -149,108 +151,152 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     onBack();
   };
 
-  return <main className="room-v2-page">
-    <section className="room-v2-header">
-      <div className="room-v2-header-left">
-        <button type="button" className="room-v2-back" aria-label="Voltar ao início" onClick={leaveAndBack}><ArrowLeft/></button>
-        <div className="room-v2-code-block">
-          <span>SALA</span>
-          <div><strong>{roomCode}</strong><button type="button" disabled={!room.roomId} aria-label="Copiar código da sala" onClick={()=>void copyRoomCode()}>{copied?<Check/>:<Copy/>}</button></div>
-        </div>
-        <span className="room-v2-divider"/>
-        <div className="room-v2-connection">
-          <span className={"room-v2-status "+(reconnecting?"warn":room.roomState.live?"live":room.status==="Conectado"?"online":"")}><i/>{missing?"Sala inválida":reconnecting?"Reconectando":room.roomState.live?"Ao vivo":room.status}</span>
-          <small>{missing?"Aguardando sala válida":(room.roomState.screenProvider==="livekit"?"Fallback LiveKit":"Agora RTC")+" · "+(quality==="auto"?"AUTO":quality)+" · "+(room.stats?.fps??fps)+" FPS"}</small>
-        </div>
+  return <main className={"approved-room-page "+(sidebarCollapsed?"participants-collapsed ":"")+(controlsExpanded?"controls-open":"")}>
+    <aside className="approved-app-nav approved-room-nav">
+      <div className="approved-nav-main">
+        <button type="button" className="approved-nav-item active"><Users/>Sala</button>
+        <button type="button" className="approved-nav-item" onClick={()=>setShowSettings(true)}><Settings/>Configurações</button>
       </div>
-      <div className="room-v2-header-right">
-        <span className="room-v2-people"><Users/>{room.roomState.participants.length} {room.roomState.participants.length===1?"participante":"participantes"}</span>
-        {owner&&<button type="button" className={"room-v2-security "+(room.roomState.locked?"locked":"")} disabled={lockBusy||reconnecting||missing||!room.roomId} title={room.roomState.locked?"Permitir novas entradas":"Bloquear novas entradas"} onClick={()=>void toggleRoomLock()}>{room.roomState.locked?<Lock/>:<Unlock/>}{lockBusy?"Salvando…":room.roomState.locked?"Sala trancada":"Trancar sala"}</button>}
-        {owner&&<button type="button" className="room-v2-security icon-only" title="Invalidar o convite atual e gerar outro" aria-label="Gerar novo convite temporário" onClick={()=>void renewInvite()}><RefreshCw/></button>}
-        {owner&&<button type="button" className="room-v2-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>}
-      </div>
-    </section>
+      <button type="button" className="approved-nav-help" onClick={leaveAndBack}><ArrowLeft/>Voltar</button>
+    </aside>
 
-    <section className="room-v2-layout">
-      <section className="room-v2-stage-shell" ref={stageRef}>
-        <div className="room-v2-stage-chips">
-          <span className="room-v2-stage-label"><MonitorUp/>Tela principal</span>
+    <section className="approved-room-workspace">
+      <header className="approved-room-header">
+        <div className="approved-room-title">
+          <span className="approved-room-cover"><MonitorUp/></span>
           <div>
-            {room.isScreenSharer&&<span className="room-v2-you-share"><ShieldCheck/>Você está compartilhando</span>}
-            {room.roomState.live&&<span className="room-v2-live-chip"><i/>Ao vivo</span>}
-            <span className="room-v2-fps-chip">{room.stats?.fps??fps} FPS</span>
-            <button type="button" className="room-v2-stage-action" aria-label="Tela cheia" title="Tela cheia" onClick={()=>void toggleFullscreen()}><Expand/></button>
+            <h1>{room.roomState.ownerName?"Sala de "+room.roomState.ownerName:"Sala "+roomCode}</h1>
+            <p>{room.roomState.participants.length} {room.roomState.participants.length===1?"pessoa":"pessoas"} na sala <i/> {room.roomState.live?"Transmissão ativa":"Pronto para compartilhar"}</p>
           </div>
         </div>
-        <div className={"room-v2-stage "+(stageHasVideo?"has-video":"")}>
-          <video ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
-          <div className="room-v2-stage-empty">
-            <span className="room-v2-stage-icon"><MonitorUp/></span>
-            <h2>{stageTitle}</h2>
-            <p>{stageText}</p>
-            {!room.roomState.live&&!starting&&!busy&&<button type="button" className="room-v2-share-primary" disabled={!room.roomId||!canShare||missing} onClick={()=>setShareDialog("start")}><MonitorUp/>Escolher tela para compartilhar</button>}
+
+        <div className="approved-room-header-actions">
+          <div className="approved-room-link">
+            <Link2/>
+            <span>{owner&&invite?invite:roomCode}</span>
+            <button type="button" disabled={owner?!invite:!room.roomId} onClick={()=>void(owner?copyInvite():copyRoomCode())}>{copied?<Check/>:<Copy/>}<b>{copied?"Copiado":"Copiar"}</b></button>
           </div>
+          {owner&&<button type="button" className={"approved-header-icon "+(room.roomState.locked?"active":"")} disabled={lockBusy||reconnecting||missing||!room.roomId} title={room.roomState.locked?"Permitir novas entradas":"Bloquear novas entradas"} onClick={()=>void toggleRoomLock()}>{room.roomState.locked?<Lock/>:<Unlock/>}</button>}
+          {owner&&<button type="button" className="approved-header-icon" title="Gerar novo convite" onClick={()=>void renewInvite()}><RefreshCw/></button>}
         </div>
-        {cameraEntries.length>0&&<section className="room-v2-camera-dock" aria-label="Câmeras ativas na sala">
-          <div className="room-v2-camera-strip">{cameraEntries.map(camera=><button type="button" className="room-v2-camera-tile" key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Expandir câmera de "+camera.displayName}>
-            <OptimizedVideoTile track={camera.track}/>
-            <span className="room-v2-camera-name"><i/>{camera.displayName}{camera.mine?" (Você)":""}</span>
-            <span className="room-v2-expand"><Maximize2/></span>
-          </button>)}</div>
-        </section>}
-      </section>
+      </header>
 
-      <aside className="room-v2-sidebar">
-        <header className="room-v2-sidebar-head"><h2>Participantes</h2><span>{room.roomState.participants.length} na sala</span></header>
+      <div className="approved-room-main">
+        <section className="approved-stage-area">
+          <div className={"approved-focus-layout "+(expandedCamera?"camera-focused":"screen-focused")} ref={stageRef}>
+            {expandedCamera
+              ?<section className="approved-focus-card approved-camera-focus">
+                <div className="approved-focus-badge"><Pin/>Focado</div>
+                <div className="approved-focus-media"><OptimizedVideoTile track={expandedCamera.track}/></div>
+                <div className="approved-focus-footer">
+                  <strong>{expandedCamera.displayName}{expandedCamera.mine?" · Você":""}</strong>
+                  <div><button type="button" title="Tirar foco" aria-label="Tirar foco da câmera" onClick={()=>setExpandedCameraId(null)}><PinOff/></button><button type="button" title="Tela cheia" aria-label="Tela cheia" onClick={()=>void toggleFullscreen()}><Expand/></button></div>
+                </div>
+              </section>
+              :<section className={"approved-focus-card approved-screen-focus "+(stageHasVideo?"has-video":"")}>
+                <div className="approved-focus-badge"><MonitorUp/>{room.roomState.live?"Compartilhamento":"Tela"}</div>
+                <video ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
+                <div className="approved-screen-empty">
+                  <span><MonitorUp/></span>
+                  <h2>{stageTitle}</h2>
+                  <p>{stageText}</p>
+                  {!room.roomState.live&&!starting&&!busy&&<button type="button" disabled={!room.roomId||!canShare||missing} onClick={()=>setShareDialog("start")}><MonitorUp/>Escolher tela para compartilhar</button>}
+                </div>
+                <div className="approved-focus-footer">
+                  <strong>{room.roomState.live?(room.isScreenSharer?"Sua tela":sharer+" · tela"):"Lunira Screen"}</strong>
+                  <button type="button" title="Tela cheia" aria-label="Tela cheia" onClick={()=>void toggleFullscreen()}><Expand/></button>
+                </div>
+              </section>}
 
-        <section className="room-v2-members">
-          <span className="room-v2-section-label">NA SALA ({room.roomState.participants.length})</span>
-          <div className="room-v2-member-list">
-            {room.roomState.participants.map(person=>{
-              const camera=cameraEntries.find(item=>item.identity===person.id);
-              const sharing=person.id===room.roomState.activeScreenSharerId;
-              const mine=person.id===selfId;
-              const isOwner=person.role==="owner"||person.displayName===room.roomState.ownerName;
-              return <div className="room-v2-member" key={person.id}>
-                <div className="room-v2-avatar">{person.displayName.slice(0,1).toUpperCase()}<i className={camera?"online":""}/></div>
-                <div className="room-v2-member-copy"><strong>{person.displayName}{isOwner&&<em>HOST</em>}</strong><small>{mine?"Você":sharing?"Compartilhando":"Na sala"}</small></div>
-                <span className={"room-v2-camera-state "+(camera?"on":"")} title={camera?"Câmera ativa":"Câmera desligada"}>{camera?<Video/>:<VideoOff/>}</span>
-                {owner&&!mine&&!isOwner&&<button type="button" className="room-v2-kick" title={"Remover "+person.displayName} aria-label={"Remover "+person.displayName} onClick={()=>void room.kickParticipant(person.id)}><UserX/></button>}
-              </div>;
-            })}
+            {expandedCamera&&room.roomState.live&&<section className={"approved-secondary-screen "+(stageHasVideo?"has-video":"")}>
+              <div className="approved-secondary-head"><span><MonitorUp/>Compartilhamento</span><button type="button" title="Focar compartilhamento" aria-label="Focar compartilhamento" onClick={()=>setExpandedCameraId(null)}><Pin/></button></div>
+              <video ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
+              {!stageHasVideo&&<div className="approved-secondary-empty"><MonitorUp/><span>Conectando à tela…</span></div>}
+              <footer>{room.isScreenSharer?"Sua tela":sharer}</footer>
+            </section>}
           </div>
+
+          {(room.roomState.live||cameraEntries.length>0)&&<section className="approved-media-strip" aria-label="Mídias da sala">
+            {room.roomState.live&&<button type="button" className={"approved-media-thumb screen "+(!expandedCamera?"active":"")} onClick={()=>setExpandedCameraId(null)} aria-label="Focar compartilhamento de tela">
+              <span className="approved-media-icon"><MonitorUp/></span>
+              <span><i/>{room.isScreenSharer?"Sua tela":sharer}</span>
+              <b><Pin/></b>
+            </button>}
+            {cameraEntries.map(camera=><button type="button" className={"approved-media-thumb "+(expandedCamera?.identity===camera.identity?"active":"")} key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Focar câmera de "+camera.displayName}>
+              <OptimizedVideoTile track={camera.track}/>
+              <span><i/>{camera.displayName}{camera.mine?" · Você":""}</span>
+              <b><Pin/></b>
+            </button>)}
+          </section>}
+
+          <button type="button" className="approved-controls-toggle" aria-expanded={controlsExpanded} aria-label={controlsExpanded?"Recolher controles":"Expandir controles"} onClick={()=>setControlsExpanded(value=>!value)}>
+            {controlsExpanded?<ChevronDown/>:<ChevronUp/>}
+          </button>
+
+          {controlsExpanded&&<section className="approved-controls-panel" aria-label="Controles da sala">
+            <div className="approved-control-primary">
+              <button type="button" className={"approved-control-card "+(room.isScreenSharer&&!room.muted?"active":"")} disabled={!room.isScreenSharer} onClick={()=>void room.toggleScreenAudio()} aria-pressed={room.isScreenSharer&&!room.muted}>
+                <span className="approved-control-icon">{room.isScreenSharer&&!room.muted?<Volume2/>:<VolumeX/>}</span>
+                <span className="approved-control-copy"><strong>Áudio do sistema</strong><small>{room.isScreenSharer?(room.muted?"Desativado":"Ativo"):"Disponível ao compartilhar"}</small></span>
+                <i className={"approved-switch "+(room.isScreenSharer&&!room.muted?"on":"")}/>
+              </button>
+              <button type="button" className={"approved-control-card "+(room.cameraOn?"active":"")} disabled={!room.roomId||missing||reconnecting} onClick={()=>void room.toggleCamera()} aria-pressed={room.cameraOn}>
+                <span className="approved-control-icon">{room.cameraOn?<Video/>:<VideoOff/>}</span>
+                <span className="approved-control-copy"><strong>Câmera</strong><small>{room.cameraOn?"Ativa":"Desativada"}</small></span>
+                <i className={"approved-switch "+(room.cameraOn?"on":"")}/>
+              </button>
+            </div>
+
+            <div className="approved-control-actions">
+              {room.isScreenSharer
+                ?<><button type="button" className="approved-action active" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button><button type="button" className="approved-action" onClick={()=>setShareDialog("switch")}><RefreshCw/><span>Trocar fonte</span></button></>
+                :<button type="button" className="approved-action primary" disabled={busy||!canShare||!room.roomId||missing} onClick={()=>setShareDialog("start")}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
+              <button type="button" className={"approved-action "+(showStats?"active":"")} onClick={()=>setShowStats(value=>!value)}><BarChart3/><span>Estatísticas</span></button>
+              <button type="button" className={"approved-action "+(showDiagnostics?"active":"")} onClick={()=>setShowDiagnostics(true)}><Wrench/><span>Diagnóstico</span></button>
+              <button type="button" className="approved-action" onClick={()=>setShowSettings(true)}><Settings/><span>Configurações</span></button>
+              <button type="button" className="approved-action danger" onClick={leaveAndBack}><LogOut/><span>Sair</span></button>
+            </div>
+          </section>}
         </section>
 
-        {owner&&room.roomState.participants.length<=1&&<section className="room-v2-invite-panel">
-          <Users/>
-          <strong>Ninguém convidado ainda</strong>
-          <p>Envie o link privado de convite para alguém no Lunira Web.</p>
-          <div className="room-v2-code-copy"><span>{roomCode}</span><button type="button" disabled={!room.roomId} aria-label="Copiar código" onClick={()=>void copyRoomCode()}><Copy/></button></div>
-          <button type="button" className="room-v2-copy-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>
-        </section>}
-      </aside>
+        {sidebarCollapsed
+          ?<aside className="approved-participants-rail">
+            <button type="button" aria-label="Expandir participantes" title="Expandir participantes" onClick={()=>setSidebarCollapsed(false)}><PanelRightOpen/></button>
+            <span><Users/><b>{room.roomState.participants.length}</b></span>
+          </aside>
+          :<aside className="approved-participants-panel">
+            <header>
+              <div><Users/><span><strong>Participantes</strong><small>{room.roomState.participants.length} na sala</small></span></div>
+              <button type="button" aria-label="Recolher participantes" title="Recolher participantes" onClick={()=>setSidebarCollapsed(true)}><PanelRightClose/></button>
+            </header>
+
+            <div className="approved-member-list">
+              {room.roomState.participants.map(person=>{
+                const camera=cameraEntries.find(item=>item.identity===person.id);
+                const sharing=person.id===room.roomState.activeScreenSharerId;
+                const mine=person.id===selfId;
+                const isOwner=person.role==="owner"||person.displayName===room.roomState.ownerName;
+                return <article className={"approved-member "+(sharing?"sharing":"")} key={person.id}>
+                  <div className="approved-member-avatar">{person.displayName.slice(0,1).toUpperCase()}<i className={camera?"online":""}/></div>
+                  <div className="approved-member-copy"><strong>{person.displayName}{isOwner&&<em>HOST</em>}</strong><small>{mine?"Você":sharing?"Compartilhando tela":camera?"Câmera ativa":"Na sala"}</small></div>
+                  {camera&&<button type="button" className="approved-member-focus" title={"Focar câmera de "+person.displayName} aria-label={"Focar câmera de "+person.displayName} onClick={()=>setExpandedCameraId(person.id)}><Pin/></button>}
+                  <span className={"approved-member-camera "+(camera?"on":"")} title={camera?"Câmera ativa":"Câmera desligada"}>{camera?<Video/>:<VideoOff/>}</span>
+                  {owner&&!mine&&!isOwner&&<button type="button" className="approved-member-kick" title={"Remover "+person.displayName} aria-label={"Remover "+person.displayName} onClick={()=>void room.kickParticipant(person.id)}><UserX/></button>}
+                </article>;
+              })}
+            </div>
+
+            {owner&&<section className="approved-room-info">
+              <span>SALA</span>
+              <strong>{roomCode}</strong>
+              <small>{room.roomState.locked?"Novas entradas bloqueadas":"Convite privado ativo"}</small>
+              <div>
+                <button type="button" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>
+              </div>
+            </section>}
+          </aside>}
+      </div>
     </section>
-
-    <div className="room-v2-toolbar" aria-label="Controles da sala">
-      {room.isScreenSharer
-        ?<><button type="button" className="room-v2-tool active share" title="Parar compartilhamento" aria-pressed="true" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button><button type="button" className="room-v2-tool" title="Trocar tela ou janela sem sair da sala" onClick={()=>setShareDialog("switch")}><RefreshCw/><span>Trocar fonte</span></button></>
-        :<button type="button" className="room-v2-tool share" title={busy?"Outra pessoa está compartilhando":"Compartilhar tela"} disabled={busy||!canShare||!room.roomId||missing} onClick={()=>setShareDialog("start")}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
-      <span className="room-v2-tool-divider"/>
-      {room.isScreenSharer&&<button type="button" className={"room-v2-tool "+(room.muted?"":"active")} title={room.muted?"Ativar áudio da tela":"Silenciar áudio da tela"} aria-pressed={!room.muted} onClick={()=>void room.toggleScreenAudio()}>{room.muted?<VolumeX/>:<Volume2/>}<span>{room.muted?"Áudio off":"Áudio da tela"}</span></button>}
-      <button type="button" className={"room-v2-tool "+(room.cameraOn?"active":"")} title={room.cameraOn?"Desativar câmera":"Ativar câmera"} aria-pressed={room.cameraOn} disabled={!room.roomId||missing||reconnecting} onClick={()=>void room.toggleCamera()}>{room.cameraOn?<Video/>:<VideoOff/>}<span>Câmera</span></button>
-      <button type="button" className={"room-v2-tool "+(showStats?"active":"")} title="Estatísticas da transmissão" aria-pressed={showStats} onClick={()=>setShowStats(value=>!value)}><BarChart3/><span>Estatísticas</span></button>
-      <button type="button" className={"room-v2-tool "+(showDiagnostics?"active":"")} title="Diagnóstico e recuperação" aria-pressed={showDiagnostics} onClick={()=>setShowDiagnostics(true)}><Wrench/><span>Diagnóstico</span></button>
-      <button type="button" className="room-v2-tool" title="Configurações" onClick={()=>setShowSettings(true)}><Settings/><span>Configurações</span></button>
-      <span className="room-v2-tool-divider"/>
-      <button type="button" className="room-v2-tool leave" title="Sair da sala" onClick={leaveAndBack}><LogOut/><span>Sair da sala</span></button>
-    </div>
-
-    {expandedCamera&&<div className="camera-focus-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setExpandedCameraId(null);}}>
-      <section className="camera-focus-dialog" role="dialog" aria-modal="true" aria-label={"Câmera de "+expandedCamera.displayName}>
-        <header><div><span>CÂMERA</span><strong>{expandedCamera.displayName}{expandedCamera.mine?" · Você":""}</strong></div><button type="button" aria-label="Fechar câmera expandida" onClick={()=>setExpandedCameraId(null)}><X/></button></header>
-        <div className="camera-focus-video"><OptimizedVideoTile track={expandedCamera.track}/></div>
-      </section>
-    </div>}
 
     {showSettings&&<SettingsDialog onClose={()=>setShowSettings(false)} quality={quality} setQuality={setQuality} fps={fps} setFps={setFps} cameraPreset={room.cameraPreset} setCameraPreset={room.setCameraPreset} sharing={room.isScreenSharer} onApplyQuality={value=>void applyQuality(value)} onApplyFps={value=>void room.updateScreenFrameRate(value)}/>}
     {showStats&&<StatsDrawer title="Estatísticas da transmissão" stats={room.stats} onClose={()=>setShowStats(false)}/>}
@@ -259,4 +305,5 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     {room.kicked&&<div className="desktop-toast error persistent" role="alert"><UserX/><span>Você foi removido desta sala pelo anfitrião.</span><button type="button" onClick={leaveAndBack}>Voltar</button></div>}
     {room.error&&<div className="desktop-toast error" role="alert"><WifiOff/><span>{room.error}</span><button type="button" aria-label="Fechar aviso" onClick={()=>room.setError("")}>×</button></div>}
   </main>;
+}
 }
