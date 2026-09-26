@@ -1,5 +1,5 @@
 import { memo,useEffect,useMemo,useRef,useState,type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronDown,ChevronUp,Maximize2,Minimize2,PanelRightClose,PanelRightOpen,Users,X } from "lucide-react";
+import { Maximize2,Minimize2,PanelRightClose,PanelRightOpen,Users,X } from "lucide-react";
 import type { RoomParticipant } from "../types";
 import { OptimizedVideoTile } from "./OptimizedVideo";
 
@@ -20,7 +20,7 @@ export const ParticipantsSidebar=memo(function ParticipantsSidebar({participants
 },(previous,next)=>sameParticipants(previous.participants,next.participants));
 
 export const CameraDock=memo(function CameraDock({cameras,participants}:{cameras:Camera[];participants:RoomParticipant[]}){
-  const [open,setOpen]=useState(true),[pinned,setPinned]=useState<string|null>(null),[large,setLarge]=useState(false),[position,setPosition]=useState<Point|null>(null),[dragging,setDragging]=useState(false);
+  const [pinned,setPinned]=useState<string|null>(null),[large,setLarge]=useState(false),[position,setPosition]=useState<Point|null>(null),[dragging,setDragging]=useState(false);
   const overlayRef=useRef<HTMLDivElement>(null),dragRef=useRef<DragState|null>(null);
   const names=useMemo(()=>new Map(participants.map(person=>[person.id,person.displayName])),[participants]);
   const selected=cameras.find(camera=>camera.identity===pinned);
@@ -47,15 +47,11 @@ export const CameraDock=memo(function CameraDock({cameras,participants}:{cameras
     if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
-  const countText=cameras.length?String(cameras.length)+" ativa"+(cameras.length===1?"":"s"):"Nenhuma câmera ativa";
   return <>
-    <section className={"camera-dock "+(cameras.length?"has-cameras":"empty")+" "+(open?"":"collapsed")}>
-      <button className="camera-dock-head" onClick={()=>setOpen(value=>!value)} aria-expanded={open}>
-        <span><Users/><b>Câmeras</b><small>{countText}</small></span>{open?<ChevronDown/>:<ChevronUp/>}
-      </button>
-      {open&&cameras.length>0&&<div className="camera-dock-list">{cameras.map(camera=><button type="button" aria-label={`Ampliar câmera de ${cameraName(camera)}`} className="camera-dock-card" key={camera.identity} onClick={()=>setPinned(camera.identity)}>
+    <section className="camera-dock has-cameras" aria-label="Câmeras ativas na sala">
+      <div className="camera-dock-list">{cameras.map(camera=><button type="button" aria-label={`Ampliar câmera de ${cameraName(camera)}`} className="camera-dock-card" key={camera.identity} onClick={()=>setPinned(camera.identity)}>
         <OptimizedVideoTile track={camera.track}/><span>{cameraName(camera)}{camera.local&&<em>VOCÊ</em>}</span><i className="camera-expand-hint"><Maximize2/></i>
-      </button>)}</div>}
+      </button>)}</div>
     </section>
     {selected&&<div ref={overlayRef} className={"camera-overlay "+(large?"large ":"")+(dragging?"dragging":"")} style={position?{left:position.x,top:position.y,right:"auto",bottom:"auto"}:undefined} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag}>
       <OptimizedVideoTile track={selected.track}/>
