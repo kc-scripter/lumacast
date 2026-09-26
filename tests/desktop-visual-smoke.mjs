@@ -23,7 +23,7 @@ await page.addInitScript(()=>{
 });
 
 await page.goto(base,{waitUntil:"domcontentloaded"});
-await page.locator(".approved-lobby-page").waitFor({state:"visible",timeout:15000});
+await page.locator(".home-next-page").waitFor({state:"visible",timeout:15000});
 const waveBefore=await page.locator(".wave-layer-top").evaluate(element=>getComputedStyle(element).transform);
 await page.waitForTimeout(900);
 const waveAfter=await page.locator(".wave-layer-top").evaluate(element=>getComputedStyle(element).transform);
@@ -48,7 +48,7 @@ await page.getByRole("button",{name:"Expandir participantes"}).waitFor();
 await page.screenshot({path:output+"/room-sidebar-collapsed.png",fullPage:true});
 await page.getByRole("button",{name:"Expandir participantes"}).click();
 
-await page.getByRole("button",{name:"Compartilhar",exact:true}).click();
+await page.getByRole("button",{name:"Compartilhar tela",exact:true}).click();
 await page.getByRole("dialog",{name:"Compartilhar tela"}).waitFor();
 await page.getByRole("button",{name:/Escolher tela ou janela/i}).click();
 await page.locator(".screen-picker-preview video").waitFor({state:"visible"});
@@ -60,4 +60,4 @@ await page.getByRole("dialog",{name:"Configurações"}).waitFor();
 await page.screenshot({path:output+"/settings.png",fullPage:true});
 
 await browser.close();
-console.log(JSON.stringify({ok:true,shots:["lobby.png","room-collapsed-controls.png","room-controls-open.png","room-sidebar-collapsed.png","share-dialog.png","settings.png"]}));
+console.log(JSON.stringify({ok:true,shots:["lobby.png","room-controls-open.png","room-controls-collapsed.png","room-sidebar-collapsed.png","share-dialog.png","settings.png"]}));
