@@ -42,6 +42,7 @@ await page.getByRole("button",{name:/Começar a transmitir/i}).click();
 await page.getByText(/Pronto para compartilhar|Preparando sua tela|Tela principal/i).first().waitFor({timeout:15000});
 await page.screenshot({path:output+"/room.png",fullPage:true});
 
+await page.getByRole("button",{name:"Mostrar controles"}).click();
 await page.getByRole("button",{name:/Diagnóstico/i}).click();
 await page.getByRole("dialog",{name:"Diagnóstico da sala"}).waitFor();
 await page.screenshot({path:output+"/diagnostics.png",fullPage:true});
