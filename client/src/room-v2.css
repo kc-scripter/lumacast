@@ -798,6 +798,55 @@
   }
 }
 
+/* Camera strip lives inside the media stage: screen above, people below. */
+.screen-stage-frame .room-stage.with-cameras{
+  gap:0;
+  background:#090a10;
+}
+.screen-stage-frame .room-stage.with-cameras .room-stage-screen{
+  padding-bottom:10px;
+}
+.screen-stage-frame .camera-dock{
+  margin:0;
+  padding:0 14px 14px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  overflow:visible;
+}
+.screen-stage-frame .camera-dock-list{
+  justify-content:center;
+  gap:10px;
+  max-height:132px;
+  padding:0;
+  scrollbar-width:none;
+}
+.screen-stage-frame .camera-dock-list::-webkit-scrollbar{display:none}
+.screen-stage-frame .camera-dock-card{
+  flex:0 1 190px;
+  max-width:220px;
+  border:0;
+  border-radius:9px;
+  box-shadow:0 8px 22px #0005;
+}
+.screen-stage-frame .camera-dock-card>span{
+  position:absolute;
+  inset:auto 0 0;
+  height:27px;
+  padding:0 9px;
+  background:linear-gradient(transparent,#08090fee 45%);
+  align-items:flex-end;
+  padding-bottom:6px;
+  text-shadow:0 1px 2px #000;
+}
+.screen-stage-frame .camera-dock-card>span em{color:#d7ccff}
+@media(max-width:760px){
+  .screen-stage-frame .room-stage.with-cameras .room-stage-screen{padding-bottom:6px}
+  .screen-stage-frame .camera-dock{padding:0 8px 8px}
+  .screen-stage-frame .camera-dock-list{justify-content:flex-start;gap:7px;max-height:84px}
+  .screen-stage-frame .camera-dock-card{flex-basis:122px}
+}
+
 /* Very narrow phones: keep essentials, reduce decorative chrome first. */
 @media(max-width:420px){
   .room-v2-layout .studio-side{
