@@ -191,6 +191,13 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
             {!room.roomState.live&&!starting&&!busy&&<button type="button" className="room-v2-share-primary" disabled={!room.roomId||!canShare||missing} onClick={()=>setShareDialog("start")}><MonitorUp/>Escolher tela para compartilhar</button>}
           </div>
         </div>
+        {cameraEntries.length>0&&<section className="room-v2-camera-dock" aria-label="Câmeras ativas na sala">
+          <div className="room-v2-camera-strip">{cameraEntries.map(camera=><button type="button" className="room-v2-camera-tile" key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Expandir câmera de "+camera.displayName}>
+            <OptimizedVideoTile track={camera.track}/>
+            <span className="room-v2-camera-name"><i/>{camera.displayName}{camera.mine?" (Você)":""}</span>
+            <span className="room-v2-expand"><Maximize2/></span>
+          </button>)}</div>
+        </section>}
       </section>
 
       <aside className="room-v2-sidebar">
@@ -212,17 +219,6 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
               </div>;
             })}
           </div>
-        </section>
-
-        <section className="room-v2-cameras">
-          <div className="room-v2-section-head"><span className="room-v2-section-label">CÂMERAS ({cameraEntries.length})</span></div>
-          {cameraEntries.length>0
-            ?<div className="room-v2-camera-grid">{cameraEntries.map(camera=><button type="button" className="room-v2-camera-tile" key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Expandir câmera de "+camera.displayName}>
-              <OptimizedVideoTile track={camera.track}/>
-              <span className="room-v2-camera-name"><i/>{camera.displayName}{camera.mine?" (Você)":""}</span>
-              <span className="room-v2-expand"><Maximize2/></span>
-            </button>)}</div>
-            :<div className="room-v2-camera-empty"><VideoOff/><strong>Nenhuma câmera ativa</strong><small>As câmeras ligadas aparecem aqui.</small></div>}
         </section>
 
         {owner&&room.roomState.participants.length<=1&&<section className="room-v2-invite-panel">
