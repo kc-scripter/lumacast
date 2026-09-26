@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CircleHelp, Clock3, Gauge, Link2, MonitorUp, RotateCcw, Server, Settings, UserRound, Users } from "lucide-react";
+import { ArrowRight, CircleHelp, Clock3, Gauge, Link2, MonitorUp, RotateCcw, Server, Settings, UserRound, Users } from "lucide-react";
 import { useState } from "react";
 import { safeSessionGet } from "../../../client/src/services/browser";
 import { parseRoomInvite } from "../../../client/src/services/invite";
@@ -7,7 +7,7 @@ import { readRecentRooms } from "../services/recentRooms";
 
 type Mode="create"|"join";
 
-export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState,backendMessage,onRetry,onBack}:{
+export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState,backendMessage,onRetry}:{
   onCreate:(name:string)=>Promise<boolean>;
   onJoin:(roomId:string,inviteToken:string,name:string)=>Promise<boolean>;
   onResume:(roomId:string,owner:boolean,name:string)=>Promise<boolean>;
@@ -16,7 +16,6 @@ export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState
   backendState:BackendWakeState;
   backendMessage:string;
   onRetry:()=>void;
-  onBack:()=>void;
 }){
   const [name,setName]=useState(()=>safeSessionGet("lumacast-display-name")||"");
   const [inviteValue,setInviteValue]=useState("");
@@ -56,20 +55,16 @@ export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState
     finally{setPending(null);}
   };
 
-  return <main className="home-page home-v3">
-    <nav className="home-actions" aria-label="Ações">
-      <button type="button" className="home-back" onClick={onBack}><ArrowLeft/>Voltar</button>
-      <span className="home-actions-spacer"/>
-      <button type="button" onClick={onHow}><CircleHelp/>Como funciona</button>
-      <button type="button" onClick={onSettings}><Settings/>Configurações</button>
-    </nav>
-    <section className="home-main">
-      <div className="home-story">
-        <span className="hero-kicker"><i/> TRANSMISSÃO EM TEMPO REAL</span>
-        <h1 className="hero-flow-title"><span>Compartilhe sua tela</span><br/><span>com mais facilidade.</span></h1>
-        <p>Crie uma sala no desktop e conecte quem está no navegador usando um convite privado compatível entre Web e Desktop.</p>
-      </div>
-
+  return <main className="lobby-page">
+    <aside className="lobby-nav" aria-label="Navegação">
+      <div className="lobby-nav-heading">LUNIRA <span>SCREEN</span></div>
+      <button type="button" className="active" aria-current="page"><MonitorUp/>Room</button>
+      <button type="button" onClick={onSettings}><Settings/>Settings</button>
+      <div className="lobby-nav-bottom"><button type="button" onClick={onHow}><CircleHelp/>Como funciona</button></div>
+    </aside>
+    <section className="lobby-content">
+      <header className="lobby-header"><div><span>ROOM / LOBBY</span><h1>Sua sala começa aqui</h1><p>Crie uma sala ou entre com o convite de alguém.</p></div><div className={"lobby-server "+backendState}><i/>{backendState==="ready"?"Servidor disponível":backendState==="error"?"Servidor indisponível":"Conectando…"}</div></header>
+      <section className="lobby-main">
       <section className="home-control-card" aria-label="Acessar uma sala">
         <div className="home-mode-tabs" role="tablist" aria-label="Modo">
           <button type="button" role="tab" aria-selected={mode==="create"} className={mode==="create"?"active":""} onClick={()=>selectMode("create")}><MonitorUp/>Criar uma sala</button>
@@ -93,6 +88,7 @@ export function HomePage({onCreate,onJoin,onResume,onHow,onSettings,backendState
           <div className="home-inline-meta"><span><MonitorUp/>Auto / 720p / 1080p</span><span><Gauge/>30 / 60 FPS</span></div>
           {resumableRooms.length>0&&<div className="recent-rooms"><span className="recent-rooms-label"><Clock3/>SALAS RECENTES</span><div>{resumableRooms.slice(0,3).map(room=><button type="button" key={room.roomId} disabled={!!pending} onClick={()=>void resume(room.roomId,room.owner)}><span><strong>{room.roomId}</strong><small>{room.owner?"Sua sala":"Sala visitada"}</small></span><ArrowRight/></button>)}</div></div>}
         </form>
+      </section>
       </section>
     </section>
   </main>;

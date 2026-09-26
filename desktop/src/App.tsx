@@ -8,13 +8,11 @@ import { useDesktopMediaPreferences } from "./hooks/useDesktopMediaPreferences";
 import { signalingReady, wakeSignalingServer, type BackendWakeState } from "./services/backendWake";
 import { HomePage } from "./pages/HomePage";
 import { RoomPage } from "./pages/RoomPage";
-import { WelcomePage } from "./pages/WelcomePage";
 
 type Route={type:"home"}|{type:"room";owner:boolean;roomId?:string;inviteToken?:string};
 
 export function App(){
   const [route,setRoute]=useState<Route>({type:"home"});
-  const [entryScreen,setEntryScreen]=useState<"welcome"|"home">("welcome");
   const [howOpen,setHowOpen]=useState(false);
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [backendState,setBackendState]=useState<BackendWakeState>("waking");
@@ -82,9 +80,7 @@ export function App(){
     <Titlebar status={titleStatus} tone={backendState==="ready"?"ready":"warn"}/>
     <div className="app-content">
       {route.type==="home"
-        ?entryScreen==="welcome"
-          ?<WelcomePage onStart={()=>setEntryScreen("home")} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)}/>
-          :<HomePage onCreate={createRoom} onJoin={joinRoom} onResume={resumeRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)} onBack={()=>setEntryScreen("welcome")}/>
+        ?<HomePage onCreate={createRoom} onJoin={joinRoom} onResume={resumeRoom} onHow={()=>setHowOpen(true)} onSettings={()=>setSettingsOpen(true)} backendState={backendState} backendMessage={backendMessage} onRetry={()=>void ensureBackend(true)}/>
         :<RoomPage owner={route.owner} roomId={route.roomId} inviteToken={route.inviteToken} onBack={()=>setRoute({type:"home"})}/>}
     </div>
     {howOpen&&<HowItWorksDialog onClose={()=>setHowOpen(false)}/>}

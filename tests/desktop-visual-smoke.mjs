@@ -19,20 +19,13 @@ await page.addInitScript(()=>{
   }});
 });
 await page.goto(base,{waitUntil:"domcontentloaded"});
-await page.getByRole("button",{name:/Começar agora/i}).waitFor({state:"visible",timeout:15000});
-const waveBefore=await page.locator(".wave-layer-top").evaluate(element=>getComputedStyle(element).transform);
+await page.getByRole("heading",{name:"Sua sala começa aqui"}).waitFor({state:"visible",timeout:15000});
+const waveBefore=await page.locator(".cosmos-wave-a").evaluate(element=>getComputedStyle(element).transform);
 await page.waitForTimeout(900);
-const waveAfter=await page.locator(".wave-layer-top").evaluate(element=>getComputedStyle(element).transform);
+const waveAfter=await page.locator(".cosmos-wave-a").evaluate(element=>getComputedStyle(element).transform);
 if(waveBefore===waveAfter)throw new Error("Animated background wave did not move.");
-await page.screenshot({path:output+"/welcome.png",fullPage:true});
-
-await page.getByRole("button",{name:/Começar agora/i}).click();
 await page.locator("#display-name").waitFor({state:"visible",timeout:15000});
 await page.getByText(/Servidor disponível/).first().waitFor({timeout:30000});
-const titleBefore=await page.locator(".hero-flow-title span").first().evaluate(element=>getComputedStyle(element).backgroundPosition);
-await page.waitForTimeout(900);
-const titleAfter=await page.locator(".hero-flow-title span").first().evaluate(element=>getComputedStyle(element).backgroundPosition);
-if(titleBefore===titleAfter)throw new Error("Hero purple sweep did not animate.");
 await page.screenshot({path:output+"/home.png",fullPage:true});
 
 await page.getByRole("button",{name:/Criar sala e começar/i}).click();
@@ -41,8 +34,13 @@ await page.locator("#display-name").fill("Kauã");
 await page.getByRole("button",{name:/Começar a transmitir/i}).click();
 await page.getByText(/Pronto para compartilhar|Preparando sua tela|Tela principal/i).first().waitFor({timeout:15000});
 await page.screenshot({path:output+"/room.png",fullPage:true});
+await page.getByRole("button",{name:"Recolher participantes"}).click();
+await page.getByRole("button",{name:"Mostrar participantes"}).waitFor();
+await page.getByRole("button",{name:"Mostrar participantes"}).click();
+await page.getByRole("button",{name:"Recolher participantes"}).waitFor();
 
 await page.getByRole("button",{name:"Mostrar controles"}).click();
+await page.getByRole("button",{name:"Recolher controles"}).waitFor();
 await page.getByRole("button",{name:/Diagnóstico/i}).click();
 await page.getByRole("dialog",{name:"Diagnóstico da sala"}).waitFor();
 await page.screenshot({path:output+"/diagnostics.png",fullPage:true});
@@ -55,9 +53,9 @@ await page.locator(".screen-picker-preview video").waitFor({state:"visible"});
 await page.screenshot({path:output+"/share-dialog.png",fullPage:true});
 await page.getByRole("dialog",{name:"Compartilhar tela"}).getByRole("button",{name:"Fechar"}).click();
 
-await page.getByRole("button",{name:"Configurações"}).last().click();
-await page.getByRole("dialog",{name:"Configurações"}).waitFor();
+await page.getByRole("button",{name:"Settings"}).click();
+await page.locator(".room-settings-board").waitFor();
 await page.screenshot({path:output+"/settings.png",fullPage:true});
 
 await browser.close();
-console.log(JSON.stringify({ok:true,shots:["welcome.png","home.png","room.png","diagnostics.png","share-dialog.png","settings.png"]}));
+console.log(JSON.stringify({ok:true,shots:["home.png","room.png","diagnostics.png","share-dialog.png","settings.png"]}));

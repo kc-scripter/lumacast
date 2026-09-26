@@ -8,7 +8,7 @@ import { buildRoomInvite } from "../../../client/src/services/invite";
 import { connectSocket, getSocket } from "../../../client/src/services/socket";
 import { useCollaborativeRoom } from "../../../client/src/services/useCollaborativeRoom";
 import type { Quality } from "../../../client/src/types";
-import { SettingsDialog } from "../components/SettingsDialog";
+import { RoomSettingsPanel } from "../components/RoomSettingsPanel";
 import { DiagnosticsDrawer } from "../components/DiagnosticsDrawer";
 import { ScreenShareDialog } from "../components/ScreenShareDialog";
 import { useDesktopMediaPreferences } from "../hooks/useDesktopMediaPreferences";
@@ -151,25 +151,25 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     onBack();
   };
 
-  return <main className="room-v2-page">
+  return <main className={"room-v2-page "+(showSettings?"settings-view":"")}>
+    <aside className="room-left-nav" aria-label="Navegação da sala">
+      <button type="button" className={showSettings?"":"active"} aria-current={showSettings?undefined:"page"} onClick={()=>setShowSettings(false)}><MonitorUp/><span>Room</span></button>
+      <button type="button" className={showSettings?"active":""} aria-current={showSettings?"page":undefined} onClick={()=>setShowSettings(true)}><Settings/><span>Settings</span></button>
+      <button type="button" className="room-left-exit" onClick={leaveAndBack}><ArrowLeft/><span>Voltar</span></button>
+    </aside>
     <section className="room-v2-header">
       <div className="room-v2-header-left">
-        <button type="button" className="room-v2-back" aria-label="Voltar ao início" onClick={leaveAndBack}><ArrowLeft/></button>
+        <div className="room-v2-art" aria-hidden="true"><span/></div>
         <div className="room-v2-code-block">
-          <span>SALA</span>
-          <div><strong>{roomCode}</strong><button type="button" disabled={!room.roomId} aria-label="Copiar código da sala" onClick={()=>void copyRoomCode()}>{copied?<Check/>:<Copy/>}</button></div>
-        </div>
-        <span className="room-v2-divider"/>
-        <div className="room-v2-connection">
-          <span className={"room-v2-status "+(reconnecting?"warn":room.roomState.live?"live":room.status==="Conectado"?"online":"")}><i/>{missing?"Sala inválida":reconnecting?"Reconectando":room.roomState.live?"Ao vivo":room.status}</span>
-          <small>{missing?"Aguardando sala válida":(room.roomState.screenProvider==="livekit"?"Fallback LiveKit":"Agora RTC")+" · "+(quality==="auto"?"AUTO":quality)+" · "+(room.stats?.fps??fps)+" FPS"}</small>
+          <div><strong>Sala {roomCode}</strong><button type="button" disabled={!room.roomId} aria-label="Copiar código da sala" onClick={()=>void copyRoomCode()}>{copied?<Check/>:<Copy/>}</button></div>
+          <span>{room.roomState.participants.length} {room.roomState.participants.length===1?"pessoa na sala":"pessoas na sala"}</span>
         </div>
       </div>
       <div className="room-v2-header-right">
-        <span className="room-v2-people"><Users/>{room.roomState.participants.length} {room.roomState.participants.length===1?"participante":"participantes"}</span>
+        {owner&&<div className="room-v2-link" title={invite}><Clipboard/><strong>{invite||"Preparando convite…"}</strong><button type="button" disabled={!invite} onClick={()=>void copyInvite()}>{copied?"Copiado":"Copy"}</button></div>}
         {owner&&<button type="button" className={"room-v2-security "+(room.roomState.locked?"locked":"")} disabled={lockBusy||reconnecting||missing||!room.roomId} title={room.roomState.locked?"Permitir novas entradas":"Bloquear novas entradas"} onClick={()=>void toggleRoomLock()}>{room.roomState.locked?<Lock/>:<Unlock/>}{lockBusy?"Salvando…":room.roomState.locked?"Sala trancada":"Trancar sala"}</button>}
         {owner&&<button type="button" className="room-v2-security icon-only" title="Invalidar o convite atual e gerar outro" aria-label="Gerar novo convite temporário" onClick={()=>void renewInvite()}><RefreshCw/></button>}
-        {owner&&<button type="button" className="room-v2-invite" disabled={!invite} onClick={()=>void copyInvite()}><Clipboard/>{copied?"Copiado":"Copiar convite"}</button>}
+        <button type="button" className="room-v2-invite room-v2-more" aria-label="Configurações da sala" title="Abrir configurações da sala" onClick={()=>setShowSettings(true)}>•••</button>
       </div>
     </section>
 
@@ -185,9 +185,10 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
             <button type="button" className="room-v2-stage-action" aria-label="Tela cheia" title="Tela cheia" onClick={()=>void toggleFullscreen()}><Expand/></button>
           </div>
         </div>
-        <div className={"room-v2-stage "+(stageHasVideo?"has-video":"")}>
-          <video className={expandedCamera?"screen-video-hidden":""} ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
+        <div className={"room-v2-stage "+(stageHasVideo?"has-video ":"")+(expandedCamera?"camera-focused":"")}>
+          <video ref={room.videoRef} autoPlay playsInline muted={room.isScreenSharer} onPlaying={()=>setScreenPlaying(true)} onWaiting={()=>setScreenPlaying(false)} onStalled={()=>setScreenPlaying(false)} onEmptied={()=>setScreenPlaying(false)}/>
           {expandedCamera&&<div className="room-v2-focused-camera"><OptimizedVideoTile track={expandedCamera.track}/></div>}
+          {expandedCamera&&<div className="room-v2-secondary-label"><MonitorUp/>{room.roomState.live?"Compartilhamento de tela":"Tela não compartilhada"}</div>}
           {!expandedCamera&&<div className="room-v2-stage-empty">
             <span className="room-v2-stage-icon"><MonitorUp/></span>
             <h2>{stageTitle}</h2>
@@ -196,7 +197,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
           </div>}
         </div>
         {cameraEntries.length>0&&<section className="room-v2-camera-dock" aria-label="Câmeras ativas na sala">
-          <div className="room-v2-camera-strip">{cameraEntries.map(camera=><button type="button" className={"room-v2-camera-tile "+(expandedCameraId===camera.identity?"selected":"")} key={camera.identity} onClick={()=>setExpandedCameraId(camera.identity)} aria-label={"Focar câmera de "+camera.displayName} aria-pressed={expandedCameraId===camera.identity}>
+          <div className="room-v2-camera-strip">{cameraEntries.map(camera=><button type="button" className={"room-v2-camera-tile "+(expandedCameraId===camera.identity?"selected":"")} key={camera.identity} onClick={()=>setExpandedCameraId(current=>current===camera.identity?null:camera.identity)} aria-label={(expandedCameraId===camera.identity?"Tirar foco da câmera de ":"Focar câmera de ")+camera.displayName} aria-pressed={expandedCameraId===camera.identity}>
             <OptimizedVideoTile track={camera.track}/>
             <span className="room-v2-camera-name"><i/>{camera.displayName}{camera.mine?" (Você)":""}</span>
             <span className="room-v2-expand"><Maximize2/></span>
@@ -237,7 +238,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
     </section>
 
     <button type="button" className={"room-v2-toolbar-toggle "+(controlsOpen?"expanded":"")} aria-label={controlsOpen?"Recolher controles":"Mostrar controles"} aria-expanded={controlsOpen} onClick={()=>setControlsOpen(value=>!value)}>{controlsOpen?<ChevronDown/>:<ChevronUp/>}</button>
-    <div className={"room-v2-toolbar "+(controlsOpen?"expanded":"collapsed")} aria-label="Controles da sala" aria-hidden={!controlsOpen}>
+    <div className={"room-v2-toolbar "+(controlsOpen?"expanded":"collapsed")} aria-label="Controles da sala" aria-hidden={!controlsOpen} inert={!controlsOpen}>
       {room.isScreenSharer
         ?<><button type="button" className="room-v2-tool active share" title="Parar compartilhamento" aria-pressed="true" onClick={()=>void room.stopScreen()}><Square/><span>Parar tela</span></button><button type="button" className="room-v2-tool" title="Trocar tela ou janela sem sair da sala" onClick={()=>setShareDialog("switch")}><RefreshCw/><span>Trocar fonte</span></button></>
         :<button type="button" className="room-v2-tool share" title={busy?"Outra pessoa está compartilhando":"Compartilhar tela"} disabled={busy||!canShare||!room.roomId||missing} onClick={()=>setShareDialog("start")}><MonitorUp/><span>{busy?"Tela ocupada":"Compartilhar"}</span></button>}
@@ -251,7 +252,7 @@ export function RoomPage({owner,roomId:requestedRoomId,inviteToken:requestedInvi
       <button type="button" className="room-v2-tool leave" title="Sair da sala" onClick={leaveAndBack}><LogOut/><span>Sair da sala</span></button>
     </div>
 
-    {showSettings&&<SettingsDialog onClose={()=>setShowSettings(false)} quality={quality} setQuality={setQuality} fps={fps} setFps={setFps} cameraPreset={room.cameraPreset} setCameraPreset={room.setCameraPreset} sharing={room.isScreenSharer} onApplyQuality={value=>void applyQuality(value)} onApplyFps={value=>void room.updateScreenFrameRate(value)}/>}
+    {showSettings&&<RoomSettingsPanel quality={quality} setQuality={setQuality} fps={fps} setFps={setFps} cameraPreset={room.cameraPreset} setCameraPreset={room.setCameraPreset} sharing={room.isScreenSharer} onApplyQuality={value=>void applyQuality(value)} onApplyFps={value=>void room.updateScreenFrameRate(value)}/>}
     {showStats&&<StatsDrawer title="Estatísticas da transmissão" stats={room.stats} onClose={()=>setShowStats(false)}/>}
     {showDiagnostics&&<DiagnosticsDrawer onClose={()=>setShowDiagnostics(false)} onRecover={room.recoverMedia} recovering={room.recovering} status={room.status} provider={room.roomState.screenProvider} roomId={room.roomId} live={room.roomState.live} stats={room.stats} cameraCount={cameraEntries.length} participantCount={room.roomState.participants.length}/>}
     {shareDialog&&<ScreenShareDialog mode={shareDialog} stream={room.previewStream} quality={quality} fps={fps} onPreset={setPreset} onPick={pickScreen} onConfirm={confirmShare} onCancel={closeShareDialog} busy={shareBusy}/>}
