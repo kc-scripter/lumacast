@@ -56,7 +56,7 @@ const mediaDetails=[
   {
     icon:<Video/>,
     title:"Câmera",
-    value:"720p40 ou 480p60",
+    value:"1080p50, 720p40 ou 480p60",
     text:"A câmera usa LiveKit e pode trocar de preset enquanto está ligada. A webcam ainda pode limitar resolução ou FPS.",
   },
   {
@@ -109,7 +109,7 @@ export function HowItWorksPage(){
 
         <div className="how-v3-hero-points" aria-label="Resumo do Lunira Screen">
           <span><MonitorPlay/><b>Até 1080p60</b><small>compartilhamento de tela</small></span>
-          <span><Video/><b>Câmera flexível</b><small>720p40 ou 480p60</small></span>
+          <span><Video/><b>Câmera flexível</b><small>1080p50, 720p40 ou 480p60</small></span>
           <span><RefreshCw/><b>Recuperação</b><small>reconexão e fallback</small></span>
         </div>
 
@@ -230,7 +230,7 @@ export function HowItWorksPage(){
       <div className="how-v2-fact-grid">
         <article><span><Users/></span><div><b>Uma tela por vez</b><p>Qualquer membro pode pedir para compartilhar, mas existe um bloqueio para impedir duas telas simultâneas na mesma sala.</p></div></article>
         <article><span><LockKeyhole/></span><div><b>Sessões temporárias</b><p>As salas usam credenciais temporárias de RTC. O Lunira Screen não grava nem armazena o conteúdo da transmissão.</p></div></article>
-        <article><span><Video/></span><div><b>Hardware ainda importa</b><p>Solicitar 480p60 ou 720p40 não faz uma webcam ultrapassar o FPS ou a resolução que ela realmente suporta.</p></div></article>
+        <article><span><Video/></span><div><b>Hardware ainda importa</b><p>Solicitar 1080p50, 480p60 ou 720p40 não faz uma webcam ultrapassar o FPS ou a resolução que ela realmente suporta.</p></div></article>
       </div>
     </section>
 
@@ -254,7 +254,7 @@ export function HowItWorksPage(){
         </details>
         <details>
           <summary>Posso mudar a qualidade da câmera sem desligá-la?<ArrowRight/></summary>
-          <p>Sim. O Lunira Screen tenta trocar entre 720p40 e 480p60 mantendo a câmera ativa. Se o navegador exigir, a faixa é recriada automaticamente por trás da interface.</p>
+          <p>Sim. O Lunira Screen tenta trocar entre 1080p50, 720p40 e 480p60 mantendo a câmera ativa. Se o navegador exigir, a faixa é recriada automaticamente por trás da interface.</p>
         </details>
         <details>
           <summary>O áudio da tela sempre funciona?<ArrowRight/></summary>

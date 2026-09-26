@@ -2,7 +2,7 @@ import AgoraRTC,{type IAgoraRTCClient,type IAgoraRTCRemoteUser,type ILocalAudioT
 import { Room,RoomEvent,Track,type Participant,type RemoteTrack,type RemoteTrackPublication,type TrackPublication,type TrackPublishOptions,type VideoCaptureOptions } from "livekit-client";
 import { useCallback,useEffect,useRef,useState } from "react";
 import { safeSessionGet,safeSessionRemove,safeSessionSet } from "./browser";
-import { recordDiagnostic } from "./diagnostics";
+import { recordDiagnostic,submitDiagnosticReport } from "./diagnostics";
 import { connectSocket } from "./socket";
 import { displayConstraints,readAgoraStats } from "./webrtc";
 import type { AgoraCredentials,CameraPreset,FrameRate,JoinAck,Quality,RoomAck,RoomState,ScreenProvider,StreamStats,TokenAck } from "../types";
@@ -21,9 +21,11 @@ const captureConstraints=(quality:Quality,settings:MediaTrackSettings,captureFps
   const size=videoSize(quality,settings);
   return{width:{ideal:size.width},height:{ideal:size.height},frameRate:{ideal:captureFps,max:captureFps}};
 };
-const cameraPresetConfig=(preset:CameraPreset)=>preset==="480p60"
-  ?{width:854,height:480,fps:60,maxBitrate:1_200_000}
-  :{width:1280,height:720,fps:40,maxBitrate:1_800_000};
+const cameraPresetConfig=(preset:CameraPreset)=>preset==="1080p50"
+  ?{width:1920,height:1080,fps:50,maxBitrate:4_500_000}
+  :preset==="480p60"
+    ?{width:854,height:480,fps:60,maxBitrate:1_200_000}
+    :{width:1280,height:720,fps:40,maxBitrate:1_800_000};
 const cameraCaptureOptions=(preset:CameraPreset):VideoCaptureOptions=>{
   const {width,height,fps}=cameraPresetConfig(preset);
   return{resolution:{width,height},frameRate:{ideal:fps,max:fps}};
@@ -664,11 +666,12 @@ export function useCollaborativeRoom(owner:boolean,requestedRoomId?:string,reque
       }
     };
     const onDisconnect=()=>{setStatus("Reconectando");recordDiagnostic("warn","socket","Socket desconectado; aguardando reconexão");};
+    const onConnectError=(cause:Error)=>{setStatus("Servidor indisponível");setError("Não foi possível conectar ao servidor. Tentando novamente automaticamente.");recordDiagnostic("error","socket","Falha ao conectar ao servidor",cause);void submitDiagnosticReport({kind:"socket-connect-error",room:{roomId:roomIdRef.current,status:"unavailable"}}).catch(()=>undefined);};
     const onExpired=()=>{setStatus("missing");if(owner)safeSessionRemove("lumacast-broadcaster");else safeSessionRemove(`lumacast-participant-${roomIdRef.current}`);};
     const onKicked=(payload:{reason?:string})=>{safeSessionRemove(`lumacast-participant-${roomIdRef.current}`);safeSessionRemove(`lumacast-invite-${roomIdRef.current}`);safeSessionRemove(`lumacast-guest-${roomIdRef.current}`);setKicked(true);setStatus("missing");setError(payload?.reason||"Você foi removido da sala.");recordDiagnostic("warn","room","Participante removido da sala");};
-    socket.on("connect",connect);socket.on("disconnect",onDisconnect);socket.on("room-state",onState);socket.on("room-expired",onExpired);socket.on("kicked",onKicked);
+    socket.on("connect",connect);socket.on("disconnect",onDisconnect);socket.on("connect_error",onConnectError);socket.on("room-state",onState);socket.on("room-expired",onExpired);socket.on("kicked",onKicked);
     if(socket.connected)connect();
-    return()=>{socket.off("connect",connect);socket.off("disconnect",onDisconnect);socket.off("room-state",onState);socket.off("room-expired",onExpired);socket.off("kicked",onKicked);};
+    return()=>{socket.off("connect",connect);socket.off("disconnect",onDisconnect);socket.off("connect_error",onConnectError);socket.off("room-state",onState);socket.off("room-expired",onExpired);socket.off("kicked",onKicked);};
   },[clearVideo,ensureLivekit,fallback,owner,requestedInviteToken,requestedRoomId,showVideo,updateState]);
   useEffect(()=>{
     const shouldJoin=!!credentials&&roomState.live&&roomState.screenProvider==="agora"&&roomState.activeScreenUid!==null&&roomState.activeScreenSharerId!==socketIdRef.current;

@@ -15,6 +15,7 @@ const configuredOrigins=(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL||"htt
 const allowedOrigins=new Set(configuredOrigins);
 const desktopOrigins=new Set(["http://tauri.localhost","https://tauri.localhost","tauri://localhost"]);
 const originAllowed=(value?:string)=>Boolean(value&&value!=="null"&&(desktopOrigins.has(value)||allowedOrigins.has(value)));
+const sameOriginFetch=(value:string|string[]|undefined)=>value==="same-origin";
 const telemetryText=(value:unknown,max:number)=>typeof value==="string"?value.replace(/([?&](?:invite|token|guest|code)=)[^&#\s]+/gi,"$1[redacted]").replace(/\b[A-Za-z0-9_-]{43}\b/g,"[secret]").slice(0,max):undefined;
 const telemetryNumber=(value:unknown)=>typeof value==="number"&&Number.isFinite(value)?value:undefined;
 const corsOptions:CorsOptions={
@@ -72,7 +73,7 @@ app.get("/api/wake",(_req,res)=>{
 app.get("/api/health",(_req,res)=>{
   const status=res.locals.runtimeEnvironment as ReturnType<typeof runtimeEnvironmentStatus>;
   res.setHeader("Cache-Control","no-store");
-  res.status(status.ready?200:503).json({ok:status.ready,service:"lunira-screen-signaling",code:status.ready?undefined:"SERVICE_NOT_READY"});
+  res.status(status.ready?200:503).json({ok:status.ready,service:"lunira-screen-signaling",code:status.ready?undefined:"SERVICE_NOT_READY",issues:status.ready?undefined:status.issues});
 });
 app.post("/api/telemetry",express.json({limit:"16kb"}),(req,res)=>{
   const body=req.body as {generatedAt?:unknown;runtime?:Record<string,unknown>;room?:Record<string,unknown>;stats?:Record<string,unknown>|null;kind?:unknown;events?:unknown};
@@ -99,8 +100,8 @@ app.use("/api",(_req,res)=>res.status(404).json({ok:false,error:"Not found"}));
 const httpServer=createServer(app);
 const io=new Server(httpServer,{
   cors:corsOptions,
-  // Same-origin polling GET requests can omit Origin; browsers still send it for cross-origin requests.
-  allowRequest:(req,callback)=>callback(null,req.headers.origin===undefined||originAllowed(req.headers.origin)),
+  // Browser polling requests may omit Origin. Require Fetch Metadata in that case so non-browser clients cannot bypass origin validation.
+  allowRequest:(req,callback)=>callback(null,originAllowed(req.headers.origin)||(!req.headers.origin&&sameOriginFetch(req.headers["sec-fetch-site"]))),
   maxHttpBufferSize:64*1024,
   pingTimeout:20_000,
   pingInterval:25_000

@@ -1,6 +1,6 @@
 export type Quality = "auto" | "720p" | "1080p";
 export type FrameRate = 30 | 60;
-export type CameraPreset = "720p40" | "480p60";
+export type CameraPreset = "1080p50" | "720p40" | "480p60";
 export type ConnectionLabel = "connecting" | "connected" | "reconnecting" | "disconnected" | "failed";
 export type ScreenSourceType = "screen" | "window";
 export interface ScreenSource { id:string; name:string; type:ScreenSourceType; thumbnail?:string; appIcon?:string; display_id?:string; }

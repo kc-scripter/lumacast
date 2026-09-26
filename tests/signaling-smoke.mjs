@@ -37,8 +37,10 @@ const viewer1b=await connect();
 const rejoined=await ack(viewer1b,"join-room",{roomId:created.roomId,participantToken:reconnectToken,displayName:"Ignored Name"});
 assert.equal(rejoined.ok,true);assert.equal(rejoined.displayName,"Smoke Viewer 1");
 
+const maxParticipants=Number(process.env.MAX_ROOM_PARTICIPANTS||50);
+assert.ok(Number.isInteger(maxParticipants)&&maxParticipants>=2);
 const capacitySockets=[];
-for(let index=3;index<=8;index++){
+for(let index=3;index<=maxParticipants;index++){
   const socket=await connect();capacitySockets.push(socket);
   const joined=await ack(socket,"join-room",{roomId:created.roomId,inviteToken:created.inviteToken,displayName:`Smoke Viewer ${index}`});
   assert.equal(joined.ok,true);

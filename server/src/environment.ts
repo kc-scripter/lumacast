@@ -9,13 +9,11 @@ const configurationMessage="O serviço de transmissão ainda não está configur
 export function runtimeEnvironmentStatus():RuntimeEnvironmentStatus{
   const issues:string[]=[];
   if(!(process.env.CLIENT_ORIGIN||process.env.PUBLIC_URL))issues.push("CLIENT_ORIGIN/PUBLIC_URL");
-  if(!/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_ID||""))issues.push("AGORA_APP_ID");
-  if(!/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_CERTIFICATE||""))issues.push("AGORA_APP_CERTIFICATE");
+  const agoraReady=/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_ID||"")&&/^[0-9a-f]{32}$/i.test(process.env.AGORA_APP_CERTIFICATE||"");
   const livekitUrl=process.env.LIVEKIT_URL?.trim();
-  if(!livekitUrl||!/^wss?:\/\//i.test(livekitUrl))issues.push("LIVEKIT_URL");
-  if(!process.env.LIVEKIT_API_KEY?.trim())issues.push("LIVEKIT_API_KEY");
-  if(!process.env.LIVEKIT_API_SECRET?.trim())issues.push("LIVEKIT_API_SECRET");
-  return {ready:true,issues,message:configurationMessage};
+  const livekitReady=!!livekitUrl&&/^wss?:\/\//i.test(livekitUrl)&&!!process.env.LIVEKIT_API_KEY?.trim()&&!!process.env.LIVEKIT_API_SECRET?.trim();
+  if(!agoraReady&&!livekitReady)issues.push("AGORA ou LIVEKIT");
+  return {ready:issues.length===0,issues,message:configurationMessage};
 }
 
 export function configurationError(){

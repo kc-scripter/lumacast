@@ -54,9 +54,16 @@ await new Promise((resolve,reject)=>{
 
 await new Promise((resolve,reject)=>{
   const socket=io(url,{forceNew:true,transports:["websocket"],reconnection:false,timeout:3000});
-  const timer=setTimeout(()=>{socket.disconnect();reject(new Error("Conexão sem Origin foi aceita."));},4000);
-  socket.once("connect",()=>{clearTimeout(timer);socket.disconnect();reject(new Error("Conexão sem Origin foi aceita."));});
+  const timer=setTimeout(()=>{socket.disconnect();reject(new Error("Conexão sem Origin foi aceita sem Fetch Metadata."));},4000);
+  socket.once("connect",()=>{clearTimeout(timer);socket.disconnect();reject(new Error("Conexão sem Origin foi aceita sem Fetch Metadata."));});
   socket.once("connect_error",()=>{clearTimeout(timer);socket.disconnect();resolve();});
+});
+
+await new Promise((resolve,reject)=>{
+  const socket=io(url,{forceNew:true,transports:["polling"],reconnection:false,timeout:3000,extraHeaders:{"Sec-Fetch-Site":"same-origin"}});
+  const timer=setTimeout(()=>{socket.disconnect();reject(new Error("Polling da mesma origem não conseguiu conectar."));},4000);
+  socket.once("connect",()=>{clearTimeout(timer);socket.disconnect();resolve();});
+  socket.once("connect_error",error=>{clearTimeout(timer);socket.disconnect();reject(error);});
 });
 
 await new Promise((resolve,reject)=>{

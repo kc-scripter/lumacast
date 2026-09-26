@@ -37,8 +37,8 @@ export function SettingsDialog({
           <div className="settings-note"><strong>Uso eficiente de mídia</strong><p>O desktop não abre uma segunda transmissão para o mesmo vídeo. A rota alternativa só entra quando a sala realmente precisa dela.</p></div>
         </section>}
         {tab==="camera"&&hasCamera&&<section className="settings-section">
-          <div><h3>Câmera</h3><p>Somente os presets que já existem no cliente web.</p></div>
-          <label className="setting-field"><span><b>Preset da câmera</b><small>Escolha entre resolução ou maior fluidez.</small></span><select value={cameraPreset} onChange={event=>setCameraPreset?.(event.target.value as CameraPreset)}><option value="720p40">720p · 40 FPS</option><option value="480p60">480p · 60 FPS</option></select></label>
+          <div><h3>Câmera</h3><p>Os mesmos presets disponíveis no cliente web.</p></div>
+          <label className="setting-field"><span><b>Preset da câmera</b><small>1080p50 pede 1920×1080 a 50 FPS quando a câmera suportar.</small></span><select value={cameraPreset} onChange={event=>setCameraPreset?.(event.target.value as CameraPreset)}><option value="1080p50">1080p · 50 FPS</option><option value="720p40">720p · 40 FPS</option><option value="480p60">480p · 60 FPS</option></select></label>
         </section>}
       </div>
     </div>
