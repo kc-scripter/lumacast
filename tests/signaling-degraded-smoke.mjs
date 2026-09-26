@@ -11,9 +11,10 @@ const connect=()=>new Promise((resolve,reject)=>{
 });
 
 const health=await fetch(url+"/api/health",{headers:{Origin:origin}});
-assert.equal(health.status,200);
+assert.equal(health.status,503);
 const healthBody=await health.json();
-assert.equal(healthBody.ok,true);
+assert.equal(healthBody.ok,false);
+assert.equal(healthBody.code,"SERVICE_NOT_READY");
 
 const host=await connect(),viewer=await connect();
 try{
